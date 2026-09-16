@@ -163,7 +163,7 @@ rm -rf /tmp/sp
 9. `## The Persist Gate` 节：落盘前单独一条消息征求同意
 10. `## Writing the Design Document` / `## Document Format Requirements` 节
 11. `## Self-Review` 节：逐节核对模板合规的 6 项清单（替换 spec 自审）
-12. `## Subagent Review` 节 + `design-doc-reviewer-prompt.md`
+12. `## Subagent Review` 节 + `design-doc-reviewer-prompt.md`，含重跑规则：修订涉及结论 / 决策 / 流程 → 重跑子代理审查；纯措辞或笔误修订 → 只需自审
 13. `## User Review Gate` 与 `## Terminal State` 节
 14. Red Flags 表新增 4 行（随口问问也落盘 / 自创文档格式 / 聊完就实现 / 落盘门），改写 1 行
 15. `## Process Flow` 中新增 Persist Gate 分支，终态改为 `Done` / `Stop here (no file)`

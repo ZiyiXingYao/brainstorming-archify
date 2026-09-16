@@ -269,8 +269,9 @@ After self-review passes, dispatch a review subagent using
 the design document's path.
 
 - Verdict **approved** → go to the user review gate
-- Verdict **issues found** → fix in place, then re-run self-review (and
-  the subagent review if needed)
+- Verdict **issues found** → fix in place, then re-run self-review. Then
+  re-review with a subagent whenever the fix changed a conclusion, a
+  decision, or a flow. A wording-only or typo fix needs self-review alone.
 
 ## User Review Gate
 
