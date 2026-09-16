@@ -1,131 +1,288 @@
 ---
 name: brainstorming
-description: 动手设计或实现之前的头脑风暴技能。当用户提出新想法、新功能、新组件、行为变更，或需求模糊、需要方案选型与设计讨论时使用。通过一问一答澄清意图、约束与取舍，最终（经用户同意）按固定模板产出一份人类可读的设计文档。
+description: "You MUST use this before any design or implementation work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation, and turns the settled design into a human-readable design document."
 ---
 
-# Brainstorming 头脑风暴
+# Brainstorming Ideas Into Designs
 
-把想法通过对话收敛成设计，并按固定模板产出一份**人类可读的设计文档**。
+Help turn ideas into fully formed designs through natural collaborative dialogue.
 
-## 边界（最重要）
+Start by classifying how much process the request needs, then work
+through your path: understand the context, refine the idea, present a
+design, and get your human partner's approval. Once the design has
+settled and your human partner wants it kept, write it out as a
+human-readable design document.
 
-**只做**：澄清意图 → 探讨方案 → 收敛设计 →（经用户同意）产出设计文档。
+## Scope
 
-**不做**：
-- 不写代码、不建脚手架、不做任何实现动作
-- **不接任何下游技能**——不调用 writing-plans，也不调用任何实现类技能
-- 不产出 spec 模式文档（需求编号、验收标准、任务清单、Given/When/Then）
+**This skill only does this:** clarify intent → explore approaches →
+settle the design → (with your human partner's consent) write a
+human-readable design document.
 
-**产出物去向**：本技能结束后，设计文档由用户交给 `spec-superflow` 等流程继续处理，本技能不负责衔接。
+**It does NOT:**
 
-## 硬门（HARD-GATE）
+- write code, scaffold projects, or take any implementation action
+- invoke any downstream skill — no writing-plans, no implementation skills
+- produce spec-mode artifacts (requirement IDs, acceptance criteria,
+  task lists, Given/When/Then)
 
-在获得用户对设计意图的**明确批准**之前，不实现、不写代码、不落盘文档。
-流程可以随任务复杂度缩放，批准门不缩放。
+**Where the output goes:** your human partner hands the design document
+to a separate process (for example spec-superflow). This skill is not
+responsible for that handoff.
 
-## 第一步：路径分类
+<HARD-GATE>
+Do NOT invoke any implementation skill, write any code, scaffold any
+project, or take any implementation action until you have told your
+human partner what you intend and they have approved it. This applies
+to EVERY task on EVERY path below — the ceremony scales with the task;
+the approval gate never does.
+</HARD-GATE>
 
-开口问第一个问题之前，先分类并**说出分类结果**，让用户可以否决：
+## Three Paths
 
-- **Spike（探路）**——可行性问题（"能不能…""可行吗…""随便试试就行"）。产出是**答案**，不是要保留的代码。用 2-3 句话说明要验证什么、怎么验证，得到点头后以最低成本验证，最后汇报结论。
-- **Bounded（有界）**——对仓库里**已有代码**做范围明确的小改动（加个开关、一个小接口、单文件修复）。要求：被改的流程在当前仓库里读得到；如果根本没有可改的现成流程，就不是 bounded。问关键问题 → 在**对话里**给出简短设计 → 停下等批准。
-- **Architectural（架构级）**——新项目、新子系统、改变组件组合方式、或涉及他人依赖的接口。走完整流程：提问 → 方案对比 → 分节设计 → 按模板产出设计文档。
+Before your first question, classify the request and say the
+classification out loud — "this looks bounded, so I'll present a short
+design here rather than write a design doc" — so your human partner can
+override it:
 
-两种路径拿不准时，**取重的那个**。棘轮是单向的：中途发现隐藏复杂度就升级路径并说明；任何情况都不降级。
+- **Spike** — a feasibility question ("can we...", "is it possible...",
+  "quick and dirty is fine") whose output is an answer, not code you
+  keep. Present the question and what you'll try in 2-3 sentences, get
+  a nod, then find out as cheaply as correctness allows. No design
+  doc. Report findings as a recommendation; anything you built stays
+  labeled throwaway.
+- **Bounded** — a well-scoped change to code that already exists in
+  this repo: a new flag, a small endpoint, a one-file fix.
+  Understanding the kind of app is not enough — bounded means the flow
+  you are changing is already here to read. If there is no existing
+  flow to change, the task is not bounded. Ask the clarifying
+  questions that matter, present a short design IN CHAT (a few
+  sentences to a few short paragraphs), and STOP. Implementation
+  starts only after your human partner says yes to that design — a
+  bounded task's approval is as hard a gate as an architectural
+  one. No design doc is written during this step.
+- **Architectural** — new projects, new subsystems, changes that
+  restructure how components fit together or alter interfaces others
+  depend on. Follow the full process: questions, approaches, sectioned
+  design, then the Persist Gate.
 
-## 各路径清单
+When in doubt between two paths, take the heavier one. The ratchet is
+one-way: hidden complexity discovered mid-task upgrades the path —
+stop, say so, and step up. Nothing downgrades mid-task.
 
-**Spike：**
-1. 了解项目上下文（够框定验证即可）
-2. 说明要验证的问题 + 验证计划（2-3 句）
-3. 获得批准（点头即可）
-4. 以最低成本验证
-5. 汇报结论——任何临时产物都标注为"一次性、不保留"
+## Anti-Pattern: "Too Simple To Need Approval"
 
-**Bounded：**
-1. 了解项目上下文（文件、文档、近期提交）
-2. 一次一个问题，只问真正关键的
-3. 在对话里给出简短设计（思路、涉及文件、怎么验证）
-4. **停下等明确同意**——给出设计和开始动手在同一口气里，就是跳过了批准门
-5. 收敛后进入「落盘门」
-
-**Architectural：**
-1. 了解项目上下文
-2. 一次一个问题，理解目的 / 约束 / 成功标准
-3. 提出 2-3 个方案及取舍，并给出推荐
-4. 分节呈现设计，每节后确认
-5. 收敛后进入「落盘门」
-
-## 落盘门（本技能的核心收尾）
-
-设计收敛后，**必须先询问用户是否要把讨论结果整理成设计文档**，而且要**单独一条消息**只问这一件事。
-
-原因：用户可能只是随口问一下，并不需要产出文件。
-
-- 用户说**不要** → 直接结束。对话里已表达清楚的结论就是全部产出，**不落盘**，不再追问。
-- 用户说**要** → 进入「生成设计文档」。
-
-询问示例：
-> "要不要把这次讨论的结果整理成一份设计文档存下来？如果不需要，我们到这里就可以了。"
-
-## 生成设计文档
-
-1. **先读模板**：读取本技能目录下的 `design-doc-template.md`。这是强制步骤。
-2. **严格按模板填充**：章节顺序、章节名一律不变；不新增、不删减章节。模板中不适用的章节保留标题，写"不适用：<原因>"。
-3. **写入路径**：`docs/specs/design/YYYY-MM-DD-<主题>.md`
-   - `<主题>` 用简短英文或中文短语，词间用 `-`
-   - 用户明确指定路径时以用户为准
-4. **自审**（见下）
-5. **子代理审查**（见下）
-6. **请用户确认**文档
-
-## 文档格式要求
-
-- **叙述式**：用完整句子讲清楚背景、取舍、结论，让人读得懂
-- **禁止 spec 模式**：不出现需求编号、验收标准、任务清单、Given/When/Then
-- **语言与当前对话一致**：中文对话产中文文档，英文对话产英文文档
-- **具体**：不留 `TBD`、`TODO`、空段落；未定的写进"待定问题与风险"并说明为什么未定
-
-## 自审清单（写完立即做）
-
-逐项核对，有问题就地改：
-
-1. **模板合规**：模板里每个章节都在吗？顺序一致吗？有没有多出来的章节？
-2. **占位符扫描**：有没有 `TBD`、`TODO`、`<...>` 未替换、空章节？
-3. **内部一致性**：各章节之间有没有互相矛盾？推荐方案和方案对比的结论一致吗？
-4. **歧义检查**：有没有任何一句能被两种方式理解？有就选定一种写明。
-5. **决策可追溯**：每个关键决策都写了理由和被否决的选项吗？
-6. **范围检查**：是否聚焦在单个可处理的设计上，而不是把多个独立子系统混在一起？
-
-## 子代理审查
-
-自审通过后，按本技能目录下的 `design-doc-reviewer-prompt.md` 派发一个审查子代理，把设计文档路径交给它。
-
-- 结论为**通过** → 进入用户确认
-- 结论为**发现问题** → 就地修订，然后重跑自审（必要时重跑子代理审查）
-
-## 用户确认门
-
-> "设计文档已写到 `<路径>`，请过一遍，确认无误后我们就结束。"
-
-等用户回复。用户要求修改就改，改完重跑自审；用户确认后结束。
-
-## 终态
-
-本技能**到此结束**。
-
-- 不调用任何后续技能
-- 不创建实现计划，不进入实现
-- 可以提示用户："这份文档可以交给 spec-superflow 继续处理。"
+Every path ends with your human partner approving your intent before
+implementation. A todo list, a single-function utility, a config
+change — the design may be two sentences in chat, but you MUST present
+it and get approval. "Simple" tasks are where unexamined assumptions
+cause the most wasted work. What scales with simplicity is the
+artifact, never the approval.
 
 ## Red Flags
 
-| 想法 | 现实 |
-|------|------|
-| "这个太简单了，不用设计" | 简单意味着设计可以短，不是没有设计。 |
-| "用户只是随便问问，我顺手把文档写了" | 落盘必须**先问**。用户没说要文件就不写文件。 |
-| "我先把代码写起来，用户看文档就懂了" | 批准门在落盘和实现之前，不是之后。 |
-| "这个我熟，算 bounded" | bounded 衡量的是仓库里有没有可改的现成流程，不是你的熟悉度。 |
-| "文档就按我自己习惯的格式写" | 必须用 `design-doc-template.md`，保证每次产出结构一致。 |
-| "Spike 跑通了，代码留着用" | Spike 的产出是答案。留下代码是新请求，要重新分类。 |
-| "聊完了，直接接着做实现吧" | 本技能不接实现。产出是文档，下一步由用户决定。 |
+| Thought | Reality |
+|---------|---------|
+| "This is too simple to need a design" | Simple means a short design, not no design. Two sentences in chat, then approval. |
+| "I'll call it bounded and skip the design doc" | Reaching for a label to skip work IS the doubt — take the heavier path. |
+| "It's bounded and the design is obvious — I'll start while they read it" | The gate is the approval, not the design's length. Present, then stop until you hear yes. |
+| "I understand this kind of app, so it's bounded" | Bounded measures the repo, not your familiarity. A new project has no existing flow — it is architectural. |
+| "They just asked casually, so I'll write the doc anyway" | The Persist Gate: ask first. No consent, no file. |
+| "I'll write the doc in whatever shape feels right" | The design document MUST follow `design-doc-template.md`, in section and in order. |
+| "The spike works, so I'll keep the code" | A spike's output is an answer. Keeping the code is a new request — classify it. |
+| "It grew, but I'm almost done — no need to re-classify" | Hidden complexity upgrades the path mid-task. Stop and say so. |
+| "They approved the spike, so the follow-up change is approved too" | Each task gets its own classification and its own approval. |
+| "We're done brainstorming, so I'll start implementing" | This skill ends at the approved design document. It never implements. |
+
+## Checklist
+
+Classify first, announce the path, then create a task for each item on
+your path and complete them in order.
+
+**Spike:**
+1. **Explore project context** — enough to frame the probe
+2. **Present question + probe plan** — 2-3 sentences
+3. **Get approval** — a nod is enough
+4. **Investigate** — as cheaply as correctness allows
+5. **Report findings** — a recommendation; label anything built as throwaway
+
+**Bounded:**
+1. **Explore project context** — check files, docs, recent commits
+2. **Ask clarifying questions** — one at a time, the ones that matter
+3. **Present short design in chat** — approach, files touched, testing
+4. **Get approval** — STOP and wait for an explicit yes; presenting the design and starting in the same breath is skipping the gate
+5. **Move to the Persist Gate**
+
+**Architectural:**
+1. **Explore project context** — check files, docs, recent commits
+2. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
+3. **Propose 2-3 approaches** — with trade-offs and your recommendation
+4. **Present design** — in sections scaled to their complexity, get user approval after each section
+5. **Move to the Persist Gate**
+
+## Process Flow
+
+```dot
+digraph brainstorming {
+    "Classify: spike / bounded / architectural" [shape=diamond];
+    "Present question + probe (2-3 sentences)" [shape=box];
+    "Ask clarifying questions (bounded)" [shape=box];
+    "Present short design in chat" [shape=box];
+    "Ask clarifying questions" [shape=box];
+    "Propose 2-3 approaches" [shape=box];
+    "Present design sections" [shape=box];
+    "User approves design?" [shape=diamond];
+    "Investigate; report recommendation" [shape=doublecircle];
+    "Persist Gate: write the doc?" [shape=diamond];
+    "Stop here (no file)" [shape=doublecircle];
+    "Read template; write design doc" [shape=box];
+    "Self-review (fix inline)" [shape=box];
+    "Subagent review" [shape=box];
+    "User reviews doc?" [shape=diamond];
+    "Done" [shape=doublecircle];
+
+    "Classify: spike / bounded / architectural" -> "Present question + probe (2-3 sentences)" [label="spike"];
+    "Classify: spike / bounded / architectural" -> "Ask clarifying questions (bounded)" [label="bounded"];
+    "Classify: spike / bounded / architectural" -> "Ask clarifying questions" [label="architectural"];
+    "Present question + probe (2-3 sentences)" -> "Investigate; report recommendation" [label="nod"];
+    "Ask clarifying questions (bounded)" -> "Present short design in chat";
+    "Present short design in chat" -> "User approves design?";
+    "Ask clarifying questions" -> "Propose 2-3 approaches";
+    "Propose 2-3 approaches" -> "Present design sections";
+    "Present design sections" -> "User approves design?";
+    "User approves design?" -> "Present design sections" [label="no, revise"];
+    "User approves design?" -> "Persist Gate: write the doc?" [label="yes"];
+    "Persist Gate: write the doc?" -> "Stop here (no file)" [label="no"];
+    "Persist Gate: write the doc?" -> "Read template; write design doc" [label="yes"];
+    "Read template; write design doc" -> "Self-review (fix inline)";
+    "Self-review (fix inline)" -> "Subagent review";
+    "Subagent review" -> "User reviews doc?";
+    "User reviews doc?" -> "Read template; write design doc" [label="issues found"];
+    "User reviews doc?" -> "Done" [label="approved"];
+}
+```
+
+**Terminal states are path-bound.** Spike: the terminal state is a
+reported recommendation. Bounded and Architectural: the terminal state
+is an approved design document — or no file at all when your human
+partner declines the Persist Gate. This skill never continues into
+implementation.
+
+## The Process
+
+The subsections below serve the bounded and architectural paths (a
+spike stops at "present the probe, get a nod"). Sections from
+**Exploring approaches** onward are architectural-path depth — for
+bounded work, context plus a few questions plus a short in-chat design
+is the whole process.
+
+**Understanding the idea:**
+
+- Check out the current project state first (files, docs, recent commits)
+- Before asking detailed questions, assess scope: if the request describes multiple independent subsystems (e.g., "build a platform with chat, file storage, billing, and analytics"), flag this immediately. Don't spend questions refining details of a project that needs to be decomposed first.
+- If the project is too large for a single design, help the user decompose into sub-projects: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first sub-project through the normal design flow. Each sub-project gets its own design document.
+- For appropriately-scoped projects, ask questions one at a time to refine the idea
+- Prefer multiple choice questions when possible, but open-ended is fine too
+- Only one question per message - if a topic needs more exploration, break it into multiple questions
+- Focus on understanding: purpose, constraints, success criteria
+
+**Exploring approaches:**
+
+- Propose 2-3 different approaches with trade-offs
+- Present options conversationally with your recommendation and reasoning
+- Lead with your recommended option and explain why
+- YAGNI ruthlessly - remove unnecessary features from every approach and design
+
+**Presenting the design:**
+
+- Once you believe you understand what you're building, present the design
+- Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
+- Ask after each section whether it looks right so far
+- Cover: architecture, components, data flow, error handling, testing
+- Be ready to go back and clarify if something doesn't make sense
+
+**Design for isolation and clarity:**
+
+- Break the system into smaller units that each have one clear purpose, communicate through well-defined interfaces, and can be understood and tested independently
+- For each unit, you should be able to answer: what does it do, how do you use it, and what does it depend on?
+- Can someone understand what a unit does without reading its internals? Can you change the internals without breaking consumers? If not, the boundaries need work.
+- Smaller, well-bounded units are also easier for you to work with - you reason better about code you can hold in context at once, and your edits are more reliable when files are focused. When a file grows large, that's often a signal that it's doing too much.
+
+**Working in existing codebases:**
+
+- Explore the current structure before proposing changes. Follow existing patterns.
+- Where existing code has problems that affect the work (e.g., a file that's grown too large, unclear boundaries, tangled responsibilities), include targeted improvements as part of the design - the way a good developer improves code they're working in.
+- Don't propose unrelated refactoring. Stay focused on what serves the current goal.
+
+## The Persist Gate
+
+Once the design has settled, **ask your human partner whether they want
+the discussion written down as a design document.** This question gets a
+message of its own — the question and nothing else.
+
+Reason: they may have been asking casually and do not want a file out of it.
+
+- They say **no** → stop. The conclusion already stated in chat is the
+  whole output. Do not write a file, and do not ask again.
+- They say **yes** → go to Writing the Design Document.
+
+Example:
+
+> "Want me to write this up as a design document? If you don't need it, we can stop here."
+
+## Writing the Design Document
+
+1. **Read the template first** — `design-doc-template.md` in this
+   skill's directory. This step is mandatory.
+2. **Fill the template exactly** — keep every section, in order. Do not
+   add, remove, or rename sections. For a section that does not apply,
+   keep its heading and write `不适用：<reason>`.
+3. **Write to** `docs/specs/design/YYYY-MM-DD-<topic>.md`
+   - `<topic>` is a short English or Chinese phrase, hyphenated
+   - If your human partner names a location, use theirs
+4. **Self-review** (below)
+5. **Subagent review** (below)
+6. **Ask your human partner to review** the document
+
+## Document Format Requirements
+
+- **Narrative prose** — full sentences explaining context, trade-offs, and conclusions
+- **No spec mode** — no requirement IDs, acceptance criteria, task lists, or Given/When/Then
+- **Language follows the conversation** — a Chinese conversation produces a Chinese document, an English conversation an English one. The template's section structure stays fixed; section headings may be translated when the conversation is not Chinese.
+- **Concrete** — no `TBD`, `TODO`, or empty sections. Anything still undecided goes under the "待定问题与风险" section with the reason it is undecided.
+
+## Self-Review (immediately after writing)
+
+Check each item and fix in place:
+
+1. **Template compliance:** Is every template section present, in order, with no extra sections?
+2. **Placeholder scan:** Any `TBD`, `TODO`, unfilled `<...>`, or empty sections?
+3. **Internal consistency:** Do any sections contradict each other? Does the recommended approach match the comparison's conclusion?
+4. **Ambiguity check:** Can any sentence be read two ways? Pick one reading and make it explicit.
+5. **Decision traceability:** Does every key decision state its rationale and the rejected alternatives?
+6. **Scope check:** Is this focused on a single design, not several independent subsystems?
+
+## Subagent Review
+
+After self-review passes, dispatch a review subagent using
+`design-doc-reviewer-prompt.md` in this skill's directory, passing it
+the design document's path.
+
+- Verdict **approved** → go to the user review gate
+- Verdict **issues found** → fix in place, then re-run self-review (and
+  the subagent review if needed)
+
+## User Review Gate
+
+> "Design document written to `<path>`. Please review it and let me know if you want any changes before we stop."
+
+Wait for the response. If they request changes, make them and re-run
+self-review. Once they approve, stop.
+
+## Terminal State
+
+This skill **ends here**.
+
+- Do not invoke any further skill
+- Do not create an implementation plan or start implementing
+- You may tell your human partner: "This document can be handed to spec-superflow for the next stage."

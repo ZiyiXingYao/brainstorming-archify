@@ -1,53 +1,53 @@
-# 设计文档审查提示词模板
+# Design Document Reviewer Prompt Template
 
-在派发设计文档审查子代理时使用本模板。
+Use this template when dispatching a design document reviewer subagent.
 
-**目的**：确认设计文档完整、自洽、人类可读，并且严格遵循固定模板
-`design-doc-template.md`（位于本技能目录下）。
+**Purpose:** Verify the design document is complete, consistent,
+human-readable, and follows the fixed template `design-doc-template.md`.
 
-**派发时机**：设计文档写入 `docs/specs/design/` 之后、请用户确认之前。
+**Dispatch after:** The design document is written to `docs/specs/design/`.
 
 ```
-Subagent（general-purpose）：
-  description: "审查设计文档"
+Subagent (general-purpose):
+  description: "Review design document"
   prompt: |
-    你是一名设计文档审查员。请审查这份由头脑风暴产出的设计文档，判断它是否合格。
+    You are a design document reviewer. Verify this brainstormed design document is complete and usable.
 
-    **待审文档**：[DESIGN_DOC_PATH]
-    **必须遵循的模板**：[TEMPLATE_PATH]   ← 派发时替换为 design-doc-template.md 的实际绝对路径
+    **Document to review:** [DESIGN_DOC_PATH]
+    **Required template:** [TEMPLATE_PATH]   ← replace with the absolute path to design-doc-template.md
 
-    ## 检查项
+    ## What to Check
 
-    | 类别 | 要看什么 |
-    |------|----------|
-    | 模板合规 | 模板里的每个章节是否都在、顺序一致、没有多余章节；不适用的章节是否写明原因 |
-    | 可读性 | 是否叙述式、人类可读；有没有混进需求编号、验收标准、任务清单等 spec 模式内容 |
-    | 完整性 | 有没有 TBD/TODO/占位符/空章节；背景、方案对比、推荐方案、决策记录是否都实打实 |
-    | 一致性 | 章节之间是否矛盾；推荐方案是否与对比结论一致；决策记录是否覆盖主要取舍 |
-    | 决策可追溯 | 关键决策是否写了理由和被否决的选项 |
-    | 歧义 | 是否有句子能被两种方式理解，足以让人做出错误的设计 |
-    | 范围 | 是否聚焦单个设计，而不是把多个独立子系统混在一起 |
+    | Category | What to Look For |
+    |----------|------------------|
+    | Template compliance | Every template section present, in order, no extra sections; N/A sections state a reason |
+    | Readability | Narrative and human-readable; no spec-mode content (requirement IDs, acceptance criteria, task lists) |
+    | Completeness | No TBD/TODO/placeholders/empty sections; background, comparison, recommendation, and decisions are all substantive |
+    | Consistency | No contradictions between sections; the recommended approach matches the comparison's conclusion; decisions cover the main trade-offs |
+    | Decision traceability | Key decisions state their rationale and rejected alternatives |
+    | Ambiguity | Sentences that could be read two ways, enough to produce the wrong design |
+    | Scope | Focused on a single design, not several independent subsystems |
 
-    ## 校准标准
+    ## Calibration
 
-    **只报告会在后续规格化/实现时造成真实问题的缺陷。**
+    **Only flag issues that would cause real problems during later specification or implementation.**
+    A missing section, a contradiction, an ambiguity that could mislead, a decision
+    with no rationale, or a leftover placeholder — those are issues. Wording style,
+    uneven section depth, and "could be more detailed" are not.
 
-    缺章节、自相矛盾、会导致误解的歧义、决策无理由、残留占位符——这些是问题。
-    措辞风格、个别章节详略不均、"可以写得更细"——这些不是问题。
+    Approve unless there are serious gaps.
 
-    没有严重缺陷就判通过。
+    ## Output Format
 
-    ## 输出格式
+    ## Design Document Review
 
-    ## 设计文档审查
+    **Status:** Approved | Issues Found
 
-    **结论**：通过 | 发现问题
+    **Issues (if any):**
+    - [Section X]: [specific issue] - [why it matters later]
 
-    **问题（如有）：**
-    - [章节 X]：[具体问题] - [为什么会影响后续]
-
-    **建议（仅供参考，不阻塞通过）：**
-    - [改进建议]
+    **Recommendations (advisory, do not block approval):**
+    - [suggestions for improvement]
 ```
 
-**审查子代理返回**：结论、问题（如有）、建议
+**Reviewer returns:** Status, Issues (if any), Recommendations
