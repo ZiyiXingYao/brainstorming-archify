@@ -274,8 +274,11 @@ from scratch.
 
 For `01-架构设计.md`:
 
-- The discussion covers only the internals of one module — its fields,
-  functions, flows → **zero edits**. Not one word.
+- The discussion covers only the internals of a module that **already has
+  a document** — its fields, functions, flows → **zero edits**. Not one
+  word. Designing a module for the first time is *not* this case: Rules 4
+  and 5 require the interface matrix and the module list to be updated in
+  the same persist, so "zero edits" would be wrong there.
 - The discussion affects the architecture — a module added or removed, a
   class moved between modules, a class added or removed, the file tree
   changing, module dependencies changing, a cross-module interface
