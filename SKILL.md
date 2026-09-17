@@ -285,6 +285,12 @@ For `01-架构设计.md`:
   is refreshing the 最近更新 line — on every document this persist touched,
   using the same date. Do not polish untouched sections while you are in
   the file.
+- The discussion overturns the module split itself → almost every entry
+  is affected at once. That is a legitimate exception to "only the
+  affected entries", but not to care: announce it in the change list as
+  an architecture overhaul, still walk the existing documents entry by
+  entry rather than regenerating blindly, and keep whatever still holds
+  word-for-word.
 
 **Rule 3 — Conflicts are reported, not overwritten.** When this
 discussion's conclusion contradicts an existing document — the human
@@ -399,12 +405,14 @@ reading time.
    add, remove, or rename sections. For a section that does not apply,
    keep its heading and write `不适用：<reason>`.
 5. **Write to** `<project-root>/specs/design/<NN>-<name>.md` — the path is
-   relative to the project root, not to the current working directory
+   relative to the project root, not to the current working directory.
+   Create `specs/design/` first if it does not exist.
    - `01-架构设计.md` is fixed for the architecture document
    - Module documents are named after the functional module and numbered
      after the current maximum. **Append, never renumber** — inserting a
      new module in the middle would rename existing files and break the
-     references between them.
+     references between them. Module names are unique project-wide; two
+     modules may not share one.
    - No date prefix, no `docs/` prefix
    - If your human partner names a location, use theirs
 6. **Self-review** (below)
