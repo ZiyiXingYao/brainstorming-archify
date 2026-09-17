@@ -94,6 +94,8 @@ artifact, never the approval.
 | "I know the module list well enough, I'll just write the doc" | Reading `specs/design/` first is a hard prerequisite. Writing without reading silently erases other discussions' work. |
 | "Field tables look like spec mode, so I'll describe them in prose instead" | Field tables, function tables, call chains, and interface matrices are design description, not acceptance criteria. They are required, not forbidden. |
 | "The design is approved, so I can write the files" | Design approval is not write approval. Present the change list and wait. |
+| "The provider got designed, so that `待提供` row is handled" | It is not handled until the row is flipped to 已落地 or 有差异. An unflipped row is a gap nobody owns. |
+| "I renamed the module; the file name and references can follow later" | The file name carries the module name. Rename and update every reference in the same persist, or leave a stale path behind. |
 | "The spike works, so I'll keep the code" | A spike's output is an answer. Keeping the code is a new request — classify it. |
 | "It grew, but I'm almost done — no need to re-classify" | Hidden complexity upgrades the path mid-task. Stop and say so. |
 | "They approved the spike, so the follow-up change is approved too" | Each task gets its own classification and its own approval. |
@@ -263,10 +265,12 @@ prerequisite, not a courtesy.
 
 **Rule 2 — Judge the blast radius, then act on the verdict.**
 
-For the module document being worked on: change only the entries this
-discussion is about — the classes, fields, functions, and flows it
-actually reworked. Everything an earlier discussion settled stays
-word-for-word. Never regenerate a module document from scratch.
+For each module document being worked on — a single discussion may design
+more than one module, so apply this to every module document in the write
+set — change only the entries this discussion is about: the classes,
+fields, functions, and flows it actually reworked. Everything an earlier
+discussion settled stays word-for-word. Never regenerate a module document
+from scratch.
 
 For `01-架构设计.md`:
 
@@ -278,8 +282,9 @@ For `01-架构设计.md`:
   changing, a global flow's module chain changing → change **only the
   affected entries**. Everything else stays word-for-word, including its
   original phrasing, order, and formatting. The one further edit allowed
-  is refreshing the 最近更新 line. Do not polish untouched sections while
-  you are in the file.
+  is refreshing the 最近更新 line — on every document this persist touched,
+  using the same date. Do not polish untouched sections while you are in
+  the file.
 
 **Rule 3 — Conflicts are reported, not overwritten.** When this
 discussion's conclusion contradicts an existing document — the human
@@ -298,16 +303,42 @@ bound by it. Register a `待提供` row in the architecture document's
 cross-module interface matrix, and surface it in the change list,
 because the human needs to know which modules are now owed a design.
 
+When a module is designed, every `待提供` row naming it as provider must
+be resolved in that same persist: flipped to `已落地` when the hard
+constraints match, or to `有差异` when they do not. Leaving such a row at
+`待提供` after its provider has been designed means the gap has no owner —
+the interface matrix's completed rules live in the architecture template's
+section 6.
+
 **Rule 5 — Registering a module the architecture already lists as
 未设计.** Designing it completes a promise the architecture already
 recorded, so the same persist also: creates `0N-<模块名>.md` from the
 module template using the reserved number, flips that row's 设计状态 to
 已设计, and drops the `（待创建）` marker from its 对应文档 cell. Do not
-renumber, and do not add a second row for it.
+renumber, and do not add a second row for it. If one persist registers
+more than one module, run this for each.
 
 If the module is not in the list at all, it is a genuinely new module:
 append it with the next free number. That is an architecture change and
-is announced in the change list as such.
+is announced in the change list as such. The same applies when a
+dependency contract names a module that was never registered — register
+it first, then record the dependency row against it; both go into the
+change list.
+
+**Rule 6 — Removing or renaming a module.** Both are architecture
+changes and both are announced in the change list.
+
+- **Removing**: delete the module document, delete its row from the
+  module list, and delete every interface-matrix row naming it as caller
+  or provider. Its number is **not** reused and the remaining numbers are
+  **not** shifted — a gap in the numbering is expected and harmless.
+  Before deleting, scan the matrix for `待提供` rows the module owed to
+  others and report them: those gaps are now unowned.
+- **Renaming**: the file name carries the module name, so a rename is a
+  file rename plus, in the same persist, an update of every reference to
+  it — the module list's 对应文档 cell, every interface-matrix 详见 cell,
+  and every cross-reference in other module documents. Never leave a
+  stale path behind.
 
 The module list in `01-架构设计.md` section 5.1 is the single source of
 truth for which modules exist; the interface matrix in section 6 is the
@@ -334,6 +365,25 @@ The change list states:
 
 Then stop. A "go ahead" approves the list; anything else means revise the
 list first.
+
+## The Three Gates
+
+Your human partner is asked three separate times in one session. They
+guard different things, and merging them loses the protection each one
+gives — do not collapse them into a single question.
+
+1. **Persist Gate** — *should anything be written at all?* Asked once the
+   design has settled. A "no" ends the session with the chat conclusion as
+   the whole output.
+2. **Change List Gate** — *what exactly will be written or changed?* Asked
+   before any file is touched. Cheap to answer, and it is what stops a
+   multi-discussion document set from being quietly overwritten.
+3. **User Review Gate** — *is what was written correct?* Asked after
+   self-review and the subagent review have passed. This is the only gate
+   that asks them to read prose.
+
+The first two can be answered in seconds. Only the third needs real
+reading time.
 
 ## Writing the Design Document
 
@@ -394,9 +444,10 @@ Check each item and fix in place:
 5. **Decision traceability:** Does every key decision state its rationale and the rejected alternatives?
 6. **Scope check:** Is each document focused on a single design — one architecture, or one module — rather than several independent subsystems?
 7. **Incremental merge integrity:** For every document that already existed, are the untouched sections word-for-word unchanged? Has any content belonging to other modules, or produced by earlier discussions, been dropped?
-8. **Cross-document consistency:** Does the architecture class list match every module document's class list? Does every row of every module document's dependency contract appear in the architecture interface matrix, and vice versa? Does every flow name in a module document appear as a flow in the architecture's global flow section, and does each of those chains name the right modules?
-9. **Coverage completeness:** Does every class in the class list have a detailed-design entry with both a field table and a function table — or an explicit `不适用` with a reason where one of them genuinely does not apply? Does every cross-module call named in a function table appear in the dependency contract?
-10. **Read-before-write:** Was `specs/design/` actually read before anything was written, and does the write set match what the approved change list described? If the change list was never approved, stop and report that — it is a process failure, not a wording issue.
+8. **Cross-document consistency:** Does the architecture class list match every module document's class list? Does every row of every module document's dependency contract appear in the architecture interface matrix, and vice versa? Does every *cross-module* flow in a module document appear in the architecture's global flow section under the same name, and is no purely intra-module flow wrongly registered there? Does every reference resolve — no pointer to a renamed or deleted module, no orphan module document whose module is missing from the list?
+9. **Dependency closure:** Is every `待提供` row whose provider module has now been designed flipped to `已落地` or `有差异`? An unflipped row means the gap has no owner.
+10. **Coverage completeness:** Does every class in the class list have a detailed-design entry with both a field table and a function table — or an explicit `不适用` with a reason where one of them genuinely does not apply? Does every cross-module call named in a function table appear in the dependency contract?
+11. **Read-before-write:** Was `specs/design/` actually read before anything was written, and does the write set match what the approved change list described? If the change list was never approved, stop and report that — it is a process failure, not a wording issue.
 
 ## Subagent Review
 
