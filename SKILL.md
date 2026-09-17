@@ -1,6 +1,6 @@
 ---
 name: brainstorming
-description: "You MUST use this before any design or implementation work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation, and turns the settled design into a human-readable design document."
+description: "You MUST use this before any design or implementation work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation, and turns the settled design into human-readable design documents."
 ---
 
 # Brainstorming Ideas Into Designs
@@ -16,8 +16,8 @@ human-readable design documents.
 ## Scope
 
 **This skill only does this:** clarify intent → explore approaches →
-settle the design → (with your human partner's consent) write a
-human-readable design document.
+settle the design → (with your human partner's consent) write a set of
+human-readable design documents.
 
 **It does NOT:**
 
@@ -26,7 +26,7 @@ human-readable design document.
 - produce spec-mode artifacts (requirement IDs, acceptance criteria,
   task lists, Given/When/Then)
 
-**Where the output goes:** your human partner hands the design document
+**Where the output goes:** your human partner hands the design documents
 to a separate process (for example spec-superflow). This skill is not
 responsible for that handoff.
 
@@ -60,7 +60,8 @@ override it:
   sentences to a few short paragraphs), and STOP. Implementation
   starts only after your human partner says yes to that design — a
   bounded task's approval is as hard a gate as an architectural
-  one. No design doc is written during this step.
+  one. No document is written at this step; the Persist Gate comes after
+  approval and decides whether anything is persisted at all.
 - **Architectural** — new projects, new subsystems, changes that
   restructure how components fit together or alter interfaces others
   depend on. Follow the full process: questions, approaches, sectioned
@@ -96,7 +97,7 @@ artifact, never the approval.
 | "The spike works, so I'll keep the code" | A spike's output is an answer. Keeping the code is a new request — classify it. |
 | "It grew, but I'm almost done — no need to re-classify" | Hidden complexity upgrades the path mid-task. Stop and say so. |
 | "They approved the spike, so the follow-up change is approved too" | Each task gets its own classification and its own approval. |
-| "We're done brainstorming, so I'll start implementing" | This skill ends at the approved design document. It never implements. |
+| "We're done brainstorming, so I'll start implementing" | This skill ends at the approved set of design documents. It never implements. |
 
 ## Checklist
 
@@ -175,6 +176,11 @@ digraph brainstorming {
 }
 ```
 
+**On the persist stage:** bounded and architectural share the same gates
+but not the same output. A bounded change merges into the affected module
+document — or writes nothing at all when the project has no document set
+yet. An architectural change produces or extends the full set.
+
 **Terminal states are path-bound.** Spike: the terminal state is a
 reported recommendation. Bounded and Architectural: the terminal state
 is an approved set of design documents — or no file at all when your
@@ -193,7 +199,7 @@ is the whole process.
 
 - Check out the current project state first (files, docs, recent commits)
 - Before asking detailed questions, assess scope: if the request describes multiple independent subsystems (e.g., "build a platform with chat, file storage, billing, and analytics"), flag this immediately. Don't spend questions refining details of a project that needs to be decomposed first.
-- If the project is too large for a single design, help the user decompose into sub-projects: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first sub-project through the normal design flow. Each sub-project gets its own design document.
+- If the project is too large for a single design, help the user decompose it into functional modules: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first module through the normal design flow. `01-架构设计.md` stays global and accumulates every module's architecture-level content; each module's detail goes in its own `<NN>-<模块名>.md`. There is only ever one architecture document.
 - For appropriately-scoped projects, ask questions one at a time to refine the idea
 - Prefer multiple choice questions when possible, but open-ended is fine too
 - Only one question per message - if a topic needs more exploration, break it into multiple questions
@@ -211,7 +217,7 @@ is the whole process.
 - Once you believe you understand what you're building, present the design
 - Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
 - Ask after each section whether it looks right so far
-- Cover: architecture, components, data flow, error handling
+- Cover the ground the templates will require: responsibilities and boundaries, module division, class attribution and relationships, the file tree, cross-module interfaces, end-to-end flows, and error handling. The templates decide the exact section list — this list is the floor, not the ceiling.
 - Be ready to go back and clarify if something doesn't make sense
 
 **Design for isolation and clarity:**
@@ -230,7 +236,7 @@ is the whole process.
 ## The Persist Gate
 
 Once the design has settled, **ask your human partner whether they want
-the discussion written down as a design document.** This question gets a
+the discussion written down as design documents.** This question gets a
 message of its own — the question and nothing else.
 
 Reason: they may have been asking casually and do not want a file out of it.
@@ -320,7 +326,8 @@ The change list states:
 - **Modified files** — path, and for each one exactly which sections or
   entries change, and why
 - **Explicitly untouched** — which existing documents and sections stay
-  word-for-word unchanged, so the human can see nothing is being lost
+  word-for-word unchanged, so the human can see nothing is being lost.
+  On a first persist, when nothing pre-exists, write `无既有文档`.
 - **New dependencies** — every `待提供` row created, naming the modules
   now owed a design
 - **Conflicts** — every Rule 3 difference awaiting a decision
@@ -369,6 +376,10 @@ list first.
   interface matrices. These describe a design; they do not state
   acceptance conditions. Never downgrade a table to prose because it
   "looks like spec mode".
+- **Cross-references use one form** — when a document points at another
+  document, write the path relative to the project root in full, e.g.
+  `specs/design/02-通信模块.md`. Never a bare file name, never a
+  `docs/`-prefixed variant, never a `../` relative hop.
 - **Language follows the conversation** — a Chinese conversation produces a Chinese document, an English conversation an English one. The template's section structure stays fixed; section headings may be translated when the conversation is not Chinese. Code identifiers (class, field, function names) stay in their original form.
 - **Concrete** — no `TBD`, `TODO`, or empty sections. Anything still undecided goes under the "待定问题与风险" section with the reason it is undecided.
 
