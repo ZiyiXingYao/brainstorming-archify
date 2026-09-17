@@ -10,8 +10,8 @@ Help turn ideas into fully formed designs through natural collaborative dialogue
 Start by classifying how much process the request needs, then work
 through your path: understand the context, refine the idea, present a
 design, and get your human partner's approval. Once the design has
-settled and your human partner wants it kept, write it out as a
-human-readable design document.
+settled and your human partner wants it kept, write it out as
+human-readable design documents.
 
 ## Scope
 
@@ -88,7 +88,11 @@ artifact, never the approval.
 | "It's bounded and the design is obvious — I'll start while they read it" | The gate is the approval, not the design's length. Present, then stop until you hear yes. |
 | "I understand this kind of app, so it's bounded" | Bounded measures the repo, not your familiarity. A new project has no existing flow — it is architectural. |
 | "They just asked casually, so I'll write the doc anyway" | The Persist Gate: ask first. No consent, no file. |
-| "I'll write the doc in whatever shape feels right" | The design document MUST follow `design-doc-template.md`, in section and in order. |
+| "I'll write the doc in whatever shape feels right" | Design documents MUST follow `architecture-doc-template.md` or `module-doc-template.md`, in section and in order. |
+| "This is a module discussion, but I'll tidy up the architecture doc while I'm in there" | Untouched sections stay word-for-word. Only entries actually affected by this discussion may change. |
+| "I know the module list well enough, I'll just write the doc" | Reading `specs/design/` first is a hard prerequisite. Writing without reading silently erases other discussions' work. |
+| "Field tables look like spec mode, so I'll describe them in prose instead" | Field tables, function tables, call chains, and interface matrices are design description, not acceptance criteria. They are required, not forbidden. |
+| "The design is approved, so I can write the files" | Design approval is not write approval. Present the change list and wait. |
 | "The spike works, so I'll keep the code" | A spike's output is an answer. Keeping the code is a new request — classify it. |
 | "It grew, but I'm almost done — no need to re-classify" | Hidden complexity upgrades the path mid-task. Stop and say so. |
 | "They approved the spike, so the follow-up change is approved too" | Each task gets its own classification and its own approval. |
@@ -135,7 +139,9 @@ digraph brainstorming {
     "Investigate; report recommendation" [shape=doublecircle];
     "Persist Gate: write the doc?" [shape=diamond];
     "Stop here (no file)" [shape=doublecircle];
-    "Read template; write design doc" [shape=box];
+    "Read templates; read specs/design" [shape=box];
+    "Change List gate: user approves?" [shape=diamond];
+    "Write or merge docs" [shape=box];
     "Self-review (fix inline)" [shape=box];
     "Subagent review" [shape=box];
     "User reviews doc?" [shape=diamond];
@@ -153,19 +159,22 @@ digraph brainstorming {
     "User approves design?" -> "Present design sections" [label="no, revise"];
     "User approves design?" -> "Persist Gate: write the doc?" [label="yes"];
     "Persist Gate: write the doc?" -> "Stop here (no file)" [label="no"];
-    "Persist Gate: write the doc?" -> "Read template; write design doc" [label="yes"];
-    "Read template; write design doc" -> "Self-review (fix inline)";
+    "Persist Gate: write the doc?" -> "Read templates; read specs/design" [label="yes"];
+    "Read templates; read specs/design" -> "Change List gate: user approves?";
+    "Change List gate: user approves?" -> "Write or merge docs" [label="yes"];
+    "Change List gate: user approves?" -> "Read templates; read specs/design" [label="no, revise the list"];
+    "Write or merge docs" -> "Self-review (fix inline)";
     "Self-review (fix inline)" -> "Subagent review";
     "Subagent review" -> "User reviews doc?";
-    "User reviews doc?" -> "Read template; write design doc" [label="issues found"];
+    "User reviews doc?" -> "Write or merge docs" [label="issues found"];
     "User reviews doc?" -> "Done" [label="approved"];
 }
 ```
 
 **Terminal states are path-bound.** Spike: the terminal state is a
 reported recommendation. Bounded and Architectural: the terminal state
-is an approved design document — or no file at all when your human
-partner declines the Persist Gate. This skill never continues into
+is an approved set of design documents — or no file at all when your
+human partner declines the Persist Gate. This skill never continues into
 implementation.
 
 ## The Process
@@ -230,43 +239,134 @@ Example:
 
 > "Want me to write this up as a design document? If you don't need it, we can stop here."
 
+## Incremental Persist Protocol
+
+Modules get designed one discussion at a time, so the output directory
+accumulates. `specs/design/` already holds work from earlier
+discussions, and that work must not be regenerated from scratch.
+
+**Rule 1 — Read before writing.** Before writing any document, list
+`specs/design/` and read `01-架构设计.md`: its module list, class list,
+file tree, and cross-module interface matrix — plus any module document
+this discussion touches. This is a hard prerequisite, not a courtesy.
+
+**Rule 2 — Judge whether this discussion touches the architecture, then
+act on the verdict.**
+
+- The discussion covers only the internals of one module — its fields,
+  functions, flows → `01-架构设计.md` gets **zero edits**. Not one word.
+- The discussion affects the architecture — a module added or removed, a
+  class moved between modules, a class added or removed, the file tree
+  changing, module dependencies changing, a cross-module interface
+  changing → change **only the affected entries**. Everything else stays
+  word-for-word, including its original phrasing, order, and formatting.
+  Do not polish untouched sections while you are in the file.
+
+**Rule 3 — Conflicts are reported, not overwritten.** When this
+discussion's conclusion contradicts an existing document — the human
+changed their mind about a module boundary, a provider turns out to
+deliver a different signature than expected — do not silently rewrite.
+List the differences and let your human partner decide: update the
+document, revise the design, or move it to 待定问题与风险.
+
+**Rule 4 — Dependencies on undesigned modules are tracked.** A module
+designed today may need classes, functions, or variables from a module
+that does not exist yet. Record them in that module document's
+dependency contract **at signature level** — expected function name,
+parameters, return type, and boundary semantics — because the call site
+already lives in the caller's code, so the provider's later signature is
+bound by it. Register a `待提供` row in the architecture document's
+cross-module interface matrix, and surface it in the change list,
+because the human needs to know which modules are now owed a design.
+
+The module list in `01-架构设计.md` section 5.1 is the single source of
+truth for which modules exist; the interface matrix in section 6 is the
+single source of truth for which cross-module interfaces are settled.
+Every document must agree with both.
+
+## Change List Gate
+
+An approved design does not authorise writing files. Before any file is
+created or modified, present a change list and wait for an explicit yes.
+The change list states:
+
+- **New files** — path, and which template each follows
+- **Modified files** — path, and for each one exactly which sections or
+  entries change, and why
+- **Explicitly untouched** — which existing documents and sections stay
+  word-for-word unchanged, so the human can see nothing is being lost
+- **New dependencies** — every `待提供` row created, naming the modules
+  now owed a design
+- **Conflicts** — every Rule 3 difference awaiting a decision
+
+Then stop. A "go ahead" approves the list; anything else means revise the
+list first.
+
 ## Writing the Design Document
 
-1. **Read the template first** — `design-doc-template.md` in this
-   skill's directory. This step is mandatory.
-2. **Fill the template exactly** — keep every section, in order. Do not
+1. **Read both templates first** — `architecture-doc-template.md` and
+   `module-doc-template.md` in this skill's directory. This step is
+   mandatory.
+2. **Read the existing output set** — per the Incremental Persist
+   Protocol, Rule 1. Then decide the write set: what is new, what is
+   merged, and which entries change in each document.
+3. **Present the change list and get approval** — per the Change List
+   Gate. Nothing is written before that approval.
+4. **Fill each template exactly** — keep every section, in order. Do not
    add, remove, or rename sections. For a section that does not apply,
    keep its heading and write `不适用：<reason>`.
-3. **Write to** `docs/specs/design/YYYY-MM-DD-<topic>.md`
-   - `<topic>` is a short English or Chinese phrase, hyphenated
+5. **Write to** `specs/design/<NN>-<name>.md`
+   - `01-架构设计.md` is fixed for the architecture document
+   - Module documents are named after the functional module and numbered
+     after the current maximum. **Append, never renumber** — inserting a
+     new module in the middle would rename existing files and break the
+     references between them.
+   - No date prefix, no `docs/` prefix
    - If your human partner names a location, use theirs
-4. **Self-review** (below)
-5. **Subagent review** (below)
-6. **Ask your human partner to review** the document
+6. **Self-review** (below)
+7. **Subagent review** (below)
+8. **Ask your human partner to review** the documents
 
 ## Document Format Requirements
 
-- **Narrative prose** — full sentences explaining context, trade-offs, and conclusions
-- **No spec mode** — no requirement IDs, acceptance criteria, task lists, or Given/When/Then
-- **Language follows the conversation** — a Chinese conversation produces a Chinese document, an English conversation an English one. The template's section structure stays fixed; section headings may be translated when the conversation is not Chinese.
+- **Hybrid form** — narrative prose for responsibilities, boundaries, class
+  relationships, and business flows; tables for fields, functions, and
+  dependencies. The tables are mandatory, not optional: a class with no
+  field table and no function table is an incomplete class.
+- **No spec mode — and that is not a licence to drop structure** —
+  forbidden: requirement IDs, acceptance criteria, task lists,
+  Given/When/Then. Required and explicitly allowed: field tables,
+  function signature tables, call chains, data-shape tables, cross-module
+  interface matrices. These describe a design; they do not state
+  acceptance conditions. Never downgrade a table to prose because it
+  "looks like spec mode".
+- **Language follows the conversation** — a Chinese conversation produces a Chinese document, an English conversation an English one. The template's section structure stays fixed; section headings may be translated when the conversation is not Chinese. Code identifiers (class, field, function names) stay in their original form.
 - **Concrete** — no `TBD`, `TODO`, or empty sections. Anything still undecided goes under the "待定问题与风险" section with the reason it is undecided.
 
 ## Self-Review (immediately after writing)
 
 Check each item and fix in place:
 
-1. **Template compliance:** Is every template section present, in order, with no extra sections?
+1. **Template compliance per document:** Has each document been checked against its own template — architecture against `architecture-doc-template.md`, each module against `module-doc-template.md`? Every section present, in order, no extra sections?
 2. **Placeholder scan:** Any `TBD`, `TODO`, unfilled `<...>`, or empty sections?
 3. **Internal consistency:** Do any sections contradict each other? Does the recommended approach match the comparison's conclusion?
 4. **Ambiguity check:** Can any sentence be read two ways? Pick one reading and make it explicit.
 5. **Decision traceability:** Does every key decision state its rationale and the rejected alternatives?
-6. **Scope check:** Is this focused on a single design, not several independent subsystems?
+6. **Scope check:** Is each document focused on a single design — one architecture, or one module — rather than several independent subsystems?
+7. **Incremental merge integrity:** For every document that already existed, are the untouched sections word-for-word unchanged? Has any content belonging to other modules, or produced by earlier discussions, been dropped?
+8. **Cross-document consistency:** Does the architecture class list match every module document's class list? Does every row of every module document's dependency contract appear in the architecture interface matrix, and vice versa?
+9. **Coverage completeness:** Does every class in the class list have a detailed-design entry with both a field table and a function table? Does every cross-module call named in a function table appear in the dependency contract?
 
 ## Subagent Review
 
 After self-review passes, dispatch a review subagent using
-`design-doc-reviewer-prompt.md` in this skill's directory, passing it
-the design document's path.
+`design-doc-reviewer-prompt.md` in this skill's directory. Pass it:
+
+- the path to every document in the write set
+- the path to both templates — `architecture-doc-template.md` and
+  `module-doc-template.md`
+- the list of pre-existing documents and sections that the approved
+  change list marked as untouched
 
 - Verdict **approved** → go to the user review gate
 - Verdict **issues found** → fix in place, then re-run self-review. Then
@@ -275,7 +375,7 @@ the design document's path.
 
 ## User Review Gate
 
-> "Design document written to `<path>`. Please review it and let me know if you want any changes before we stop."
+> "Design documents written to `<paths>`. Please review them and let me know if you want any changes before we stop."
 
 Wait for the response. If they request changes, make them and re-run
 self-review. Once they approve, stop.
@@ -286,4 +386,4 @@ This skill **ends here**.
 
 - Do not invoke any further skill
 - Do not create an implementation plan or start implementing
-- You may tell your human partner: "This document can be handed to spec-superflow for the next stage."
+- You may tell your human partner: "These documents can be handed to spec-superflow for the next stage."

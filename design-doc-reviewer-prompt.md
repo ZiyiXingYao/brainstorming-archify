@@ -2,38 +2,55 @@
 
 Use this template when dispatching a design document reviewer subagent.
 
-**Purpose:** Verify the design document is complete, consistent,
-human-readable, and follows the fixed template `design-doc-template.md`.
+**Purpose:** Verify the design documents are complete, consistent,
+implementation-ready, and follow the fixed templates
+`architecture-doc-template.md` and `module-doc-template.md`.
 
-**Dispatch after:** The design document is written to `docs/specs/design/`.
+**Dispatch after:** The design documents are written to `specs/design/`.
 
 ```
 Subagent (general-purpose):
-  description: "Review design document"
+  description: "Review design documents"
   prompt: |
-    You are a design document reviewer. Verify this brainstormed design document is complete and usable.
+    You are a design document reviewer. Verify these brainstormed design documents are complete and usable.
 
-    **Document to review:** [DESIGN_DOC_PATH]
-    **Required template:** [TEMPLATE_PATH]   ← replace with the absolute path to design-doc-template.md
+    **Documents to review:** [DESIGN_DOC_PATHS]
+    **Architecture template:** [ARCHITECTURE_TEMPLATE_PATH]   ← absolute path to architecture-doc-template.md
+    **Module template:** [MODULE_TEMPLATE_PATH]               ← absolute path to module-doc-template.md
+    **Documents/sections declared untouched:** [UNTOUCHED_LIST]
 
     ## What to Check
 
     | Category | What to Look For |
     |----------|------------------|
-    | Template compliance | Every template section present, in order, no extra sections; N/A sections state a reason |
-    | Readability | Narrative and human-readable; no spec-mode content (requirement IDs, acceptance criteria, task lists) |
+    | Template compliance | Each document checked against its own template (architecture vs. module): every section present, in order, no extra sections; N/A sections state a reason |
+    | Readability | Narrative for responsibilities, boundaries, class relationships, and business flows; tables where the template calls for tables. No spec-mode content (requirement IDs, acceptance criteria, task lists, Given/When/Then) |
+    | Structural completeness | Every class in the class list has a detailed-design entry with **both** a field table and a function table; function tables name the other modules' functions each function depends on |
+    | Dependency coverage | Every module document declares its outward dependency contract **at signature level** (function name, parameters, return type, boundary semantics) — a bare name with no signature is incomplete; every dependency-contract row appears in the architecture cross-module interface matrix and vice versa (bidirectional traceability); the matrix's signature summary matches the module document's row word-for-word; statuses are one of 已落地 / 待提供 / 有差异 |
+    | Flow completeness | Each end-to-end flow states: trigger entry point, function-level call chain, data shape at each hop, where the result is delivered, and the failure path |
+    | Cross-document consistency | The architecture class list matches every module document's class list; module names match file names and the interface matrix's "详见" references |
+    | Incremental merge integrity | Every document and section listed as untouched is word-for-word unchanged; no content from other modules or earlier discussions was silently dropped |
     | Completeness | No TBD/TODO/placeholders/empty sections; background, comparison, recommendation, and decisions are all substantive |
-    | Consistency | No contradictions between sections; the recommended approach matches the comparison's conclusion; decisions cover the main trade-offs |
+    | Consistency | No contradictions between sections or between documents; the recommended approach matches the comparison's conclusion |
     | Decision traceability | Key decisions state their rationale and rejected alternatives |
     | Ambiguity | Sentences that could be read two ways, enough to produce the wrong design |
-    | Scope | Focused on a single design, not several independent subsystems |
+    | Scope | Each document is focused on one design — one architecture, or one module — not several independent subsystems |
 
     ## Calibration
 
     **Only flag issues that would cause real problems during later specification or implementation.**
-    A missing section, a contradiction, an ambiguity that could mislead, a decision
-    with no rationale, or a leftover placeholder — those are issues. Wording style,
-    uneven section depth, and "could be more detailed" are not.
+
+    These are issues: a missing section, a contradiction, a class with no field or
+    function table, a dependency contract that stops at a name with no signature,
+    a dependency that is not traceable in both directions, a matrix signature that
+    disagrees with the module document it points to, a flow missing its failure
+    path, untouched content that was altered or lost, a decision with no rationale,
+    an ambiguity that could mislead, a leftover placeholder.
+
+    These are **not** issues: field tables, function signature tables, call chains,
+    data-shape tables, or interface matrices. Those are required design description
+    and must not be reported as "spec mode". Neither are wording style, uneven
+    section depth, or "could be more detailed".
 
     Approve unless there are serious gaps.
 
@@ -44,7 +61,7 @@ Subagent (general-purpose):
     **Status:** Approved | Issues Found
 
     **Issues (if any):**
-    - [Section X]: [specific issue] - [why it matters later]
+    - [Document / Section X]: [specific issue] - [why it matters later]
 
     **Recommendations (advisory, do not block approval):**
     - [suggestions for improvement]
