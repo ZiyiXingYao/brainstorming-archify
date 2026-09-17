@@ -115,7 +115,11 @@ your path and complete them in order.
 2. **Ask clarifying questions** — one at a time, the ones that matter
 3. **Present short design in chat** — approach, files touched, testing
 4. **Get approval** — STOP and wait for an explicit yes; presenting the design and starting in the same breath is skipping the gate
-5. **Move to the Persist Gate**
+5. **Move to the Persist Gate** — when `specs/design/` already exists, the
+   persist is an incremental merge into the affected module document.
+   When the project has no design document set yet, do not manufacture an
+   architecture-plus-modules set for a bounded change; write a module
+   document only if your human partner asks for one.
 
 **Architectural:**
 1. **Explore project context** — check files, docs, recent commits
@@ -207,7 +211,7 @@ is the whole process.
 - Once you believe you understand what you're building, present the design
 - Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
 - Ask after each section whether it looks right so far
-- Cover: architecture, components, data flow, error handling, testing
+- Cover: architecture, components, data flow, error handling
 - Be ready to go back and clarify if something doesn't make sense
 
 **Design for isolation and clarity:**
@@ -247,8 +251,9 @@ discussions, and that work must not be regenerated from scratch.
 
 **Rule 1 — Read before writing.** Before writing any document, list
 `specs/design/` and read `01-架构设计.md`: its module list, class list,
-file tree, and cross-module interface matrix — plus any module document
-this discussion touches. This is a hard prerequisite, not a courtesy.
+file tree, cross-module interface matrix, and global end-to-end flows —
+plus any module document this discussion touches. This is a hard
+prerequisite, not a courtesy.
 
 **Rule 2 — Judge whether this discussion touches the architecture, then
 act on the verdict.**
@@ -258,9 +263,11 @@ act on the verdict.**
 - The discussion affects the architecture — a module added or removed, a
   class moved between modules, a class added or removed, the file tree
   changing, module dependencies changing, a cross-module interface
-  changing → change **only the affected entries**. Everything else stays
-  word-for-word, including its original phrasing, order, and formatting.
-  Do not polish untouched sections while you are in the file.
+  changing, a global flow's module chain changing → change **only the
+  affected entries**. Everything else stays word-for-word, including its
+  original phrasing, order, and formatting. The one further edit allowed
+  is refreshing the 最近更新 line. Do not polish untouched sections while
+  you are in the file.
 
 **Rule 3 — Conflicts are reported, not overwritten.** When this
 discussion's conclusion contradicts an existing document — the human
@@ -315,7 +322,8 @@ list first.
 4. **Fill each template exactly** — keep every section, in order. Do not
    add, remove, or rename sections. For a section that does not apply,
    keep its heading and write `不适用：<reason>`.
-5. **Write to** `specs/design/<NN>-<name>.md`
+5. **Write to** `<project-root>/specs/design/<NN>-<name>.md` — the path is
+   relative to the project root, not to the current working directory
    - `01-架构设计.md` is fixed for the architecture document
    - Module documents are named after the functional module and numbered
      after the current maximum. **Append, never renumber** — inserting a
@@ -354,7 +362,7 @@ Check each item and fix in place:
 5. **Decision traceability:** Does every key decision state its rationale and the rejected alternatives?
 6. **Scope check:** Is each document focused on a single design — one architecture, or one module — rather than several independent subsystems?
 7. **Incremental merge integrity:** For every document that already existed, are the untouched sections word-for-word unchanged? Has any content belonging to other modules, or produced by earlier discussions, been dropped?
-8. **Cross-document consistency:** Does the architecture class list match every module document's class list? Does every row of every module document's dependency contract appear in the architecture interface matrix, and vice versa?
+8. **Cross-document consistency:** Does the architecture class list match every module document's class list? Does every row of every module document's dependency contract appear in the architecture interface matrix, and vice versa? Does every flow name in a module document appear as a flow in the architecture's global flow section, and does each of those chains name the right modules?
 9. **Coverage completeness:** Does every class in the class list have a detailed-design entry with both a field table and a function table? Does every cross-module call named in a function table appear in the dependency contract?
 
 ## Subagent Review
@@ -367,6 +375,15 @@ After self-review passes, dispatch a review subagent using
   `module-doc-template.md`
 - the list of pre-existing documents and sections that the approved
   change list marked as untouched
+
+One subagent reviews both document types. Route each document to its
+template: `01-架构设计.md` follows the architecture template, every other
+document follows the module template.
+
+When the write set exceeds five documents, split the review: review
+`01-架构设计.md` first, then dispatch the module documents in batches,
+carrying the architecture findings into each later batch so the
+cross-document checks still have their reference.
 
 - Verdict **approved** → go to the user review gate
 - Verdict **issues found** → fix in place, then re-run self-review. Then
