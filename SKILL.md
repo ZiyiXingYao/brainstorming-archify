@@ -315,9 +315,13 @@ because the human needs to know which modules are now owed a design.
 When a module is designed, every `待提供` row naming it as provider must
 be resolved in that same persist: flipped to `已落地` when the hard
 constraints match, or to `有差异` when they do not. Leaving such a row at
-`待提供` after its provider has been designed means the gap has no owner —
-the interface matrix's completed rules live in the architecture template's
-section 6.
+`待提供` after its provider has been designed means the gap has no owner.
+
+**Status lives only in the interface matrix.** A module document's
+dependency contract states the requirement — provider, class, expected
+signature, semantics — and never the status. That is what keeps flipping a
+row from requiring an edit to another module's document. The full rules
+live in the architecture template's section 6.
 
 **Rule 5 — Registering a module the architecture already lists as
 未设计.** Designing it completes a promise the architecture already
@@ -456,8 +460,8 @@ Check each item and fix in place:
 6. **Scope check:** Is each document focused on a single design — one architecture, or one module — rather than several independent subsystems?
 7. **Incremental merge integrity:** For every document that already existed, are the untouched sections word-for-word unchanged? Has any content belonging to other modules, or produced by earlier discussions, been dropped?
 8. **Cross-document consistency:** Does the architecture class list match every module document's class list? Does every row of every module document's dependency contract appear in the architecture interface matrix, and vice versa? Does every *cross-module* flow in a module document appear in the architecture's global flow section under the same name, and is no purely intra-module flow wrongly registered there? Does every reference resolve — no pointer to a renamed or deleted module, no orphan module document whose module is missing from the list?
-9. **Dependency closure:** Is every `待提供` row whose provider module has now been designed flipped to `已落地` or `有差异`? An unflipped row means the gap has no owner.
-10. **Coverage completeness:** Does every class in the class list have a detailed-design entry with both a field table and a function table — or an explicit `不适用` with a reason where one of them genuinely does not apply? Does every cross-module call named in a function table appear in the dependency contract?
+9. **Dependency closure:** Is every `待提供` row in the interface matrix whose provider module has now been designed flipped to `已落地` or `有差异`? An unflipped row means the gap has no owner. And is status absent from every module document's dependency contract — it belongs only in the matrix?
+10. **Coverage completeness:** Does every class in the class list have a detailed-design entry with both a field table and a function table — or an explicit `不适用` with a reason where one of them genuinely does not apply? Does every cross-module call named in a function table appear in the dependency contract? Does the file tree reach **file level** and cover every `定义文件` in the class list, with no source file in the tree that the class list does not know about?
 11. **Read-before-write:** Was `specs/design/` actually read before anything was written, and does the write set match what the approved change list described? If the change list was never approved, stop and report that — it is a process failure, not a wording issue.
 
 ## Subagent Review
