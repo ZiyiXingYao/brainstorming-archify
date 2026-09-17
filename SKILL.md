@@ -468,8 +468,12 @@ After self-review passes, dispatch a review subagent using
 - the path to every document in the write set
 - the path to both templates — `architecture-doc-template.md` and
   `module-doc-template.md`
-- the list of pre-existing documents and sections that the approved
-  change list marked as untouched
+- the approved change list itself: which files are new, which are modified
+  and in which sections, what was declared untouched, every new
+  dependency, any pending conflict, and whether it was announced as an
+  architecture overhaul. The reviewer needs the whole list, not just the
+  untouched part — the merge-integrity check depends on knowing what the
+  approved scope actually was.
 
 One subagent reviews both document types. Route each document to its
 template: `01-架构设计.md` follows the architecture template, every other

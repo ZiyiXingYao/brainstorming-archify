@@ -21,7 +21,7 @@ Subagent (general-purpose):
     **Documents to review:** [DESIGN_DOC_PATHS]
     **Architecture template:** [ARCHITECTURE_TEMPLATE_PATH]   ← absolute path to architecture-doc-template.md
     **Module template:** [MODULE_TEMPLATE_PATH]               ← absolute path to module-doc-template.md
-    **Documents/sections declared untouched:** [UNTOUCHED_LIST]
+    **Approved change list:** [CHANGE_LIST_SUMMARY]           ← what the human approved: new files, modified files and which sections, what was declared untouched, new dependencies, pending conflicts. State whether it was announced as an architecture overhaul
     **Findings from the architecture review (if this is a later batch):** [PRIOR_BATCH_FINDINGS]
 
     ## Which Template Applies to Which Document
@@ -45,6 +45,10 @@ Subagent (general-purpose):
     - Which cross-module interfaces are settled → architecture section 6
     - Class ownership → architecture section 8.1, mirrored in each
       module document's section 2.1
+    - A cross-module flow's module chain and boundary crossings →
+      architecture section 7; the same flow's intra-module function-level
+      detail → the module document's section 5. Neither may contradict the
+      other, and a name mismatch is wrong on both sides
 
     ## What to Check
 
@@ -60,12 +64,12 @@ Subagent (general-purpose):
     | Flow completeness | Two layers, checked separately. **(architecture)** each global flow states its trigger, a module-level chain naming the interface called at each boundary crossing, the data shape per hop, where the result lands, and how the whole flow unwinds when a hop fails; the architecture carries only cross-module flows. **(module)** each flow states the module's entry point, the intra-module function-level chain, data-shape changes, who receives the result, and the failure path — without restating the cross-module skeleton. A cross-module flow must appear in both places under the same name; a purely intra-module flow belongs only in the module document |
     | Class attribution **(architecture)** | Every class appears exactly once in the class list with its owning module; the list matches each module document's class list; the file tree covers every declared file; a module marked 已设计 has a document that exists, one marked 未设计 has no document yet and carries the `（待创建）` marker, and no module document exists whose module is absent from the list |
     | Cross-document consistency | The architecture class list matches every module document's class list; dependency-contract rows and interface-matrix rows agree in both directions; every **cross-module** flow name in a module document appears in the architecture's global flow section with the right module chain, and no module document claims a global flow that the architecture does not have; module names are unique across the list and match file names and the matrix's "详见" references, with no reference pointing at a renamed or deleted module; cross-references use the project-root-relative path form (`specs/design/02-通信模块.md`) rather than bare file names or `../` hops |
-    | Incremental merge integrity | Every document and section listed as untouched is word-for-word unchanged (the 最近更新 line is the one permitted exception); no content from other modules or earlier discussions was silently dropped — in particular, a module document redrafted wholesale rather than merged. When the change list announced an architecture overhaul, check that the existing documents were still walked entry by entry and that whatever still holds was kept, rather than regenerated |
+    | Incremental merge integrity | Every document and section the approved change list declared untouched is word-for-word unchanged (the 最近更新 line is the one permitted exception); no content from other modules or earlier discussions was silently dropped — in particular, a module document redrafted wholesale rather than merged, and any document the change list did not name as modified. When the change list announced an architecture overhaul, check that the existing documents were still walked entry by entry and that whatever still holds was kept, rather than regenerated |
     | Completeness | No TBD/TODO/placeholders/empty sections; background, comparison, recommendation, and decisions are all substantive |
-    | Consistency | No contradictions between sections or between documents; the recommended approach matches the comparison's conclusion |
+    | Consistency **(architecture)** | No contradictions between sections; the recommended approach matches the comparison's conclusion |
     | Decision traceability | Key decisions state their rationale and rejected alternatives |
     | Ambiguity | Sentences that could be read two ways, enough to produce the wrong design |
-    | Scope | Each document is focused on one design — one architecture, or one module — not several independent subsystems |
+    | Scope | **(architecture)** one project's architecture, expressed as a module split, flow set, and file tree — not a grab-bag of unrelated systems; **(module)** one module, not several |
 
     ## Calibration
 

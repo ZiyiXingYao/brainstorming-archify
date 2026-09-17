@@ -238,7 +238,7 @@ rm -rf /tmp/sp
 14. `## The Three Gates` 节：说明落盘门、变更清单门、用户审查门各管什么，一次会话会问三次且不合并
 15. `## Writing the Design Document` / `## Document Format Requirements` 节（两份模板、混合式形态、spec 模式边界澄清、`不适用` 例外、路径基准为项目根、文档间引用统一写相对项目根的完整路径）
 16. `## Self-Review` 节：逐节核对模板合规的 11 项清单（替换 spec 自审），含增量合并完整性、跨文档一致性（含跨模块流程同名、引用可解析）、接口状态收口、覆盖完整性（含 `不适用` 判定）、落盘前是否真的读了盘
-17. `## Subagent Review` 节 + `design-doc-reviewer-prompt.md`：一个子代理审两类文档并做模板路由与权威顺序判定，写盘集超 5 份时分批；含重跑规则：修订涉及结论 / 决策 / 流程 → 重跑子代理审查，纯措辞或笔误修订 → 只需自审
+17. `## Subagent Review` 节 + `design-doc-reviewer-prompt.md`：一个子代理审两类文档并做模板路由与权威顺序判定（权威顺序含依赖签名、模块存在性、接口状态、类归属、流程的模块链五类），**传入完整的已批准变更清单而不只是"逐字不动"部分**，写盘集超 5 份时分批；含重跑规则：修订涉及结论 / 决策 / 流程 → 重跑子代理审查，纯措辞或笔误修订 → 只需自审
 18. `## User Review Gate` 与 `## Terminal State` 节
 19. Red Flags 表新增 10 行（随口问问也落盘 / 自创文档格式 / 模块讨论顺手改架构文档 / 不读盘就写 / 字段表当 spec 模式 / 设计批准当写盘批准 / 待提供未翻牌 / 改名不跟引用 / 聊完就实现 / 落盘门），改写 1 行；全文单数 "design document" 按多文件模型改复数
 20. `## Process Flow` 中新增 Persist Gate 与 Change List Gate 分支，并补充「落盘阶段」说明：bounded 与 architectural 共用门禁但产出不同（bounded 只并回受影响的模块文档，或项目尚无文档集时不写）；终态改为 `Done` / `Stop here (no file)`
