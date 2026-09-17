@@ -255,11 +255,17 @@ file tree, cross-module interface matrix, and global end-to-end flows —
 plus any module document this discussion touches. This is a hard
 prerequisite, not a courtesy.
 
-**Rule 2 — Judge whether this discussion touches the architecture, then
-act on the verdict.**
+**Rule 2 — Judge the blast radius, then act on the verdict.**
+
+For the module document being worked on: change only the entries this
+discussion is about — the classes, fields, functions, and flows it
+actually reworked. Everything an earlier discussion settled stays
+word-for-word. Never regenerate a module document from scratch.
+
+For `01-架构设计.md`:
 
 - The discussion covers only the internals of one module — its fields,
-  functions, flows → `01-架构设计.md` gets **zero edits**. Not one word.
+  functions, flows → **zero edits**. Not one word.
 - The discussion affects the architecture — a module added or removed, a
   class moved between modules, a class added or removed, the file tree
   changing, module dependencies changing, a cross-module interface
@@ -286,10 +292,23 @@ bound by it. Register a `待提供` row in the architecture document's
 cross-module interface matrix, and surface it in the change list,
 because the human needs to know which modules are now owed a design.
 
+**Rule 5 — Registering a module the architecture already lists as
+未设计.** Designing it completes a promise the architecture already
+recorded, so the same persist also: creates `0N-<模块名>.md` from the
+module template using the reserved number, flips that row's 设计状态 to
+已设计, and drops the `（待创建）` marker from its 对应文档 cell. Do not
+renumber, and do not add a second row for it.
+
+If the module is not in the list at all, it is a genuinely new module:
+append it with the next free number. That is an architecture change and
+is announced in the change list as such.
+
 The module list in `01-架构设计.md` section 5.1 is the single source of
 truth for which modules exist; the interface matrix in section 6 is the
-single source of truth for which cross-module interfaces are settled.
-Every document must agree with both.
+single source of truth for which cross-module interfaces are settled;
+a module document's section 4 is the single source of truth for the
+signatures of the dependencies that module declares. Every document must
+agree with all three.
 
 ## Change List Gate
 
@@ -340,7 +359,9 @@ list first.
 - **Hybrid form** — narrative prose for responsibilities, boundaries, class
   relationships, and business flows; tables for fields, functions, and
   dependencies. The tables are mandatory, not optional: a class with no
-  field table and no function table is an incomplete class.
+  field table and no function table is an incomplete class — **unless that
+  table is marked `不适用` with a reason** (a pure data class has no
+  functions; a stateless class has no fields).
 - **No spec mode — and that is not a licence to drop structure** —
   forbidden: requirement IDs, acceptance criteria, task lists,
   Given/When/Then. Required and explicitly allowed: field tables,
@@ -363,7 +384,8 @@ Check each item and fix in place:
 6. **Scope check:** Is each document focused on a single design — one architecture, or one module — rather than several independent subsystems?
 7. **Incremental merge integrity:** For every document that already existed, are the untouched sections word-for-word unchanged? Has any content belonging to other modules, or produced by earlier discussions, been dropped?
 8. **Cross-document consistency:** Does the architecture class list match every module document's class list? Does every row of every module document's dependency contract appear in the architecture interface matrix, and vice versa? Does every flow name in a module document appear as a flow in the architecture's global flow section, and does each of those chains name the right modules?
-9. **Coverage completeness:** Does every class in the class list have a detailed-design entry with both a field table and a function table? Does every cross-module call named in a function table appear in the dependency contract?
+9. **Coverage completeness:** Does every class in the class list have a detailed-design entry with both a field table and a function table — or an explicit `不适用` with a reason where one of them genuinely does not apply? Does every cross-module call named in a function table appear in the dependency contract?
+10. **Read-before-write:** Was `specs/design/` actually read before anything was written, and does the write set match what the approved change list described? If the change list was never approved, stop and report that — it is a process failure, not a wording issue.
 
 ## Subagent Review
 

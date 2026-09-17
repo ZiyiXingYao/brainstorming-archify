@@ -34,6 +34,18 @@ Subagent (general-purpose):
     is not expected to carry per-class field and function tables. Reporting
     one for lacking what the other's template requires is a false positive.
 
+    ## Authority Order
+
+    When two documents disagree, these decide which one is wrong — do not
+    report the disagreement as a tie:
+
+    - Dependency signatures → the calling module's section 4 wins; the
+      interface matrix is a copy and must be corrected to match it
+    - Which modules exist → architecture section 5.1
+    - Which cross-module interfaces are settled → architecture section 6
+    - Class ownership → architecture section 8.1, mirrored in each
+      module document's section 2.1
+
     ## What to Check
 
     Rows marked **(module)** apply only to module documents; **(architecture)**
@@ -43,12 +55,12 @@ Subagent (general-purpose):
     |----------|------------------|
     | Template compliance | Each document checked against its own template: every section present, in order, no extra sections; N/A sections state a reason |
     | Readability | Narrative for responsibilities, boundaries, class relationships, and business flows; tables where the template calls for tables. No spec-mode content (requirement IDs, acceptance criteria, task lists, Given/When/Then) |
-    | Structural completeness **(module)** | Every class in the class list has a detailed-design entry with **both** a field table and a function table; function tables name each function's caller and the other modules' functions it depends on |
-    | Dependency coverage **(module + architecture matrix)** | Every module document declares its outward dependency contract **at signature level** (function name, parameters, return type, boundary semantics) — a bare name with no signature is incomplete; every dependency-contract row appears in the architecture cross-module interface matrix and vice versa (bidirectional traceability); the matrix's signature summary matches the module document's row word-for-word; statuses are one of 已落地 / 待提供 / 有差异 |
-    | Flow completeness | Two layers, checked separately. **(architecture)** each global flow states its trigger, a module-level chain naming the interface called at each boundary crossing, the data shape per hop, and where the result lands. **(module)** each flow states the module's entry point, the intra-module function-level chain, data-shape changes, who receives the result, and the failure path — without restating the cross-module skeleton |
-    | Class attribution **(architecture)** | Every class appears exactly once in the class list with its owning module; the list matches each module document's class list; the file tree covers every declared file |
+    | Structural completeness **(module)** | Every class in the class list has a detailed-design entry with a field table and a function table — or an explicit `不适用` with a reason where one genuinely does not apply (a pure data class has no functions; a stateless class has no fields). An unmarked missing table is an issue; a reasoned `不适用` is not. Function tables name each function's caller and the other modules' functions it depends on |
+    | Dependency coverage **(module + architecture matrix)** | Every module document declares its outward dependency contract **at signature level** (function name, parameters, return type, boundary semantics) — a bare name with no signature is incomplete; rows that only need a class rather than a function use `—` for the signature and explain the requirement in the semantics column; every dependency-contract row appears in the architecture interface matrix and vice versa (bidirectional traceability); the matrix's summary matches the calling module's row word-for-word; statuses are one of 已落地 / 待提供 / 有差异 |
+    | Flow completeness | Two layers, checked separately. **(architecture)** each global flow states its trigger, a module-level chain naming the interface called at each boundary crossing, the data shape per hop, where the result lands, and how the whole flow unwinds when a hop fails. **(module)** each flow states the module's entry point, the intra-module function-level chain, data-shape changes, who receives the result, and the failure path — without restating the cross-module skeleton |
+    | Class attribution **(architecture)** | Every class appears exactly once in the class list with its owning module; the list matches each module document's class list; the file tree covers every declared file; a module marked 已设计 has a document that exists, and one marked 未设计 has no document yet and carries the `（待创建）` marker |
     | Cross-document consistency | The architecture class list matches every module document's class list; dependency-contract rows and interface-matrix rows agree in both directions; every flow name in a module document appears in the architecture's global flow section with the right module chain; module names match file names and the matrix's "详见" references |
-    | Incremental merge integrity | Every document and section listed as untouched is word-for-word unchanged (the 最近更新 line is the one permitted exception); no content from other modules or earlier discussions was silently dropped |
+    | Incremental merge integrity | Every document and section listed as untouched is word-for-word unchanged (the 最近更新 line is the one permitted exception); no content from other modules or earlier discussions was silently dropped — in particular, a module document redrafted wholesale rather than merged |
     | Completeness | No TBD/TODO/placeholders/empty sections; background, comparison, recommendation, and decisions are all substantive |
     | Consistency | No contradictions between sections or between documents; the recommended approach matches the comparison's conclusion |
     | Decision traceability | Key decisions state their rationale and rejected alternatives |
@@ -60,18 +72,21 @@ Subagent (general-purpose):
     **Only flag issues that would cause real problems during later specification or implementation.**
 
     These are issues: a missing section, a contradiction, a class with no field or
-    function table, a dependency contract that stops at a name with no signature,
-    a dependency that is not traceable in both directions, a matrix signature that
-    disagrees with the module document it points to, a flow missing its failure
-    path, a cross-module flow described in full inside a module document instead
-    of in the architecture, untouched content that was altered or lost, a decision
-    with no rationale, an ambiguity that could mislead, a leftover placeholder.
+    function table and no `不适用` reason, a dependency contract that stops at a
+    name with no signature, a dependency that is not traceable in both directions,
+    a matrix signature that disagrees with the calling module document it points to,
+    a flow missing its failure handling, a module marked 已设计 whose document does
+    not exist, a cross-module flow described in full inside a module document instead
+    of in the architecture, untouched content that was altered or lost, a module
+    document regenerated instead of merged, a decision with no rationale, an
+    ambiguity that could mislead, a leftover placeholder.
 
     These are **not** issues: field tables, function signature tables, call chains,
     data-shape tables, or interface matrices. Those are required design description
-    and must not be reported as "spec mode". Neither are wording style, uneven
-    section depth, "could be more detailed", or a document not carrying the other
-    template's sections.
+    and must not be reported as "spec mode". Nor is a table marked `不适用` with a
+    stated reason — that is the template working as designed. Neither are wording
+    style, uneven section depth, "could be more detailed", or a document not
+    carrying the other template's sections.
 
     Approve unless there are serious gaps.
 
