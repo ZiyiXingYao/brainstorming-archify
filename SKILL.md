@@ -126,7 +126,7 @@ your path and complete them in order.
 
 **Architectural:**
 1. **Explore project context** — check files, docs, recent commits
-2. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
+2. **Ask clarifying questions** — one at a time, working the layered question list in **Understanding the idea** in its order (functional points → module division → core classes → file tree → flows)
 3. **Propose 2-3 approaches** — with trade-offs and your recommendation
 4. **Present design** — in sections scaled to their complexity, get user approval after each section
 5. **Move to the Persist Gate**
@@ -205,7 +205,11 @@ is the whole process.
 - For appropriately-scoped projects, ask questions one at a time to refine the idea
 - Prefer multiple choice questions when possible, but open-ended is fine too
 - Only one question per message - if a topic needs more exploration, break it into multiple questions
-- Focus on understanding: purpose, constraints, success criteria
+- Ask the clarifying questions in layers, in this order — **functional points → module division → core classes → file tree → flows** — and finish each layer before starting the next:
+  - **Functional-point layer** — ask until **every** functional point is captured: which functional points does the system offer? For each, what need it serves, for whom, its input and its observable result, and its boundary (what it deliberately does not do). Which are goals and which are explicit non-goals?
+  - **Architecture layer** — ask until **every** functional point and **every** functional flow is captured: how is the system cut into modules, and *why* that way (the seams, the alternative divisions rejected)? Which modules depend on which, and how strongly? Which cross-module interfaces are needed, and what does the calling side expect of each signature? Which classes are the core classes that chain the functional flows together? What do the module folders and core files look like? Deliberately defer the details — they belong to the module layer.
+  - **Module layer** — only now: for each class, its fields and functions; the relationships between classes; for each declared outward dependency, the provider, class, and expected signature; and for each flow the module participates in, the function-level call chain with its data-shape changes, who receives the result, and the failure path.
+- Reason for the order: a functional point or flow left vague at the functional-point or architecture layer becomes a gap every later module design inherits.
 
 **Exploring approaches:**
 
@@ -219,7 +223,7 @@ is the whole process.
 - Once you believe you understand what you're building, present the design
 - Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
 - Ask after each section whether it looks right so far
-- Cover the ground the templates will require: responsibilities and boundaries, module division, class attribution and relationships, the file tree, cross-module interfaces, end-to-end flows, and error handling. The templates decide the exact section list — this list is the floor, not the ceiling.
+- Cover the ground the templates will require: functional points; module division and its rationale; core classes with their relationships and calls; the file tree; cross-module interfaces; and the global flows. The templates decide the exact section list — inventing a section name the templates do not have is a defect.
 - Be ready to go back and clarify if something doesn't make sense
 
 **Design for isolation and clarity:**
@@ -258,7 +262,7 @@ accumulates. `specs/design/` already holds work from earlier
 discussions, and that work must not be regenerated from scratch.
 
 **Rule 1 — Read before writing.** Before writing any document, list
-`specs/design/` and read `01-架构设计.md`: its module list, class list,
+`specs/design/` and read `01-架构设计.md`: its module list, core-class list,
 file tree, cross-module interface matrix, and global end-to-end flows —
 plus any module document this discussion touches. This is a hard
 prerequisite, not a courtesy.
@@ -321,7 +325,7 @@ constraints match, or to `有差异` when they do not. Leaving such a row at
 dependency contract states the requirement — provider, class, expected
 signature, semantics — and never the status. That is what keeps flipping a
 row from requiring an edit to another module's document. The full rules
-live in the architecture template's section 6.
+live in the architecture template's section 7.
 
 **Rule 5 — Registering a module the architecture already lists as
 未设计.** Designing it completes a promise the architecture already
@@ -353,8 +357,8 @@ changes and both are announced in the change list.
   and every cross-reference in other module documents. Never leave a
   stale path behind.
 
-The module list in `01-架构设计.md` section 5.1 is the single source of
-truth for which modules exist; the interface matrix in section 6 is the
+The module list in `01-架构设计.md` section 6.2 is the single source of
+truth for which modules exist; the interface matrix in section 7 is the
 single source of truth for which cross-module interfaces are settled;
 a module document's section 4 is the single source of truth for the
 signatures of the dependencies that module declares. Every document must
@@ -459,9 +463,9 @@ Check each item and fix in place:
 5. **Decision traceability:** Does every key decision state its rationale and the rejected alternatives?
 6. **Scope check:** Is each document focused on a single design — one architecture, or one module — rather than several independent subsystems?
 7. **Incremental merge integrity:** For every document that already existed, are the untouched sections word-for-word unchanged? Has any content belonging to other modules, or produced by earlier discussions, been dropped?
-8. **Cross-document consistency:** Does the architecture class list match every module document's class list? Does every row of every module document's dependency contract appear in the architecture interface matrix, and vice versa? Does every *cross-module* flow in a module document appear in the architecture's global flow section under the same name, and is no purely intra-module flow wrongly registered there? Does every reference resolve — no pointer to a renamed or deleted module, no orphan module document whose module is missing from the list?
+8. **Cross-document consistency:** Is the architecture's core-class list a subset of the union of the module documents' class lists — with no class owned by two modules, and no core class without an owning module? Does every row of every module document's dependency contract appear in the architecture interface matrix, and vice versa? Does every **functional** flow appear in the architecture's global flow section under the same name — including one that completes inside a single module — while a purely module-internal **implementation** flow must not be registered there? Does every reference resolve — no pointer to a renamed or deleted module, no orphan module document whose module is missing from the list?
 9. **Dependency closure:** Is every `待提供` row in the interface matrix whose provider module has now been designed flipped to `已落地` or `有差异`? An unflipped row means the gap has no owner. And is status absent from every module document's dependency contract — it belongs only in the matrix?
-10. **Coverage completeness:** Does every class in the class list have a detailed-design entry with both a field table and a function table — or an explicit `不适用` with a reason where one of them genuinely does not apply? Does every cross-module call named in a function table appear in the dependency contract? Does the file tree reach **file level** and cover every `定义文件` in the class list, with no source file in the tree that the class list does not know about?
+10. **Coverage completeness:** Does every class in the class list have a detailed-design entry with both a field table and a function table — or an explicit `不适用` with a reason where one of them genuinely does not apply? Does every cross-module call named in a function table appear in the dependency contract? Does the **architecture** file tree reach module folders and core files only, with every **core** class's `定义文件` locatable in it? A non-core class's source file need not appear and its absence is not a defect — the module documents' class lists are the authority for the complete class inventory.
 11. **Read-before-write:** Was `specs/design/` actually read before anything was written, and does the write set match what the approved change list described? If the change list was never approved, stop and report that — it is a process failure, not a wording issue.
 
 ## Subagent Review
