@@ -55,21 +55,32 @@ override it:
   a nod, then find out as cheaply as correctness allows. No design
   doc. Report findings as a recommendation; anything you built stays
   labeled throwaway.
-- **Bounded** — a well-scoped change to code that already exists in
-  this repo: a new flag, a small endpoint, a one-file fix.
-  Understanding the kind of app is not enough — bounded means the flow
-  you are changing is already here to read. If there is no existing
-  flow to change, the task is not bounded. Ask the clarifying
-  questions that matter, present a short design IN CHAT (a few
-  sentences to a few short paragraphs), and STOP. Implementation
-  starts only after your human partner says yes to that design — a
-  bounded task's approval is as hard a gate as an architectural
-  one. No document is written at this step; the Persist Gate comes after
-  approval and decides whether anything is persisted at all.
-- **Architectural** — new projects, new subsystems, changes that
-  restructure how components fit together or alter interfaces others
-  depend on. Follow the full process: questions, approaches, sectioned
-  design, then the Persist Gate.
+- **Bounded** — a well-scoped change whose flow is already written down in
+  `specs/design/` and can be read: a field added to a class, a step inserted
+  into an existing flow, one cross-module interface adjusted.
+  Bounded is measured against **this repository's design document set, not
+  against whether code exists** — a repository holding only design documents
+  is this skill's normal case, so "there is no code yet" never by itself
+  makes a task architectural. What matters is whether the flow you are
+  changing is already on paper. If it is, ask the clarifying questions that
+  matter, present a short design IN CHAT (a few sentences to a few short
+  paragraphs), and STOP. Implementation starts only after your human partner
+  says yes to that design — a bounded task's approval is as hard a gate as an
+  architectural one. No document is written at this step; the Persist Gate
+  comes after approval and decides whether anything is persisted at all.
+- **Architectural** — new projects, new subsystems, **designing a module the
+  architecture lists as 未设计**, and changes that restructure how components
+  fit together or alter interfaces others depend on. Follow the full process:
+  questions, approaches, sectioned design, then the Persist Gate.
+  - **The approaches step is scoped to what is still open.** When you design
+    a module inside an already-confirmed architecture — the usual incremental
+    case — the module split, the dependencies and the cross-module interfaces
+    are frozen, so proposing 2-3 whole-system approaches would argue against
+    settled content. Present 2-3 approaches **for the decisions this module
+    actually leaves open** (how it splits internally, where a check or a
+    failure path lives, which collaborator owns what) — or state that no such
+    choice is open and skip the step. Never re-open a confirmed architecture
+    as though it were still undecided.
 
 When in doubt between two paths, take the heavier one. The ratchet is
 one-way: hidden complexity discovered mid-task upgrades the path —
@@ -206,13 +217,15 @@ is the whole process.
 - Check out the current project state first (files, docs, recent commits)
 - Before asking detailed questions, assess scope: if the request describes multiple independent subsystems (e.g., "build a platform with chat, file storage, billing, and analytics"), flag this immediately. Don't spend questions refining details of a project that needs to be decomposed first.
 - If the project is too large for a single design, help the user decompose it into functional modules: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first module through the normal design flow. `01-架构设计.md` stays global and accumulates every module's architecture-level content; each module's detail goes in its own `<NN>-<模块名>.md`. There is only ever one architecture document.
-- For appropriately-scoped projects, ask questions one at a time to refine the idea
+- For appropriately-scoped projects, ask questions to refine the idea one **layer** at a time
 - Prefer multiple choice questions when possible, but open-ended is fine too
-- Only one question per message - if a topic needs more exploration, break it into multiple questions
-- Ask the clarifying questions in layers, in this order — **functional points → module division → core classes → file tree → flows** — and finish each layer before starting the next:
+- **One layer per message.** Never mix two layers' questions in the same message or the same structured-question call. Within the current layer you may ask several questions at once, up to your platform's per-call limit for the question tool; if a layer needs more, send another message for that same layer. "One message" means one user-facing message whose content is the question — do not bundle other material into it.
+- Ask the clarifying questions in layers, in this order — **functional points → module division → core classes → file tree → flows**:
   - **Functional-point layer** — ask until **every** functional point is captured: which functional points does the system offer? For each, what need it serves, for whom, its input and its observable result, and its boundary (what it deliberately does not do). Which are goals and which are explicit non-goals?
   - **Architecture layer** — ask until **every** functional point and **every** functional flow is captured: how is the system cut into modules, and *why* that way (the seams, the alternative divisions rejected)? Which modules depend on which, and how strongly? Which cross-module interfaces are needed, and what does the calling side expect of each signature? Which classes are the core classes that chain the functional flows together? What do the module folders and core files look like? Deliberately defer the details — they belong to the module layer.
   - **Module layer** — only now: for each class, its fields and functions; the relationships between classes; for each declared outward dependency, the provider, class, and expected signature; and for each flow the module participates in, the function-level call chain with its data-shape changes, who receives the result, and the failure path.
+- **A layer is finished when its template fields are fillable — not when the conversation feels done.** Concretely: the functional-point layer is finished when every column of architecture section 5 is answerable for every functional point; the architecture layer, when sections 6, 7, 8, 9 and the flow skeletons of 10 are answerable; the module layer, when sections 2, 3, 4 and 5 of that module's document are answerable. Before starting the next layer, list which of the current layer's template fields you still cannot fill and ask about exactly those — an unfillable field is a question you have not asked yet.
+- **Ask for rejected alternatives while you ask for decisions.** Every layer's questions should surface not only what the human chose but what they rejected, because 关键决策记录 requires the rejected option. If they state a choice without an alternative, ask what they ruled out.
 - Reason for the order: a functional point or flow left vague at the functional-point or architecture layer becomes a gap every later module design inherits.
 
 **Exploring approaches:**
@@ -245,15 +258,32 @@ is the whole process.
 
 ## The Persist Gate
 
-Once the design has settled, **ask your human partner whether they want
-the discussion written down as design documents.** This question gets a
-message of its own — the question and nothing else.
+**"Settled" means you can already state the conclusion in chat** — every
+open question from the layers above has been answered, whether or not the
+human has yet approved the design's wording. Do not wait for design
+approval before asking this question: approving the design wording belongs
+to the presentation step, and the two gates are separate. Ask as soon as
+the conclusion is statable.
+
+Ask **whether they want the discussion written down as design documents.**
+This question gets a message of its own — the question and nothing else.
 
 Reason: they may have been asking casually and do not want a file out of it.
 
 - They say **no** → stop. The conclusion already stated in chat is the
   whole output. Do not write a file, and do not ask again.
 - They say **yes** → go to Writing the Design Document.
+- **Anything that is neither** — a question back, a deferral, a change of
+  subject → treat it as *not yet answered*: respond to what they said, then
+  re-ask this gate once, as its own message. Never read a non-answer as
+  consent, and never read it as a refusal either.
+
+When an answer arrives through a structured-question tool rather than
+plain text, an explicit approval option and an explicitly approving
+free-text answer both count as **yes**; a deferral, a question back, or a
+request for more information does not. The same rule governs the Change
+List Gate and the User Review Gate: an explicit yes from any channel is
+consent, and silence never is.
 
 Example:
 
@@ -292,10 +322,21 @@ For `01-架构设计.md`:
   changing, module dependencies changing, a cross-module interface
   changing, a global flow's module chain changing → change **only the
   affected entries**. Everything else stays word-for-word, including its
-  original phrasing, order, and formatting. The one further edit allowed
-  is refreshing the 最近更新 line — on every document this persist touched,
-  using the same date. Do not polish untouched sections while you are in
-  the file.
+  original phrasing, order, and formatting. The only further edits allowed
+  are refreshing the 最近更新 line and — when this discussion's topic differs
+  from the one recorded — the 主题 inside the 来源 line, on every document
+  this persist touched, using the same date. Never add or remove a meta line,
+  and do not polish untouched sections while you are in the file.
+- **"Affected" is judged by what this discussion made false, not by what you
+  already intended to change.** An entry is affected when a statement it
+  contains is no longer true after this discussion: a count that changed, a
+  status that flipped, a boundary or responsibility that moved, a claim the
+  new document contradicts. Scanning the document for the entries you planned
+  to edit misses exactly these. So after drafting the write set, re-read every
+  section that mentions anything this discussion touched and add the entries
+  that have gone stale — the §8.1 prose, a module-list class count and a
+  matrix row's status are the usual suspects. A change list whose affected set
+  is incomplete is a defect even when every entry it *does* name is correct.
 - The discussion overturns the module split itself → almost every entry
   is affected at once. That is a legitimate exception to "only the
   affected entries", but not to care: announce it in the change list as
@@ -316,7 +357,11 @@ that does not exist yet. Record them in that module document's
 dependency contract **at signature level** — expected function name,
 parameters, return type, and boundary semantics — because the call site
 already lives in the caller's code, so the provider's later signature is
-bound by it. Register a `待提供` row in the architecture document's
+bound by it. **This paragraph covers only the case where that provider
+module does not exist yet** — Rule 4 is about undesigned modules. When the
+provider is already designed, do not write `待提供`: record the row and flip
+it to `已落地` or `有差异` in the same persist, per the paragraph below.
+Register a `待提供` row in the architecture document's
 cross-module interface matrix, and surface it in the change list,
 because the human needs to know which modules are now owed a design.
 
@@ -376,13 +421,30 @@ The change list states:
 
 - **New files** — path, and which template each follows
 - **Modified files** — path, and for each one exactly which sections or
-  entries change, and why
+  entries change, and why. **Separate two kinds of modification**, because
+  they carry different authorisation: entries this discussion reworked, and
+  entries corrected because a Rule 3 adjudication made an earlier document
+  stale — mark the latter `由裁决连带修正（用户裁决即授权）`.
 - **Explicitly untouched** — which existing documents and sections stay
   word-for-word unchanged, so the human can see nothing is being lost.
-  On a first persist, when nothing pre-exists, write `无既有文档`.
-- **New dependencies** — every `待提供` row created, naming the modules
-  now owed a design
+  On a first persist, when nothing pre-exists, write `无既有文档`. Include
+  the meta lines: state which documents get 最近更新 / 来源 refreshed.
+- **Interface-matrix changes** — every row this persist adds, and whether it
+  stays `待提供` or flips. When every provider involved is already designed,
+  write `无新增待提供行（相关行同批翻 已落地 / 有差异）`. This field is never
+  blank, and it is not "none" merely because no module ends up owed a design.
+- **Core-class reconciliation** — every §8.1 entry this persist moves from
+  provisional registration (owned by a 未设计 module) into a designed module's
+  section 2.1 class list, or `无`. This column exists because the architecture
+  template and self-review item 8 require that reconciliation while no other
+  column has a place for it.
 - **Conflicts** — every Rule 3 difference awaiting a decision
+- **Notes** — anything the human needs in order to judge the list: an
+  inference you filled in on their behalf, an entry you widened beyond what
+  they named, or a capability you are declaring unavailable.
+
+This list is **open-ended**: the items above are the minimum, and adding a
+note costs nothing. Omitting one of them does.
 
 Then stop. A "go ahead" approves the list; anything else means revise the
 list first.
@@ -472,10 +534,11 @@ Check each item and fix in place:
 5. **Decision traceability:** Does every key decision state its rationale and the rejected alternatives?
 6. **Scope check:** Is each document focused on a single design — one architecture, or one module — rather than several independent subsystems?
 7. **Incremental merge integrity:** For every document that already existed, are the untouched sections word-for-word unchanged? Has any content belonging to other modules, or produced by earlier discussions, been dropped?
-8. **Cross-document consistency:** Is the architecture's core-class list a subset of the union of the **already-designed** module documents' class lists — with no class owned by two modules, and no core class left without an owning module once its module is designed (a core class belonging to a module that is still 未设计 is registered provisionally and must be reconciled into that module's section 2.1 class list when the module is designed, via the `待提供` flip machinery)? Does every row of every module document's dependency contract appear in the architecture interface matrix, and vice versa? Does every **functional** flow appear in the architecture's global flow section under the same name — including one that completes inside a single module — while a purely module-internal **implementation** flow must not be registered there, and do that registered flow and its same-named flow in a module document agree on the 服务功能点 they serve? Does every reference resolve — no pointer to a renamed or deleted module, no orphan module document whose module is missing from the list?
+8. **Cross-document consistency:** Is the architecture's core-class list a subset of the union of the **already-designed** module documents' class lists — with no class owned by two modules, and no core class left without an owning module once its module is designed (a core class belonging to a module that is still 未设计 is registered provisionally and must be reconciled into that module's section 2.1 class list when the module is designed, via the `待提供` flip machinery)? Do the dependency-contract entries and the interface-matrix rows cover each other as **sets** — a module's contract may legitimately carry several entries, including class-only references whose signature is `—`, against a single matrix row, so compare the sets rather than the row counts? Does every **functional** flow appear in the architecture's global flow section under the same name — including one that completes inside a single module — while a purely module-internal **implementation** flow must not be registered there, and do that registered flow and its same-named flow in a module document agree on the 服务功能点 they serve? Does every reference resolve — no pointer to a renamed or deleted module, no orphan module document whose module is missing from the list?
 9. **Dependency closure:** Is every `待提供` row in the interface matrix whose provider module has now been designed flipped to `已落地` or `有差异`? An unflipped row means the gap has no owner. And is status absent from every module document's dependency contract — it belongs only in the matrix?
 10. **Coverage completeness:** Does every functional point in the architecture's section 5 have at least one section 10 flow serving it, and does every section 10 flow name at least one functional point — the two sets covering each other in both directions, with no functional point left claimed by no module? **(module)** Does every class in the class list have a detailed-design entry with both a field table and a function table — or an explicit `不适用` with a reason where one of them genuinely does not apply? Does every cross-module call named in a function table appear in the dependency contract? **(architecture)** Does the file tree reach module folders and core files only, with every **core** class's `定义文件` locatable in it? A non-core class's source file need not appear and its absence is not a defect — the module documents' class lists are the authority for the complete class inventory.
 11. **Read-before-write:** Was `specs/design/` actually read before anything was written, and does the write set match what the approved change list described? If the change list was never approved, stop and report that — it is a process failure, not a wording issue.
+12. **Write-set completeness — the *affected* set, not the *planned* set:** Items 7 and 11 check that what you declared untouched is untouched, and that you wrote what you said you would. Neither catches a stale statement you never noticed. So re-read every section that mentions anything this discussion touched — a module-list class count, a module's 设计状态 and its `（待创建）` marker, interface-matrix statuses, §8.1's provisional-registration prose, flow names and their 服务功能点 — and confirm that each statement which has gone false is either in the write set or explicitly recorded as still true. Then **state the sweep's result**: which sections you re-read, and either the entries you added or `no additional stale statements found`. A change list that names only the entries you meant to edit, while a count or a status that this discussion invalidated sits unchanged, is a defect.
 
 ## Subagent Review
 
@@ -501,10 +564,33 @@ When the write set exceeds five documents, split the review: review
 carrying the architecture findings into each later batch so the
 cross-document checks still have their reference.
 
-- Verdict **approved** → go to the user review gate
-- Verdict **issues found** → fix in place, then re-run self-review. Then
-  re-review with a subagent whenever the fix changed a conclusion, a
-  decision, or a flow. A wording-only or typo fix needs self-review alone.
+- Verdict **approved** → go to the user review gate. Do **not** act on the
+  reviewer's advisory recommendations by default — they do not block and were
+  not part of the approved design. Raise them to your human partner instead
+  of silently applying them.
+- Verdict **issues found** → fix in place, then re-run self-review, then
+  re-review. Send **one** fix round that addresses *every* finding of the same
+  family at once; repairing the first instance and letting the reviewer
+  rediscover the same class of defect next round is not convergence.
+  Re-review whenever the fix changed a conclusion, a decision, or a flow; a
+  wording-only or typo fix needs self-review alone.
+  - **Fixing in place beats "leaving it alone".** The incremental protocol's
+    "everything else stays word-for-word" governs entries this discussion did
+    not touch. When the review finds a defect in an existing, already
+    confirmed statement, fixing it is correct — but that is a Rule 3 change to
+    another discussion's work, so name it in the change list and let the human
+    adjudicate before editing it. Recording it as a 风险 or 待定 item instead
+    does **not** discharge it: a registered risk is not a fix.
+  - **Convergence:** if two consecutive rounds keep producing findings of the
+    same kind, stop and report the pattern rather than looping. Three rounds
+    without convergence is the point to escalate.
+- **When you cannot dispatch a subagent** — the capability is absent, or the
+  environment forbids it — do not claim the review happened. Say so plainly,
+  then perform one independent second pass yourself under the same rules,
+  keeping the reviewer's output format, and record in your report that it was
+  self-performed and why. The User Review Gate still opens, with that
+  limitation stated in its message. Never merge this gate into another, and
+  never present a self-performed pass as a dispatched one.
 
 ## User Review Gate
 
@@ -519,4 +605,14 @@ This skill **ends here**.
 
 - Do not invoke any further skill
 - Do not create an implementation plan or start implementing
+- **Committing is the repository's convention, not this skill's decision.**
+  If the project has a standing rule requiring a commit after file changes
+  (a project instruction file, or an established convention), commit the
+  documents you wrote and the entries you changed, using that project's
+  message format. If there is no such convention, say the working tree is
+  left as-is and why.
 - You may tell your human partner: "These documents can be handed to spec-superflow for the next stage."
+- **If, before the Persist Gate, they ask you to hand the work to a
+  downstream process right away**, say plainly that this skill finishes at
+  the documents and that the handoff becomes possible once they exist. Do not
+  promise or start a handoff you cannot complete.
