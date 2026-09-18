@@ -23,8 +23,11 @@ human-readable design documents.
 
 - write code, scaffold projects, or take any implementation action
 - invoke any downstream skill — no writing-plans, no implementation skills
-- produce spec-mode artifacts (requirement IDs, acceptance criteria,
-  task lists, Given/When/Then)
+- produce spec-mode artifacts (acceptance criteria, task lists,
+  Given/When/Then, or a requirement ID used as an entry's name or
+  substance — a descriptively named functional point carrying a stable
+  reference label such as `FP-1` is a cross-reference aid, not spec-mode
+  content)
 
 **Where the output goes:** your human partner hands the design documents
 to a separate process (for example spec-superflow). This skill is not
@@ -439,8 +442,11 @@ reading time.
   table is marked `不适用` with a reason** (a pure data class has no
   functions; a stateless class has no fields).
 - **No spec mode — and that is not a licence to drop structure** —
-  forbidden: requirement IDs, acceptance criteria, task lists,
-  Given/When/Then. Required and explicitly allowed: field tables,
+  forbidden: acceptance criteria, task lists, Given/When/Then, and a
+  requirement ID used as an entry's name or substance (a descriptively
+  named functional point carrying a stable reference label such as
+  `FP-1` is a cross-reference aid, not spec-mode content). Required and
+  explicitly allowed: field tables,
   function signature tables, call chains, data-shape tables, cross-module
   interface matrices. These describe a design; they do not state
   acceptance conditions. Never downgrade a table to prose because it

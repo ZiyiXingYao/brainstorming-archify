@@ -49,8 +49,13 @@ Subagent (general-purpose):
       **already-designed** modules' class lists. A core class owned by a
       module that is still 未设计 is registered provisionally and is not a
       conflict; it must be reconciled into that module's class list once the
-      module is designed. A conflict here means the architecture entry is
-      wrong, unless the module lists disagree with each other
+      module is designed. A conflict here resolves by direction, not by
+      deletion: when the class satisfies the core-class criterion, its
+      owning module's section 2.1 is the authority and must be completed
+      with it — the architecture's section 8.1 entry stays; when the class
+      does not satisfy the criterion, the architecture's section 8.1 entry
+      is the one that is wrong. If two module class lists disagree with
+      each other, neither is authoritative until the human resolves it
     - A functional flow's module chain and boundary crossings →
       architecture section 10; the same flow's intra-module function-level
       detail → the module document's section 5. Neither may contradict the
@@ -65,7 +70,7 @@ Subagent (general-purpose):
     | Category | What to Look For |
     |----------|------------------|
     | Template compliance | Each document checked against its own template: every section present, in order, no extra sections; N/A sections state a reason |
-    | Readability | Narrative for responsibilities, boundaries, class relationships, and business flows; tables where the template calls for tables. No spec-mode content (requirement IDs, acceptance criteria, task lists, Given/When/Then) |
+    | Readability | Narrative for responsibilities, boundaries, class relationships, and business flows; tables where the template calls for tables. No spec-mode content (acceptance criteria, task lists, Given/When/Then, or a requirement ID used as an entry's name or substance). A descriptively named functional point carrying a stable reference label such as `FP-1` is a cross-reference aid, not spec-mode content — but a bare ID standing in for the name is incomplete, and an ID followed by acceptance criteria is a violation |
     | Structural completeness **(module)** | Every class in the class list has a detailed-design entry with a field table and a function table — or an explicit `不适用` with a reason where one genuinely does not apply (a pure data class has no functions; a stateless class has no fields). An unmarked missing table is an issue; a reasoned `不适用` is not. Function tables name each function's caller and the other modules' functions it depends on |
     | Dependency coverage **(module + architecture matrix)** | Every module document declares its outward dependency contract **at signature level** (function name, parameters, return type, boundary semantics) — a bare name with no signature is incomplete; rows that only need a class rather than a function use `—` for the signature and explain the requirement in the semantics column; every dependency-contract row appears in the architecture interface matrix and vice versa (bidirectional traceability); the matrix's summary matches the calling module's row word-for-word. Statuses are one of 已落地 / 待提供 / 有差异 and appear **only in the matrix** — a status column in a module document is an issue, because flipping a row must never require editing another module's document. A `待提供` row whose provider module has already been designed is an issue — the provider was required to flip it to 已落地 or 有差异, so an unflipped row means the gap has no owner |
     | Flow completeness | Two layers, checked separately. **(architecture)** every functional flow is registered — including one whose module-level chain completes inside a single module — and each states its 服务功能点, its trigger, a module-level chain naming the core class that carries each hop, the data shape per hop, where the result lands, and how the whole flow unwinds when a hop fails. **(module)** each flow states the module's entry point, the intra-module function-level chain, data-shape changes, who receives the result, the failure path, and its 服务功能点 — without restating the cross-module skeleton. A flow registered in both places must share its name and its 服务功能点 and may not restate the other layer; a purely module-internal implementation flow belongs only in the module document |
