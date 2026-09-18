@@ -330,8 +330,9 @@ For `01-架构设计.md`:
   of the most recent discussion that touched *that* document, so it changes
   whenever this persist touched the document and the topic differs. If the
   date is already today, or the topic already matches, the edit is a no-op:
-  change nothing and declare nothing. Never add or remove a meta line, and do
-  not polish untouched sections while you are in the file.
+  make no change, and add no declaration beyond the change list's own
+  meta-line entry, which named the document either way. Never add or remove a
+  meta line, and do not polish untouched sections while you are in the file.
 - **"Affected" is judged by what this discussion made false, not by what you
   already intended to change.** An entry is affected when a statement it
   contains is no longer true after this discussion: a count that changed, a
@@ -433,7 +434,9 @@ The change list states:
 - **Explicitly untouched** — which existing documents and sections stay
   word-for-word unchanged, so the human can see nothing is being lost.
   On a first persist, when nothing pre-exists, write `无既有文档`. Include
-  the meta lines: state which documents get 最近更新 / 来源 refreshed.
+  the meta lines: state which documents get 最近更新 / 来源 refreshed. Name the
+  document whether or not the refresh turns out to be a no-op, so that a no-op
+  later needs no separate declaration — the entry is the declaration.
 - **Interface-matrix changes** — every row this persist adds, and whether it
   stays `待提供` or flips. When every provider involved is already designed,
   write `无新增待提供行（相关行同批翻 已落地 / 有差异）`. This field is never
