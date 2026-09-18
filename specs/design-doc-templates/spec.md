@@ -157,7 +157,7 @@ The design-doc-templates capability documents the published behavior for users a
 
 ### Requirement: 禁止 spec 模式要素
 
-两份模板及其产出文档 SHALL NOT 引入 spec 模式要素，包括验收标准、任务清单、Given/When/Then，以及把需求编号当作条目名称或条目内容的写法；描述性命名的功能点携带稳定编号标签（如 `FP-1`）作为交叉引用线索，不属于 spec 模式要素。
+两份模板及其产出文档 SHALL NOT 引入 spec 模式要素，包括验收标准、任务清单、Given/When/Then，以及把需求编号当作条目名称或条目内容的写法；描述性命名的功能点携带稳定编号标签（如 `FP-1`）作为交叉引用线索，不属于 spec 模式要素。该编号标签在引用处（如流程的服务功能点、模块第 1.2 节与第 5 节的标注、跨文档回指）可以单独使用，前提是该功能点的描述性名称已在同一文档或架构第 5 节中定义。
 
 #### Scenario: 生成功能点清单或类明细
 

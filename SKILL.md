@@ -27,7 +27,8 @@ human-readable design documents.
   Given/When/Then, or a requirement ID used as an entry's name or
   substance — a descriptively named functional point carrying a stable
   reference label such as `FP-1` is a cross-reference aid, not spec-mode
-  content)
+  content, and a reference site may cite that label alone once the name
+  is defined)
 
 **Where the output goes:** your human partner hands the design documents
 to a separate process (for example spec-superflow). This skill is not
@@ -445,8 +446,10 @@ reading time.
   forbidden: acceptance criteria, task lists, Given/When/Then, and a
   requirement ID used as an entry's name or substance (a descriptively
   named functional point carrying a stable reference label such as
-  `FP-1` is a cross-reference aid, not spec-mode content). Required and
-  explicitly allowed: field tables,
+  `FP-1` is a cross-reference aid, not spec-mode content). A reference
+  site may cite the label alone once that functional point's descriptive
+  name is defined in the same document or in the architecture's section 5.
+  Required and explicitly allowed: field tables,
   function signature tables, call chains, data-shape tables, cross-module
   interface matrices. These describe a design; they do not state
   acceptance conditions. Never downgrade a table to prose because it
