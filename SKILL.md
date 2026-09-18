@@ -141,7 +141,7 @@ your path and complete them in order.
 
 **Architectural:**
 1. **Explore project context** — check files, docs, recent commits
-2. **Ask clarifying questions** — one at a time, working the layered question list in **Understanding the idea** in its order (functional points → module division → core classes → file tree → flows)
+2. **Ask clarifying questions** — work the three-layer question list in **Understanding the idea**, in that list's order (functional-point layer → architecture layer → module layer), which maps onto the five design steps those layers name. One layer per message.
 3. **Propose 2-3 approaches** — with trade-offs and your recommendation
 4. **Present design** — in sections scaled to their complexity, get user approval after each section
 5. **Move to the Persist Gate**
@@ -220,11 +220,13 @@ is the whole process.
 - For appropriately-scoped projects, ask questions to refine the idea one **layer** at a time
 - Prefer multiple choice questions when possible, but open-ended is fine too
 - **One layer per message.** Never mix two layers' questions in the same message or the same structured-question call. Within the current layer you may ask several questions at once, up to your platform's per-call limit for the question tool; if a layer needs more, send another message for that same layer. "One message" means one user-facing message whose content is the question — do not bundle other material into it.
-- Ask the clarifying questions in layers, in this order — **functional points → module division → core classes → file tree → flows**:
+- Ask the clarifying questions in **three layers**. The five steps named throughout this skill — **functional points → module division → core classes → file tree → flows** — are the order the *design* is built in; the three layers are the order the *questions* are asked, mapped onto them as: the functional-point layer covers step 1; the architecture layer covers steps 2–4 plus the architecture-level skeleton of step 5; the module layer covers the module-level detail of step 5.
   - **Functional-point layer** — ask until **every** functional point is captured: which functional points does the system offer? For each, what need it serves, for whom, its input and its observable result, and its boundary (what it deliberately does not do). Which are goals and which are explicit non-goals?
   - **Architecture layer** — ask until **every** functional point and **every** functional flow is captured: how is the system cut into modules, and *why* that way (the seams, the alternative divisions rejected)? Which modules depend on which, and how strongly? Which cross-module interfaces are needed, and what does the calling side expect of each signature? Which classes are the core classes that chain the functional flows together? What do the module folders and core files look like? Deliberately defer the details — they belong to the module layer.
   - **Module layer** — only now: for each class, its fields and functions; the relationships between classes; for each declared outward dependency, the provider, class, and expected signature; and for each flow the module participates in, the function-level call chain with its data-shape changes, who receives the result, and the failure path.
 - **A layer is finished when its template fields are fillable — not when the conversation feels done.** Concretely: the functional-point layer is finished when every column of architecture section 5 is answerable for every functional point; the architecture layer, when sections 6, 7, 8, 9 and the flow skeletons of 10 are answerable; the module layer, when sections 2, 3, 4 and 5 of that module's document are answerable. Before starting the next layer, list which of the current layer's template fields you still cannot fill and ask about exactly those — an unfillable field is a question you have not asked yet.
+- **When the architecture is already confirmed and you are designing one module** — the normal incremental case — the functional-point and architecture layers have already been answered *by that document*. Do not re-ask them. Verify each of their template fields against the architecture you read, and ask only about the ones it genuinely leaves open or that this module changes; the questions that remain belong to the module layer.
+- **A required field you cannot fill has exactly two legitimate outcomes, and proceeding as if it were filled is neither.** Either the human decides it, which answers it, or the answer would contradict an existing document — in which case it is a Rule 3 conflict: list it in the change list's **Conflicts** column and do not write the affected document until the human adjudicates. Never write `TBD`, never invent a value, and never loop on the same unanswered question.
 - **Ask for rejected alternatives while you ask for decisions.** Every layer's questions should surface not only what the human chose but what they rejected, because 关键决策记录 requires the rejected option. If they state a choice without an alternative, ask what they ruled out.
 - Reason for the order: a functional point or flow left vague at the functional-point or architecture layer becomes a gap every later module design inherits.
 
@@ -323,10 +325,13 @@ For `01-架构设计.md`:
   changing, a global flow's module chain changing → change **only the
   affected entries**. Everything else stays word-for-word, including its
   original phrasing, order, and formatting. The only further edits allowed
-  are refreshing the 最近更新 line and — when this discussion's topic differs
-  from the one recorded — the 主题 inside the 来源 line, on every document
-  this persist touched, using the same date. Never add or remove a meta line,
-  and do not polish untouched sections while you are in the file.
+  are refreshing the 最近更新 line and the 主题 inside the 来源 line, on every
+  document this persist touched, using the same date. 来源's 主题 is the topic
+  of the most recent discussion that touched *that* document, so it changes
+  whenever this persist touched the document and the topic differs. If the
+  date is already today, or the topic already matches, the edit is a no-op:
+  change nothing and declare nothing. Never add or remove a meta line, and do
+  not polish untouched sections while you are in the file.
 - **"Affected" is judged by what this discussion made false, not by what you
   already intended to change.** An entry is affected when a statement it
   contains is no longer true after this discussion: a count that changed, a
@@ -443,6 +448,14 @@ The change list states:
   inference you filled in on their behalf, an entry you widened beyond what
   they named, or a capability you are declaring unavailable.
 
+Build this list from an **affected-set sweep, not from what you intended to
+edit**: before drafting it, re-read every section that mentions anything this
+discussion touches — module-list class counts, a module's 设计状态 and its
+`（待创建）` marker, interface-matrix statuses, §8.1's provisional-registration
+prose, flow names and their 服务功能点 — and include the statements that have
+gone false. Self-review item 12 re-runs this same sweep after writing to
+confirm the result; running it only afterwards is too late for this gate.
+
 This list is **open-ended**: the items above are the minimum, and adding a
 note costs nothing. Omitting one of them does.
 
@@ -538,7 +551,7 @@ Check each item and fix in place:
 9. **Dependency closure:** Is every `待提供` row in the interface matrix whose provider module has now been designed flipped to `已落地` or `有差异`? An unflipped row means the gap has no owner. And is status absent from every module document's dependency contract — it belongs only in the matrix?
 10. **Coverage completeness:** Does every functional point in the architecture's section 5 have at least one section 10 flow serving it, and does every section 10 flow name at least one functional point — the two sets covering each other in both directions, with no functional point left claimed by no module? **(module)** Does every class in the class list have a detailed-design entry with both a field table and a function table — or an explicit `不适用` with a reason where one of them genuinely does not apply? Does every cross-module call named in a function table appear in the dependency contract? **(architecture)** Does the file tree reach module folders and core files only, with every **core** class's `定义文件` locatable in it? A non-core class's source file need not appear and its absence is not a defect — the module documents' class lists are the authority for the complete class inventory.
 11. **Read-before-write:** Was `specs/design/` actually read before anything was written, and does the write set match what the approved change list described? If the change list was never approved, stop and report that — it is a process failure, not a wording issue.
-12. **Write-set completeness — the *affected* set, not the *planned* set:** Items 7 and 11 check that what you declared untouched is untouched, and that you wrote what you said you would. Neither catches a stale statement you never noticed. So re-read every section that mentions anything this discussion touched — a module-list class count, a module's 设计状态 and its `（待创建）` marker, interface-matrix statuses, §8.1's provisional-registration prose, flow names and their 服务功能点 — and confirm that each statement which has gone false is either in the write set or explicitly recorded as still true. Then **state the sweep's result**: which sections you re-read, and either the entries you added or `no additional stale statements found`. A change list that names only the entries you meant to edit, while a count or a status that this discussion invalidated sits unchanged, is a defect.
+12. **Write-set completeness — the *affected* set, not the *planned* set:** This is the **second** run of the sweep that built the change list — the first ran before anything was written, and this one verifies the result. Items 7 and 11 check that what you declared untouched is untouched, and that you wrote what you said you would. Neither catches a stale statement you never noticed. So re-read every section that mentions anything this discussion touched — a module-list class count, a module's 设计状态 and its `（待创建）` marker, interface-matrix statuses, §8.1's provisional-registration prose, flow names and their 服务功能点 — and confirm that each statement which has gone false is either in the write set or explicitly recorded as still true. Then **state the sweep's result**: which sections you re-read, and either the entries you added or `no additional stale statements found`. A change list that names only the entries you meant to edit, while a count or a status that this discussion invalidated sits unchanged, is a defect.
 
 ## Subagent Review
 
