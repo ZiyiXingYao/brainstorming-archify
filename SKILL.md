@@ -219,7 +219,7 @@ is the whole process.
 - If the project is too large for a single design, help the user decompose it into functional modules: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first module through the normal design flow. `01-架构设计.md` stays global and accumulates every module's architecture-level content; each module's detail goes in its own `<NN>-<模块名>.md`. There is only ever one architecture document.
 - For appropriately-scoped projects, ask questions to refine the idea one **layer** at a time
 - Prefer multiple choice questions when possible, but open-ended is fine too
-- **One layer per message.** Never mix two layers' questions in the same message or the same structured-question call. Within the current layer you may ask several questions at once, up to your platform's per-call limit for the question tool; if a layer needs more, send another message for that same layer. "One message" means one user-facing message whose content is the question — do not bundle other material into it.
+- **One layer per message.** Never mix two layers' questions in the same message or the same structured-question call. Within the current layer you may ask several questions at once, up to your platform's per-call limit for the question tool; if a layer needs more, send another message for that same layer. "One message" means one user-facing message whose content is the question — do not bundle other material into it. The classification announcement the Checklist requires may share a message with the current layer's questions; that is the single exception. The "nothing else" requirement is strict only for the three gates — Persist, Change List and User Review — each of which gets a message of its own.
 - Ask the clarifying questions in **three layers**. The five steps named throughout this skill — **functional points → module division → core classes → file tree → flows** — are the order the *design* is built in; the three layers are the order the *questions* are asked, mapped onto them as: the functional-point layer covers step 1; the architecture layer covers steps 2–4 plus the architecture-level skeleton of step 5; the module layer covers the module-level detail of step 5.
   - **Functional-point layer** — ask until **every** functional point is captured: which functional points does the system offer? For each, what need it serves, for whom, its input and its observable result, and its boundary (what it deliberately does not do). Which are goals and which are explicit non-goals?
   - **Architecture layer** — ask until **every** functional point and **every** functional flow is captured: how is the system cut into modules, and *why* that way (the seams, the alternative divisions rejected)? Which modules depend on which, and how strongly? Which cross-module interfaces are needed, and what does the calling side expect of each signature? Which classes are the core classes that chain the functional flows together? What do the module folders and core files look like? Deliberately defer the details — they belong to the module layer.
@@ -343,6 +343,13 @@ For `01-架构设计.md`:
   that have gone stale — the §8.1 prose, a module-list class count and a
   matrix row's status are the usual suspects. A change list whose affected set
   is incomplete is a defect even when every entry it *does* name is correct.
+- **Decide the awkward cases by truth, not by category.** A change can look
+  module-internal and architecture-affecting at once. Ask instead whether an
+  existing statement has gone false. Example: a non-core source file is not
+  required to appear in §9's tree, so renaming one leaves the architecture at
+  **zero edits** — unless the tree already lists that file, in which case that
+  one line has gone false and is an affected entry. The same test resolves
+  every other case that seems to straddle the two.
 - The discussion overturns the module split itself → almost every entry
   is affected at once. That is a legitimate exception to "only the
   affected entries", but not to care: announce it in the change list as
