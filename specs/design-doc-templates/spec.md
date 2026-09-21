@@ -36,17 +36,24 @@ The design-doc-templates capability documents the published behavior for users a
 
 ### Requirement: 模块划分的设计性
 
-架构文档 SHALL 在功能模块划分节给出模块划分的设计，包含划分依据与粒度（为什么这样切分、接缝在哪里、被否决的切法）、模块清单、模块依赖关系三部分。
+架构文档 SHALL 在功能模块划分节给出模块划分的设计，包含划分依据与粒度（为什么这样切分、接缝在哪里、
+被否决的切法）、模块清单、模块依赖关系三部分；模块依赖关系部分 SHALL 配一张架构图，
+该图 MUST 由 `design-diagrams` 依类型化 IR 渲染、以 SVG 同伴文件形式落盘并被文档引用。
 
 #### Scenario: 阅读模块划分节
 
 - **WHEN** 阅读功能模块划分节
-- **THEN** 能看到划分依据与接缝说明，而不仅是一张模块清单
+- **THEN** 能看到划分依据与接缝说明，而不仅是一张模块清单；模块依赖关系部分除文字说明外还有一张架构图
 
 #### Scenario: 尚未设计的模块
 
 - **WHEN** 某模块已登记在模块清单但尚未设计
 - **THEN** 为其预留序号，对应文档标注"（待创建）"，设计状态标注"未设计"
+
+#### Scenario: 模块依赖关系只有文字
+
+- **WHEN** 模块依赖关系部分只有文字或 mermaid 文本，没有随文档落盘的 SVG 架构图
+- **THEN** 判定为缺陷
 
 ### Requirement: 跨模块接口矩阵的位置与权威方向
 
@@ -92,7 +99,9 @@ The design-doc-templates capability documents the published behavior for users a
 
 ### Requirement: 全局功能流程的完备性与方向级粒度
 
-架构文档 SHALL 在全局功能流程节登记全部功能流程，包括只在一个模块内完成的功能流程；每条流程 SHALL 说明服务的功能点、触发入口、模块级调用链（每跳点出承担的核心类）、每跳数据形态、结果落地、失败处理。
+架构文档 SHALL 在全局功能流程节登记全部功能流程，包括只在一个模块内完成的功能流程；每条流程 SHALL
+说明服务的功能点、触发入口、模块级调用链（每跳点出承担的核心类）、每跳数据形态、结果落地、失败处理；
+每条流程 SHALL 配一张图，图类型按该流程的性质选定，且该图 MUST 由 `design-diagrams` 渲染成 SVG 同伴文件。
 
 #### Scenario: 单模块内完成的功能流程
 
@@ -102,7 +111,12 @@ The design-doc-templates capability documents the published behavior for users a
 #### Scenario: 阅读任一条流程
 
 - **WHEN** 阅读全局功能流程节的任一条流程
-- **THEN** 能看出它从哪个模块发起、经过哪些模块、在哪里结束、每跳由哪个核心类承担
+- **THEN** 能看出它从哪个模块发起、经过哪些模块、在哪里结束、每跳由哪个核心类承担，并能看到一张对应的图
+
+#### Scenario: 流程缺少配图
+
+- **WHEN** 全局功能流程节登记的某条流程没有对应的 SVG 图
+- **THEN** 判定为缺陷
 
 ### Requirement: 架构文档不承载模块内部细节
 
@@ -143,7 +157,9 @@ The design-doc-templates capability documents the published behavior for users a
 
 ### Requirement: 模块流程的功能点标注与同名对齐
 
-模块文档 SHALL 为端到端业务流程节每条流程标注服务哪些功能点；其中跨模块流程的流程名 MUST 与架构文档全局功能流程节中的同名流程一致。
+模块文档 SHALL 为端到端业务流程节每条流程标注服务哪些功能点；其中跨模块流程的流程名 MUST 与架构文档
+全局功能流程节中的同名流程一致；本节每条流程 SHALL 配一张图，且该图 MUST 由 `design-diagrams` 渲染成
+SVG 同伴文件。
 
 #### Scenario: 跨模块流程缺少架构侧对应
 
@@ -155,6 +171,11 @@ The design-doc-templates capability documents the published behavior for users a
 - **WHEN** 某条流程不跨任何模块
 - **THEN** 它只写在模块文档中，不要求登记到架构文档
 
+#### Scenario: 同名流程两处图类型不一致
+
+- **WHEN** 同一流程名在架构文档全局功能流程节与模块文档端到端业务流程节中配了不同类型的图
+- **THEN** 判定为缺陷，两处必须使用同一图类型
+
 ### Requirement: 禁止 spec 模式要素
 
 两份模板及其产出文档 SHALL NOT 引入 spec 模式要素，包括验收标准、任务清单、Given/When/Then，以及把需求编号当作条目名称或条目内容的写法；描述性命名的功能点携带稳定编号标签（如 `FP-1`）作为交叉引用线索，不属于 spec 模式要素。该编号标签在引用处（如流程的服务功能点、模块第 1.2 节与第 5 节的标注、跨文档回指）可以单独使用，前提是该功能点的描述性名称已在同一文档或架构第 5 节中定义。
@@ -163,3 +184,43 @@ The design-doc-templates capability documents the published behavior for users a
 
 - **WHEN** 生成功能点清单、类字段表、函数表或调用链
 - **THEN** 其中不出现验收标准或 Given/When/Then，也不出现以裸编号充当功能点名称、或编号后跟验收条件的条目；描述性名称加编号标签的写法是允许的，字段表、函数表、调用链本身是允许的设计描述，不得因"像 spec 模式"而被删除
+
+### Requirement: 图类型按流程性质选定
+
+架构文档与模块文档所配的图 SHALL 从架构图、工作流图、时序图、数据流图、生命周期图五类中选取；
+选取 MUST 依据该流程或该段的性质，而非作者偏好。
+
+#### Scenario: 跨模块调用顺序
+
+- **WHEN** 流程描述的是谁调用谁、什么顺序、每步返回什么
+- **THEN** 配时序图
+
+#### Scenario: 泳道责任与分支
+
+- **WHEN** 流程描述的是不同责任方或阶段的分工，含审批门与异常分支
+- **THEN** 配工作流图
+
+#### Scenario: 状态流转
+
+- **WHEN** 流程描述的是状态迁移、重试、等待与终态
+- **THEN** 配生命周期图
+
+#### Scenario: 数据来源处理与去向
+
+- **WHEN** 流程描述的是数据从哪来、经过哪些处理、存到哪去，或需要标出敏感数据边界
+- **THEN** 配数据流图
+
+#### Scenario: 系统整体结构
+
+- **WHEN** 描述的是组件、服务、数据库、云资源、安全边界构成的整体结构
+- **THEN** 配架构图
+
+### Requirement: 类关系章节的图示形态不变
+
+架构文档的类结构关系与类调用关系两节、以及模块文档的类关系节 SHALL 保持其既有图示形态，
+本次变更 MUST NOT 要求这三节改用 SVG 图。
+
+#### Scenario: 类关系章节
+
+- **WHEN** 阅读类结构关系、类调用关系或模块类关系任一节
+- **THEN** 该节按原有约定以文字、表格或 mermaid 表达，不因本次变更被要求配 SVG 图
