@@ -9,56 +9,89 @@
 - **三路径分类**：Spike（探路）/ Bounded（有界）/ Architectural（架构级），按复杂度缩放流程；有界改动只在已有设计文档集时走增量，不为小改动制造整套文档
 - **落盘门（Persist Gate）**：讨论收敛后先问你要不要存成文件；只是随口问问就到此结束，不留垃圾文件
 - **两套模板**：架构总纲（`architecture-doc-template.md`）+ 功能模块（`module-doc-template.md`），章节结构锁定，产出即实现级设计
-- **增量落盘**：每次讨论先读盘再判决——只填模块内部细节时架构文档零改动；动了模块划分 / 类归属 / 文件树时才改受影响条目，其余逐字保留
+- **增量落盘**：每次讨论先读盘再判决——只填模块内部细节时架构文档零改动；动了模块划分 / 类归属 / 文件树时才改受影响条目，其余逐字保留。带图的条目变更时，其**图与 IR 同批重渲染**并列入变更清单；**未变条目的图不动**（与文字逐字保留同理），条目删除则连带删图
 - **变更清单门**：写盘前先给变更清单（新建 / 修改哪些文件、各改哪几节、哪些逐字不动、新增了哪些依赖），批准后才落盘
 - **签名级跨模块契约**：未设计模块的依赖按签名级记录（函数名 / 入参 / 返回类型 / 边界语义为硬约束，参数类型等软约束由提供方定），记为「待提供」落到架构接口矩阵，对方模块设计时必须回应
 - **端到端流程分层**：架构总纲画**方向级骨架**，登记**全部**功能流程（含只在单个模块内完成的），每条标注**服务的功能点**与**每跳承担的核心类**；模块文档写本模块内的函数级细节，避免同一条流程在多份文档里重复漂移
 - **功能点锚点**：架构总纲枚举全部功能点，每条端到端流程标注它服务的功能点，需求与流程双向可查；模块文档第 1.2 节列出本模块参与的功能点
 - **核心类串联**：架构总纲只登记串联整体功能的核心类（第 8 节），完整类清单落在各模块文档的类清单里、由它唯一权威；架构核心类清单是**各已设计模块**类清单并集的子集，属于尚未设计模块的核心类先临时登记、待该模块落盘时收口
 - **三道审查**：AI 自审 → 子代理独立审查 → 用户确认
-- **零依赖**：纯 Markdown，不需要 Node 或任何运行时
-- **可同步上游**：`SKILL.md` 保留英文原文，便于与 superpowers 上游 diff 和同步（见「同步上游」）
+- **自动出图**：落盘阶段由内部技能 `design-diagrams` 自动出图（架构图 / 工作流图 / 时序图 / 数据流图 / 生命周期图五类，**不做类图**——上游无此能力），图以同伴 SVG 落在设计文档旁的 `diagrams/` 下、文档用图片语法引用；**用户不单独调用出图技能**，图随文档同批进变更清单门
+- **依赖分两层**：设计文档本身是**纯 Markdown**，读写不需要任何运行时；**出图需要 Node，最低 18**——无 Node 或版本过低时跳过出图、在文档中留占位说明，**不阻塞文档落盘**
+- **可同步上游**：`SKILL.md` 保留英文原文，便于与 superpowers 上游 diff 和同步；出图技能搬运自 archify 上游，另有独立同步说明（均见「同步上游」）
 
 ## 安装
 
-### 方式一：git clone（推荐）
+两个技能要分别落到 `~/.codebuddy/skills/brainstorming/` 与 `~/.codebuddy/skills/design-diagrams/`。下面的方式一最省事；手工安装时，**权威文件清单是 `node install.mjs --dry-run` 的输出**。
 
-直接把仓库克隆为 CodeBuddy 技能目录：
+### 方式一：一键安装（推荐）
+
+仓库根提供 `install.mjs`，一条命令把 `brainstorming` 与 `design-diagrams` 两个技能装到 `~/.codebuddy/skills/`：
+
+```bash
+node install.mjs
+```
+
+启动即检查 Node 主版本，**低于 18 时以非零退出码结束且不写任何文件**；安装完成后会真实渲染一张样例 SVG 做自检，把「装了但跑不起来」暴露在安装期而不是首次出图时。
+
+| 命令 | 行为 |
+|------|------|
+| `node install.mjs` | 把 `brainstorming` 与 `design-diagrams` 两个技能装到 `~/.codebuddy/skills/` |
+| `node install.mjs --dry-run` | 只列出将写入的文件与目标路径，不改文件系统 |
+| `node install.mjs --target <dir>` | 指定安装根目录 |
+| `node install.mjs --help` | 打印用法 |
+
+### 方式二：git clone（brainstorming，并把 design-diagrams 放到同级）
+
+`brainstorming` 的仓库本身就是技能目录，可直接克隆；`design-diagrams` 需作为**同级技能**再放一份：
 
 ```bash
 git clone https://github.com/ZiyiXingYao/codebuddy-brainstorming.git \
   ~/.codebuddy/skills/brainstorming
+
+# design-diagrams 是本仓库内的子目录，要拷成同级技能才会被加载
+cp -R ~/.codebuddy/skills/brainstorming/design-diagrams \
+      ~/.codebuddy/skills/design-diagrams
 ```
 
-### 方式二：下载后拷贝
+更新时 `git pull` 只更新 `brainstorming`，`design-diagrams` 的同级副本要重新拷一次（见「更新」）。
+
+### 方式三：下载后拷贝
 
 ```bash
 # 1. 克隆到临时目录
 git clone --depth 1 https://github.com/ZiyiXingYao/codebuddy-brainstorming.git /tmp/codebuddy-brainstorming
 
 # 2. 确保技能目录存在
-mkdir -p ~/.codebuddy/skills/brainstorming
+mkdir -p ~/.codebuddy/skills/brainstorming ~/.codebuddy/skills/design-diagrams
 
-# 3. 拷贝技能文件（跳过 .git / README / LICENSE / 同步脚本）
+# 3. 拷贝 brainstorming 技能文件（跳过 .git / README / LICENSE / 同步脚本）
 cp /tmp/codebuddy-brainstorming/SKILL.md \
    /tmp/codebuddy-brainstorming/architecture-doc-template.md \
    /tmp/codebuddy-brainstorming/module-doc-template.md \
    /tmp/codebuddy-brainstorming/design-doc-reviewer-prompt.md \
    ~/.codebuddy/skills/brainstorming/
 
-# 4. 清理
+# 4. 拷贝 design-diagrams 技能（整目录搬运：含 bin / renderers / schemas / assets / test 等，
+#    缺了任何一部分出图都会跑不起来，不能只拷 SKILL.md）
+cp -R /tmp/codebuddy-brainstorming/design-diagrams/. ~/.codebuddy/skills/design-diagrams/
+
+# 5. 清理
 rm -rf /tmp/codebuddy-brainstorming
 ```
 
-### 方式三：从本机源码目录安装（开发者）
+两处 `cp` 的目标就是全部需要安装的内容；等价清单也可用 `node install.mjs --dry-run` 打印。
+
+### 方式四：从本机源码目录安装（开发者）
 
 ```bash
-mkdir -p ~/.codebuddy/skills/brainstorming
+mkdir -p ~/.codebuddy/skills/brainstorming ~/.codebuddy/skills/design-diagrams
 cp /code/codebuddy-brainstorming/SKILL.md \
    /code/codebuddy-brainstorming/architecture-doc-template.md \
    /code/codebuddy-brainstorming/module-doc-template.md \
    /code/codebuddy-brainstorming/design-doc-reviewer-prompt.md \
    ~/.codebuddy/skills/brainstorming/
+cp -R /code/codebuddy-brainstorming/design-diagrams/. ~/.codebuddy/skills/design-diagrams/
 ```
 
 ## 验证安装
@@ -67,28 +100,48 @@ cp /code/codebuddy-brainstorming/SKILL.md \
 ls ~/.codebuddy/skills/brainstorming/
 # 期望输出：SKILL.md  architecture-doc-template.md  module-doc-template.md  design-doc-reviewer-prompt.md
 
+ls ~/.codebuddy/skills/design-diagrams/
+# 期望输出应含：SKILL.md  bin  renderers  schemas  assets  test  …（整目录都在，不只是 SKILL.md）
+
 head -4 ~/.codebuddy/skills/brainstorming/SKILL.md
 # 期望输出：
 # ---
 # name: brainstorming
 # description: ...
 # ---
+
+head -4 ~/.codebuddy/skills/design-diagrams/SKILL.md
+# 期望输出：
+# ---
+# name: design-diagrams
+# description: ...
+# ---
+
+# 出图能力自检（需 Node ≥ 18；跑技能自带的上游测试子集，退出码 0 = 全过）
+node ~/.codebuddy/skills/design-diagrams/test/run-valid.mjs
 ```
+
+两个技能目录都在，且 `run-valid.mjs` 退出码为 `0`，才算安装完整。用「方式一」安装时，`install.mjs` 已自动做过一次渲染自检。
 
 安装后需要**新开一个 CodeBuddy 会话**，技能才会被加载。
 
 ## 更新
 
 ```bash
+# 方式一（一键安装）安装的：重跑一次，两个技能一起覆盖并重新自检
+node install.mjs
+
+# 方式二（git clone）安装的：pull 之后 design-diagrams 的同级副本要重新拷
 cd ~/.codebuddy/skills/brainstorming && git pull
+cp -R ~/.codebuddy/skills/brainstorming/design-diagrams ~/.codebuddy/skills/design-diagrams
 ```
 
-（仅「方式一」适用；用「方式二」「方式三」安装的重新执行对应命令覆盖即可）
+（方式三、方式四安装的，重新执行对应拷贝命令覆盖即可）
 
 ## 卸载
 
 ```bash
-rm -rf ~/.codebuddy/skills/brainstorming
+rm -rf ~/.codebuddy/skills/brainstorming ~/.codebuddy/skills/design-diagrams
 ```
 
 ## 使用
@@ -99,8 +152,8 @@ rm -rf ~/.codebuddy/skills/brainstorming
 2. 一问一答澄清意图、约束、取舍
 3. 收敛设计
 4. **落盘门**：询问是否写入文件——不要就直接结束
-5. **变更清单门**：给出将新建 / 修改哪些文件、各改哪几节、哪些逐字不动、新增了哪些未落地依赖、有哪些待裁决差异——批准后才落盘
-6. 按模板生成文档到 `specs/design/`
+5. **变更清单门**：给出将新建 / 修改哪些文件、各改哪几节、哪些逐字不动、新增了哪些未落地依赖、**本次将新建 / 重渲染哪些图**、有哪些待裁决差异——批准后才落盘
+6. 按模板生成文档到 `specs/design/`；落盘阶段**自动出图**（内部技能 `design-diagrams`），图以同伴 SVG 落在 `specs/design/diagrams/` 下，与文档同批写盘
 7. AI 自审 → 子代理审查 → **用户审查门**：你确认内容
 
 产出文档的语言跟随对话语言（中文对话产中文文档）。模板保持固定结构，不随语言改变。路径基准为**项目根**。
@@ -111,7 +164,8 @@ rm -rf ~/.codebuddy/skills/brainstorming
 specs/design/
 ├── 01-架构设计.md      架构总纲，全项目唯一一份（固定 01）
 ├── 02-<功能模块>.md    每个功能模块一份，文件名 = 模块名
-└── 03-<功能模块>.md
+├── 03-<功能模块>.md
+└── diagrams/           同伴图文件：每张图为 <图名>.svg + 同名 .json 的 IR，文档以图片语法引用
 ```
 
 序号**追加不重排**：新增模块排在当前最大序号之后，即使逻辑上应靠前也不插入重排——否则会重命名既有文件、打断文档间引用。
@@ -157,6 +211,8 @@ specs/design/
 
 **流程对齐规则**：架构总纲第 10 节登记的**每一条功能流程**（包括只在单个模块内完成的）都与各参与模块第 5 节**同名出现**；只有纯模块内部的**实现级流程**留在模块文档，不登记到架构总纲。
 
+**图（diagram）**：架构总纲**第 6.3 节模块依赖关系**、**第 10 节每条全局功能流程**、模块文档**第 5 节每条端到端业务流程**，都**必须**配一张随文档落盘的 SVG 图——登记了却没有图的判定为缺陷。图类型按描述对象的性质选（跨模块调用顺序 → 时序图；泳道责任与审批分支 → 工作流图；状态流转与重试 → 生命周期图；数据来源处理去向与敏感边界 → 数据流图；整体结构 → 架构图），不按作者偏好挑；**同一流程名在架构总纲与模块文档共用同一张图文件**（两处图类型必须一致）。图由 `brainstorming` 在落盘阶段**自动**调用内部技能 `design-diagrams` 生成，**用户不写 IR、不需要知道 schema 存在**；文档以 `![<说明>](diagrams/<图名>.svg)` 引用，**正文不得内联 `<svg>` 标签**。**类关系三节（架构 8.2 / 8.3、模块 2.2）仍用文字或 mermaid**——本次不做类图（上游 `archify` 无类图能力），这是**预期结果，不是缺陷**。出图需要 **Node ≥ 18**：环境不满足时跳过出图、留占位说明，不阻塞文档落盘。
+
 出现分歧时以谁为准（避免两边互相"必须一致"却判不出改哪边）：
 
 | 分歧内容 | 权威 |
@@ -178,7 +234,9 @@ specs/design/
 ├── architecture-doc-template.md      架构设计文档模板（中文骨架，12 节）
 ├── module-doc-template.md            功能模块设计文档模板（中文骨架，7 节）
 ├── design-doc-reviewer-prompt.md     子代理审查提示词（英文）
-├── sync-upstream.sh                  与 superpowers 上游对比 SKILL.md 的辅助脚本
+├── design-diagrams/                  出图技能（内部，搬运自 archify 上游；含渲染器 / schema / 测试集，见其 UPSTREAM.md）
+├── install.mjs                       一键安装两个技能的入口脚本（Node ≥ 18）
+├── sync-upstream.sh                  与 superpowers 上游对比 SKILL.md 的辅助脚本（不覆盖 archify）
 ├── README.md
 └── LICENSE
 ```
@@ -191,15 +249,28 @@ specs/design/
 | `design-doc-reviewer-prompt.md` | 英文 | 同上 |
 | `architecture-doc-template.md` | 中文骨架 | 新文件，与上游无关；中文用户产出文档开箱即用 |
 | `module-doc-template.md` | 中文骨架 | 同上 |
+| `design-diagrams/SKILL.md` | 中文 | 新写的内部技能说明书，不是上游文件 |
+| `design-diagrams/` 其余 | 与上游一致（英文为主） | 上游 archify 逐字节搬运，不翻译，便于按 commit 比对 |
 | 产出的设计文档 | 跟随对话语言 | 人读的文档 |
 
 ## 同步上游
+
+本仓库有两个上游，分别对应两个技能：
+
+| 技能 | 上游仓库 | 基准坐标 | 同步方式 |
+|------|---------|---------|---------|
+| `brainstorming`（`SKILL.md` 等） | [superpowers](https://github.com/obra/superpowers) | `v6.3.0`（commit `b36e082`） | `./sync-upstream.sh` 看 diff 后重放改动清单 |
+| `design-diagrams` | [archify](https://github.com/tt-a1i/archify) | commit `5289f6867f048a7450ec5718f58459613a84cf41` | **无脚本**（`sync-upstream.sh` 不覆盖它），按 commit 手工比对 + 跑技能内测试判回归 |
+
+`./sync-upstream.sh` **只覆盖 `superpowers`**，它比对的是 `brainstorming/SKILL.md`，与 `design-diagrams/` 无关。
+
+### 上游一：superpowers（`brainstorming`）
 
 本技能的 `SKILL.md` 是 [superpowers](https://github.com/obra/superpowers) `skills/brainstorming/SKILL.md` 的**改造副本**。
 
 **上游基准**：`obra/superpowers` @ `v6.3.0`（commit `b36e082`）
 
-### 用脚本看差异
+#### 用脚本看差异
 
 ```bash
 # 与上游默认分支对比
@@ -211,7 +282,7 @@ specs/design/
 
 脚本会浅克隆上游仓库，打印上游版本信息和 `SKILL.md` 的双向 diff。
 
-### 手动步骤
+#### 手动步骤
 
 ```bash
 git clone --depth 1 https://github.com/obra/superpowers.git /tmp/sp
@@ -219,7 +290,7 @@ diff -u /tmp/sp/skills/brainstorming/SKILL.md ./SKILL.md
 rm -rf /tmp/sp
 ```
 
-### 需要重放的改动清单
+#### 需要重放的改动清单
 
 上游更新后，在上面 diff 的基础上重新施加以下改动，即可完成同步：
 
@@ -254,10 +325,40 @@ rm -rf /tmp/sp
 24. 接口状态**只在架构矩阵维护**，模块文档的依赖契约表不写状态——状态会因别人的落盘而变，放在一处就不会出现两处对不上，翻牌也不需要改另一个模块的文档
 25. 实测补正：模块文档第 3 节新增类插入中间时，后续类的小节要按顺序改号；待定项解决、风险解除后可以删条目（属「受影响条目」）
 26. 本轮设计文档体系调整（架构定方向、把细节下压到模块）：架构模板重排为 12 节，功能点需求说明独立成节、其后各节顺延编号（全局功能流程移到第 10 节）；类归属章节改为核心类设计，写入可机械核对的核心类判定标准（出现在全局功能流程某条流程的模块级调用链上，或作为跨模块接口矩阵某行的接口承载者），并声明架构核心类清单是各已设计模块类清单并集的子集、属于未设计模块的核心类先临时登记待其落盘时收口；代码文件树收敛为「模块文件夹 + 核心文件」，只要求可定位全部核心类的定义文件、不要求文件级完备；全局功能流程登记**全部**功能流程（含只在一个模块内完成的），每条标注服务功能点与每跳承担的核心类、只写方向级；模块模板在职责与边界节下新增「1.2 本模块参与的功能点」子节，第 2.1 节类清单升为本模块完整类清单的唯一权威，每条流程增服务功能点标注；技能把澄清指引改为功能点层 / 架构层 / 模块层三层提问清单与「先功能点、再模块划分、再核心类、再文件树、最后流程」的推进顺序，并重写自审第 8、10 项；审查提示词重写类归属判据（核心类可定位、同一个类不跨两个模块、架构核心类清单为各已设计模块类清单并集的子集）、删除「文件树停在目录」校准条，并新增功能点与流程双向覆盖等判据
+27. （D-1）`## Incremental Persist Protocol` 新增 `Rule 7`——「A changed entry re-renders its diagram in the same persist」：图是被说明条目的派生产物，属改动这些条目的同一次落盘；改动带图条目（架构 §10 全局流程、模块 §5 流程、§6.3 模块依赖关系）时同批创建 / 重渲染其**图与 IR** 并列入变更清单；**未触及的条目不动其图**（与文字逐字保留同理）；新增流程即新增图，**删除流程即删除其图与 IR**（孤儿图是陈旧产物）；IR 与图同批刷新，不脱节
+28. （D-2）新增整节 `## Diagrams in the Design Documents`，与 `design-diagrams/SKILL.md` 的入参契约逐项一致：内部技能声明；出图时机（落盘阶段、随文档同批进变更清单门、不单独落盘）；IR 由本技能自该节已有内容生成、事实来源限定该节、用户不写 IR；Skill 工具调用与入口命令；五类图选型；落盘路径与图名派生（含冲突报双方、不静默改名）；同名流程共用一份图文件；md 引用形态与正文不得内联 `<svg>`；校验硬门（不过不产出、不覆盖既有同名）；两轮降级口径（目标错误数 = 错误级诊断条数不含警告、基线轮计入两轮、第 2 轮未低于第 1 轮即停且退出码 3、两选项交回用户不代选）；Node < 18 留占位降级且不阻塞落盘
+29. （D-3）`## Change List Gate` 清单项新增 `Diagrams` 一栏——「every diagram this persist will create or re-render, each named with the flow or section it belongs to, or `无`；未变条目之图不列入也不重渲染」
+
+> **已核对但未改的处（对照说明，非偏离项）**：`## Process Flow` 未新出图节点——出图发生在既有的 "Write or merge docs" 环节内；`## Self-Review`、`## Subagent Review`、`## User Review Gate`、Red Flags 表、Checklist 均未扩图相关项——图相关的审查判据归 `design-doc-reviewer-prompt.md`。这几处经核对属**预期结果**，不是本次遗漏，不应登记为偏离。
+
+### 上游二：archify（`design-diagrams`）
+
+`design-diagrams/` 是 [archify](https://github.com/tt-a1i/archify) 出图技能包的**逐字节搬运副本**（本仓库只新增了 `SKILL.md`、`test/run-valid.mjs`、`UPSTREAM.md`，以及 Node 侧 SVG 直出与图名派生等自写模块），详见 `design-diagrams/UPSTREAM.md`。
+
+**上游基准**：`tt-a1i/archify` @ commit `5289f6867f048a7450ec5718f58459613a84cf41`
+（技能包版本 `2.17.0-dev.1`；`skill-release.json` 的 `channel` 是 `development`，该仓库**无稳定 tag**，因此基准按 commit 固定，不按 tag 或 `latest`）。
+
+**许可证归属**：archify 本体为 MIT（版权方与全文见 `design-diagrams/LICENSE`）；内联字体 **JetBrains Mono** 依 SIL Open Font License 1.1 授权，完整授权文本随包存放在 `design-diagrams/assets/JetBrainsMono-OFL.txt`；第三方商标与图标归属见 `design-diagrams/THIRD_PARTY_NOTICES.md`。
+
+**怎么判回归**：技能内自带上游测试集，验证入口：
+
+```bash
+node design-diagrams/test/run-valid.mjs
+```
+
+它只跑**在裁剪后结构里成立的那个子集**（退出码 `0` = 全过）。哪些上游检查项被排除、为什么排除，逐条登记在 `design-diagrams/UPSTREAM.md`——同步上游时按基准 commit 逐字节比对，再跑这个入口确认没有真回归。
+
+**注意：`./sync-upstream.sh` 只覆盖 `superpowers`，不覆盖 `archify`**——它比对的是 `brainstorming/SKILL.md`，与 `design-diagrams/` 无关；同步 archify 需按上面的基准 commit 手工比对。
 
 ## 来源与许可
 
 本技能改编自 [superpowers](https://github.com/obra/superpowers) 的 `brainstorming` 技能
 （MIT License, Copyright (c) 2025 Jesse Vincent）。
 
-以 MIT License 发布，详见 [LICENSE](LICENSE)。
+出图技能 `design-diagrams` 搬运自 [archify](https://github.com/tt-a1i/archify)
+（MIT License, Copyright (c) 2026 tt-a1i (Archify) 与 Copyright (c) 2025 Cocoon AI）；
+内联字体 JetBrains Mono 依 SIL Open Font License 1.1 授权，完整授权文本见
+`design-diagrams/assets/JetBrainsMono-OFL.txt`；第三方商标与图标归属见
+`design-diagrams/THIRD_PARTY_NOTICES.md`。
+
+以 MIT License 发布，详见 [LICENSE](LICENSE)（`design-diagrams/LICENSE` 为其独立副本）。
