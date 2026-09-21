@@ -156,6 +156,8 @@ export const LOCAL_TESTS = [
   'svg-css-extract.test.mjs',
   // 任务 2.2 —— 主题变量解析（静态复刻 getComputedStyle 的变量计算语义）
   'svg-theme-vars.test.mjs',
+  // 任务 2.3 —— 独立 SVG 导出入口（校验→渲染→提取→组装→原子写 svg+json）
+  'svg-export.test.mjs',
 ];
 
 /** 上游全绿清单 + 本地新增清单 = 本入口实际执行的文件。 */
