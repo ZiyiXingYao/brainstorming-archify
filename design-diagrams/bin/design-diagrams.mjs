@@ -34,6 +34,15 @@
  * 目标同目录的 staging 目录，全部就绪后再 rename 提交；提交阶段若第二步失败，
  * 已提交的第一步会回滚、既有文件被还原。
  *
+ * 校验硬门与两轮降级（任务 2.4）
+ * ----------------------------
+ * 校验不过即非 0 退出且磁盘无产物（硬门，2.3 已实现）。其上再叠一层「两轮降级」：
+ * 目标错误数 = 校验诊断中错误级条目的条数（`diagnostics[].severity === 'error'`，
+ * 不含警告）；按「图类型 + 目标 SVG 绝对路径」为键把各轮错误数记到系统临时目录
+ * （可用 `DESIGN_DIAGRAMS_STATE_DIR` 覆盖），第 2 轮错误数未低于第 1 轮即判「连续
+ * 两轮未降低」，停止自动修正、以结构化 JSON 报出未解决项与「保留占位继续落盘 /
+ * 继续修正」两个选项，退出码 3。成功导出会清除该目标的轮次历史。
+ *
  * 本文件为**新增文件**，不修改 `bin/` 下任何上游搬运文件，也不安装任何依赖。
  */
 
@@ -45,6 +54,19 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { extractFontCss, extractSvgCssFromHtml } from '../svg/css-extract.mjs';
 import { PRESETS, resolveThemeVarsFromHtml } from '../svg/theme-vars.mjs';
+import {
+  buildStopReceipt,
+  clearHistory,
+  countTargetErrors,
+  decideRound,
+  defaultStateDir,
+  errorDiagnostics,
+  formatDecisionSummary,
+  parseValidateReceipt,
+  readHistory,
+  stateKey,
+  writeHistory,
+} from '../lib/degradation.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SKILL_ROOT = path.resolve(HERE, '..');
@@ -52,6 +74,12 @@ const ARCHIFY = path.join(SKILL_ROOT, 'bin', 'archify.mjs');
 
 /** 支持的图类型（与上游 rendererPath 的集合一致）。 */
 export const TYPES = Object.freeze(['architecture', 'workflow', 'sequence', 'dataflow', 'lifecycle']);
+
+/**
+ * 「两轮降级」停止时的退出码（区别于普通校验失败 1 与用法错误 2）。
+ * 停止时 stdout 会输出结构化 JSON 回执，stderr 输出人类可读摘要。
+ */
+export const EXIT_DEGRADED_STOP = 3;
 
 /** XML 声明头：上游浏览器版无条件写，pins UTF-8，防非 ASCII 被猜错编码。 */
 const XML_PROLOG = '<?xml version="1.0" encoding="UTF-8"?>\n';
@@ -303,6 +331,49 @@ function commitPair({ svgCandidate, jsonCandidate, outSvg, outJson }) {
 }
 
 /**
+ * 记录本轮「目标错误数」到轮次状态，并给出降级判定。
+ *
+ * 目标错误数口径 = `archify validate --json` 的 `diagnostics[]` 里 `severity==='error'`
+ * 的条数（不含警告）；轮次状态按「图类型 + 目标 SVG 绝对路径」为键落系统临时目录，
+ * 跨调用存活（失败时不往目标目录写任何东西）。本函数**只读/写状态与返回判定**，
+ * 输出与退出码由调用方决定。
+ *
+ * @param {{type: string, input: string, outSvg: string, validate: {stdout: string}}} params
+ * @returns {null | {decision: object, unresolved: object[]}}
+ */
+function trackFailureRound({ type, input, outSvg, validate }) {
+  const receipt = parseValidateReceipt(validate.stdout);
+  if (!receipt) {
+    process.stderr.write('design-diagrams: 校验未产出可解析的结构化诊断，跳过两轮降级判定。\n');
+    return null;
+  }
+
+  const currentErrors = countTargetErrors(receipt);
+  const unresolved = errorDiagnostics(receipt);
+  const stateDir = defaultStateDir();
+  const key = stateKey(type, outSvg);
+
+  let history = [];
+  try {
+    const ledger = readHistory(stateDir, key);
+    // 同一目标沿用历史；若目标换成了另一份 IR 文件，则视为新账，避免旧账误伤新图。
+    history = ledger.input && ledger.input !== input ? [] : ledger.rounds;
+  } catch (error) {
+    process.stderr.write(`design-diagrams: 读取轮次状态失败（${error.message}），本轮按第 1 轮处理。\n`);
+    history = [];
+  }
+
+  const decision = decideRound(history, currentErrors);
+  try {
+    writeHistory(stateDir, key, { type, target: outSvg, input }, decision.history);
+  } catch (error) {
+    process.stderr.write(`design-diagrams: 记录轮次状态失败（${error.message}），两轮降级判定可能失真。\n`);
+  }
+
+  return { decision, unresolved };
+}
+
+/**
  * `svg` 子命令主流程，返回进程退出码（0 = 成功）。
  *
  * 注意：函数体内一律 `return` 退出码而不调用 `process.exit`——`process.exit`
@@ -341,10 +412,36 @@ function commandSvg(args) {
   // 1) 校验：不过则立即非 0，不产出任何文件、不覆盖既有同名文件。
   const validate = runNode([ARCHIFY, 'validate', type, input, '--quality', 'showcase', '--json']);
   if (validate.status !== 0) {
+    // 记录本轮目标错误数并做两轮降级判定（只碰状态目录，不碰目标目录）。
+    const tracked = trackFailureRound({ type, input, outSvg, validate });
+
+    // 连续两轮未降低：停止自动修正，交出选择点（结构化 JSON + 人类摘要）。
+    if (tracked && tracked.decision.stop) {
+      const payload = buildStopReceipt({
+        type,
+        input,
+        target: outSvg,
+        decision: tracked.decision,
+        unresolved: tracked.unresolved,
+      });
+      process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
+      process.stderr.write(
+        `${formatDecisionSummary({ type, target: outSvg, input, decision: tracked.decision, unresolved: tracked.unresolved })}\n`,
+      );
+      return EXIT_DEGRADED_STOP;
+    }
+
     if (validate.stdout) process.stderr.write(validate.stdout);
     if (validate.stderr) process.stderr.write(validate.stderr);
     if (!validate.stdout && !validate.stderr) {
       process.stderr.write(`校验未通过（archify validate 退出码 ${validate.status ?? 1}）。\n`);
+    }
+    if (tracked) {
+      const previous = tracked.decision.previousErrors;
+      process.stderr.write(
+        `design-diagrams: validation failed (round ${tracked.decision.round}, target errors ${tracked.decision.currentErrors}`
+        + `${previous === null ? '' : `, previous ${previous}`}); recorded for two-round degradation.\n`,
+      );
     }
     return validate.status || 1;
   }
@@ -377,6 +474,11 @@ function commandSvg(args) {
     } finally {
       fs.rmSync(stagingDir, { recursive: true, force: true });
     }
+
+    // 成功即该目标已解决：清除其轮次历史，避免旧账误伤未来同路径的新图。
+    try {
+      clearHistory(defaultStateDir(), stateKey(type, outSvg));
+    } catch { /* 状态清理失败不影响已提交的产物 */ }
 
     console.log(`exported standalone svg ${outSvg}`);
     console.log(`ir ${outJson}`);

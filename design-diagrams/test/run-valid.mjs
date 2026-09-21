@@ -158,6 +158,10 @@ export const LOCAL_TESTS = [
   'svg-theme-vars.test.mjs',
   // 任务 2.3 —— 独立 SVG 导出入口（校验→渲染→提取→组装→原子写 svg+json）
   'svg-export.test.mjs',
+  // 任务 2.4 —— 校验硬门与两轮降级（目标错误数=错误级诊断条数；两轮不降即停）
+  'svg-degrade.test.mjs',
+  // 任务 2.5 —— 图名派生（保留字母数字与 CJK、折叠去首尾、空结果回落、冲突报双方）
+  'derive-name.test.mjs',
 ];
 
 /** 上游全绿清单 + 本地新增清单 = 本入口实际执行的文件。 */
