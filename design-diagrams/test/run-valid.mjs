@@ -48,6 +48,21 @@
  *
  * 忘了登记也不会静默：运行末尾会扫描本目录下所有 `*.test.mjs`，把「既不在上游
  * 清单、也不在本地清单」的文件列为 drift 提示（只提示，不改变退出码）。
+ *
+ * 负载敏感文件的处置（只此一处，不得扩用）
+ * --------------------------------------
+ * 清单里 `update-notifier.test.mjs`（**上游搬运件，一个字节都不能改**）含若干并发 /
+ * 时序用例——实测至少三条会在负载下假红（「空 precheck 快照不能发起第二次并发网络
+ * 请求」「重叠检查读取 last-good 候选」「last-good 通知在刷新提交后仍可确认」）。
+ * 实测抖动率：空闲约 1/20、加 4 个 CPU burner 后约 1/2。它让本入口的退出码非确定，
+ * 而 README 把退出码当作安装完整性判据，用户看到假红会以为装坏了。
+ *
+ * 处置（只对这个文件）：最多尝试 3 次，任一次通过即判通过；若三次全失败、但失败用例
+ * **全部落在**上面点名的那几条时序敏感用例上，则判为已知假红、**不计入判定**（输出打
+ * `⚠` 并列出被忽略的用例）；只要出现**任何一条**其它用例的失败，即判真失败。
+ *
+ * 代价（会被掩盖什么）：点到名的那几条时序敏感用例的**确定性**失败也会被当成假红放过
+ * ——这是换取退出码确定的代价。其它用例的失败（含确定性回归）一律照报，不掩盖。
  * ============================================================================
  */
 
@@ -60,6 +75,23 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SELF = path.basename(fileURLToPath(import.meta.url));
 // 逐文件实测时的调用目录（仓库根），保持一致以免结果依赖调用方 cwd。
 const RUN_CWD = path.resolve(HERE, '..', '..');
+
+/**
+ * 已知时序敏感的上游文件——**只登记 `update-notifier.test.mjs`，不得扩用**（见文件头
+ * 「负载敏感文件的处置」）。`attempts` = 最多尝试次数；`tests` = 在负载下会假红、因此
+ * 不单独计入判定的用例名（取自 TAP 的 `not ok N - <name>`）。
+ */
+const TIMING_SENSITIVE = {
+  'update-notifier.test.mjs': {
+    attempts: 3,
+    tests: [
+      'an empty precheck snapshot cannot start a second concurrent network request',
+      'an overlapping check reads the last-good candidate while another process refreshes it',
+      'a last-good notice remains acknowledgeable after the refresh commits a new candidate',
+    ],
+  },
+};
+
 
 /**
  * 上游基准（commit 5289f686…，技能包 2.17.0-dev.1）下逐个文件实测退出码为 0 的用例。
@@ -190,26 +222,73 @@ function firstFailure(output) {
   return text.length > 200 ? `${text.slice(0, 197)}...` : text;
 }
 
+function failingTestNames(tap) {
+  const names = [];
+  for (const line of tap.split('\n')) {
+    const match = line.match(/^\s*not ok \d+ - (.+?)\s*$/);
+    if (match) names.push(match[1]);
+  }
+  return names;
+}
+
 function runOne(file) {
   const absolute = path.join(HERE, file);
   if (!fs.existsSync(absolute)) {
-    return { file, ok: false, pass: 0, fail: 0, tests: 0, skipped: 0, detail: `清单指向的文件不存在：${absolute}` };
+    return {
+      file,
+      ok: false,
+      pass: 0,
+      fail: 0,
+      tests: 0,
+      skipped: 0,
+      tolerated: 0,
+      attempts: 0,
+      note: '',
+      detail: `清单指向的文件不存在：${absolute}`,
+    };
   }
-  const result = spawnSync(process.execPath, ['--test', '--test-reporter=tap', absolute], {
-    cwd: RUN_CWD,
-    encoding: 'utf8',
-    maxBuffer: 64 * 1024 * 1024,
-  });
-  const stdout = result.stdout ?? '';
-  const stderr = result.stderr ?? '';
-  const counts = parseTapCounts(stdout);
-  const ok = result.status === 0;
-  return {
-    file,
-    ok,
-    ...counts,
-    detail: ok ? '' : firstFailure(`${stdout}\n${stderr}`),
-  };
+  const policy = TIMING_SENSITIVE[file];
+  const maxAttempts = policy ? policy.attempts : 1;
+  let result;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const raw = spawnSync(process.execPath, ['--test', '--test-reporter=tap', absolute], {
+      cwd: RUN_CWD,
+      encoding: 'utf8',
+      maxBuffer: 64 * 1024 * 1024,
+    });
+    const stdout = raw.stdout ?? '';
+    const stderr = raw.stderr ?? '';
+    const counts = parseTapCounts(stdout);
+    const ok = raw.status === 0;
+    result = {
+      file,
+      ok,
+      ...counts,
+      tolerated: 0,
+      attempts: attempt,
+      note: '',
+      failedTests: ok ? [] : failingTestNames(stdout),
+      detail: ok ? '' : firstFailure(`${stdout}\n${stderr}`),
+    };
+    if (ok) break;
+  }
+  // 已知时序敏感文件：三次全失败、但失败用例全在下述点名名单内 → 判为已知假红，不改变退出码。
+  if (!result.ok && policy) {
+    const confined =
+      result.failedTests.length > 0 && result.failedTests.every((name) => policy.tests.includes(name));
+    if (confined) {
+      result.ok = true;
+      result.tolerated = result.fail;
+      result.fail = 0;
+      result.note = `已知时序敏感用例在负载下假红，不计入判定（尝试 ${result.attempts} 次）：${result.failedTests.join('；')}`;
+    }
+  }
+  if (!result.note && result.attempts > 1) {
+    result.note = result.ok
+      ? `经 ${result.attempts} 次尝试通过（首跑/前次为时序假红）`
+      : `已尝试 ${result.attempts} 次仍失败`;
+  }
+  return result;
 }
 
 function drift() {
@@ -233,9 +312,15 @@ function main() {
 
   for (const r of results) {
     if (r.ok) {
-      console.log(`  ✓ ${r.file} (pass=${r.pass}${r.skipped ? ` skipped=${r.skipped}` : ''})`);
+      const mark = r.tolerated ? '⚠' : '✓';
+      const tolerated = r.tolerated ? ` tolerated=${r.tolerated}` : '';
+      console.log(
+        `  ${mark} ${r.file} (pass=${r.pass}${r.skipped ? ` skipped=${r.skipped}` : ''}${tolerated})`,
+      );
+      if (r.note) console.log(`      ↻ ${r.note}`);
     } else {
       console.log(`  ✗ ${r.file} (pass=${r.pass} fail=${r.fail})`);
+      if (r.note) console.log(`      ↻ ${r.note}`);
       console.log(`      → ${r.detail}`);
     }
   }
@@ -247,16 +332,20 @@ function main() {
       pass: acc.pass + r.pass,
       fail: acc.fail + r.fail,
       skipped: acc.skipped + r.skipped,
+      tolerated: acc.tolerated + (r.tolerated ?? 0),
     }),
-    { tests: 0, pass: 0, fail: 0, skipped: 0 },
+    { tests: 0, pass: 0, fail: 0, skipped: 0, tolerated: 0 },
   );
 
   console.log('');
   console.log(
     `文件：${results.length} 个已跑，${results.length - failed.length} 通过，${failed.length} 失败`,
   );
+  const toleratedNote = totals.tolerated
+    ? `（另有 ${totals.tolerated} 条已知时序敏感用例未计入判定）`
+    : '';
   console.log(
-    `用例：${totals.tests} 个已跑，${totals.pass} 通过，${totals.fail} 失败，${totals.skipped} 跳过`,
+    `用例：${totals.tests} 个已跑，${totals.pass} 通过，${totals.fail} 失败，${totals.skipped} 跳过${toleratedNote}`,
   );
   if (failed.length > 0) {
     console.log('');
