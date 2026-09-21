@@ -29,6 +29,14 @@
  * `DESIGN_DIAGRAMS_NODE_VERSION` 覆盖「用于版本判定的版本号」（测试/诊断钩子），
  * 用例据此以子进程方式验证非零退出码与「不写文件」。局限：它验证的是脚本的判定
  * 与分支行为，不是真实低版本 Node 运行时下的兼容性（那需要真装一个 Node 16）。
+ *
+ * 关于安装副本（技能包被装到 ~/.codebuddy/skills/ 之后）
+ * ----------------------------------------------------
+ * 仓库根 `install.mjs` **不属于任何一个技能**，也不在安装清单里；而本文件随
+ * `design-diagrams/` 整树被装出去。安装副本里没有仓库根的 `install.mjs`，因此本文件的
+ * 10 条用例会**整体跳过**（见 `SKIP_REASON`）而不是失败——这样 `run-valid.mjs` 在安装
+ * 副本里仍以退出码 0 结束，用户不会把「我装坏了」与「这条用例本来就跑不了」混为一谈。
+ * 仓库内 `install.mjs` 在位，守卫不生效，10 条用例照常全跑。
  */
 
 import { test } from 'node:test';
@@ -45,6 +53,17 @@ const SKILL_ROOT = path.resolve(HERE, '..'); // design-diagrams/
 const REPO_ROOT = path.resolve(SKILL_ROOT, '..'); // 仓库根
 const INSTALL = path.join(REPO_ROOT, 'install.mjs');
 const GLOBAL_SKILLS = path.join(os.homedir(), '.codebuddy', 'skills');
+
+/**
+ * 仓库根 `install.mjs` 是技能包之外的安装入口，不在安装清单里；本文件随
+ * `design-diagrams/` 整树被装到目标目录，安装副本里没有它，10 条用例都无法运行。
+ * 此时**整体跳过而非失败**：`node --test` 全部用例被跳过时退出码为 0，安装副本里的
+ * `run-valid.mjs` 因此仍是 PASS。仓库内 `install.mjs` 在位时本守卫不生效（值为
+ * `false`），10 条用例照常全跑——见文件头「关于安装副本」。
+ */
+const SKIP_REASON = fs.existsSync(INSTALL)
+  ? false
+  : '需要仓库根的 install.mjs（技能包之外的安装入口，不在安装清单里），安装副本里没有该文件，属预期跳过';
 
 /** brainstorming 技能：仓库根这四份文件。 */
 const BRAINSTORMING_FILES = [
@@ -118,7 +137,7 @@ function assertTreeIdentical(repoDir, installedDir) {
 // A. 纯函数
 // ---------------------------------------------------------------------------
 
-test('A1. Node 主版本判定：17 不达标、18 恰好达标、非法输入报错', async () => {
+test('A1. Node 主版本判定：17 不达标、18 恰好达标、非法输入报错', { skip: SKIP_REASON }, async () => {
   const { checkNodeVersion, REQUIRED_NODE_MAJOR } = await import(pathToFileURL(INSTALL).href);
   assert.equal(REQUIRED_NODE_MAJOR, 18);
 
@@ -132,7 +151,7 @@ test('A1. Node 主版本判定：17 不达标、18 恰好达标、非法输入�
   assert.throws(() => checkNodeVersion('not-a-version'), /版本/);
 });
 
-test('A2. 自检 SVG 断言器：非空 / 含根元素 / 含内联样式', async () => {
+test('A2. 自检 SVG 断言器：非空 / 含根元素 / 含内联样式', { skip: SKIP_REASON }, async () => {
   const { inspectSelfCheckSvg } = await import(pathToFileURL(INSTALL).href);
 
   const good = '<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg"><style>rect{fill:red}</style><rect/></svg>';
@@ -151,7 +170,7 @@ test('A2. 自检 SVG 断言器：非空 / 含根元素 / 含内联样式', async
 // B/C/D/E. 用法、预演、默认目标、未知参数
 // ---------------------------------------------------------------------------
 
-test('B. `--help`：退出码 0，用法含子命令与默认目标', () => {
+test('B. `--help`：退出码 0，用法含子命令与默认目标', { skip: SKIP_REASON }, () => {
   const result = runInstall(['--help']);
   assert.equal(result.status, 0, `--help 退出码应为 0：${result.stderr}`);
   assert.match(result.stdout, /--dry-run/, '用法里应含 --dry-run');
@@ -164,7 +183,7 @@ test('B. `--help`：退出码 0，用法含子命令与默认目标', () => {
   assert.match(result.stdout, /design-diagrams/);
 });
 
-test('C. `--dry-run --target`：列全两技能文件与目标路径，但不创建目标', () => {
+test('C. `--dry-run --target`：列全两技能文件与目标路径，但不创建目标', { skip: SKIP_REASON }, () => {
   const parent = mkTmp('dd-install-dry-');
   const target = path.join(parent, 'skills');
   try {
@@ -191,7 +210,7 @@ test('C. `--dry-run --target`：列全两技能文件与目标路径，但不创
   }
 });
 
-test('D. `--dry-run`（默认目标）：列出 `~/.codebuddy/skills` 且全局目录零改动', () => {
+test('D. `--dry-run`（默认目标）：列出 `~/.codebuddy/skills` 且全局目录零改动', { skip: SKIP_REASON }, () => {
   const before = snapshotGlobalSkills();
   const result = runInstall(['--dry-run']);
   assert.equal(result.status, 0, `--dry-run 退出码应为 0：${result.stderr}`);
@@ -202,7 +221,7 @@ test('D. `--dry-run`（默认目标）：列出 `~/.codebuddy/skills` 且全局�
   assert.deepEqual(snapshotGlobalSkills(), before, '默认目标预演不得改动全局技能目录');
 });
 
-test('E. 未知参数：非零退出码并给出用法', () => {
+test('E. 未知参数：非零退出码并给出用法', { skip: SKIP_REASON }, () => {
   const result = runInstall(['--nope']);
   assert.notEqual(result.status, 0, '未知参数必须非零退出');
   assert.match(`${result.stdout}${result.stderr}`, /--dry-run|用法|未知/, '应给出用法或未知参数提示');
@@ -212,7 +231,7 @@ test('E. 未知参数：非零退出码并给出用法', () => {
 // F/G. Node 版本硬门
 // ---------------------------------------------------------------------------
 
-test('F. Node 主版本 < 18：非零退出、报出所需与当前版本、不写任何文件', () => {
+test('F. Node 主版本 < 18：非零退出、报出所需与当前版本、不写任何文件', { skip: SKIP_REASON }, () => {
   const parent = mkTmp('dd-install-low-');
   const target = path.join(parent, 'skills');
   const before = snapshotGlobalSkills();
@@ -231,7 +250,7 @@ test('F. Node 主版本 < 18：非零退出、报出所需与当前版本、不�
   }
 });
 
-test('G. Node 主版本 = 18：恰好达标，允许继续', () => {
+test('G. Node 主版本 = 18：恰好达标，允许继续', { skip: SKIP_REASON }, () => {
   const parent = mkTmp('dd-install-min-');
   const target = path.join(parent, 'skills');
   try {
@@ -249,7 +268,7 @@ test('G. Node 主版本 = 18：恰好达标，允许继续', () => {
 // H/I. 真实安装与安装后自检
 // ---------------------------------------------------------------------------
 
-test('H. `--target` 真实安装：两技能齐备、逐字节一致、自检通过、全局目录零改动', () => {
+test('H. `--target` 真实安装：两技能齐备、逐字节一致、自检通过、全局目录零改动', { skip: SKIP_REASON }, () => {
   const parent = mkTmp('dd-install-real-');
   const target = path.join(parent, 'skills');
   const before = snapshotGlobalSkills();
@@ -284,7 +303,7 @@ test('H. `--target` 真实安装：两技能齐备、逐字节一致、自检通
   }
 });
 
-test('I. 安装目标（无 node_modules）里的技能可独立渲染，产物非空/含根元素/含内联样式', () => {
+test('I. 安装目标（无 node_modules）里的技能可独立渲染，产物非空/含根元素/含内联样式', { skip: SKIP_REASON }, () => {
   const parent = mkTmp('dd-install-run-');
   const target = path.join(parent, 'skills');
   const outDir = path.join(parent, 'out');

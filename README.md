@@ -50,8 +50,10 @@ git clone https://github.com/ZiyiXingYao/codebuddy-brainstorming.git \
   ~/.codebuddy/skills/brainstorming
 
 # design-diagrams 是本仓库内的子目录，要拷成同级技能才会被加载
-cp -R ~/.codebuddy/skills/brainstorming/design-diagrams \
-      ~/.codebuddy/skills/design-diagrams
+# （`design-diagrams/.` 表示拷「目录内容」进已存在的目标目录；少了这个 `/.'`，
+#   目标已存在时源目录会被整个放进目标里，形成 design-diagrams/design-diagrams/）
+cp -R ~/.codebuddy/skills/brainstorming/design-diagrams/. \
+      ~/.codebuddy/skills/design-diagrams/
 ```
 
 更新时 `git pull` 只更新 `brainstorming`，`design-diagrams` 的同级副本要重新拷一次（见「更新」）。
@@ -117,11 +119,11 @@ head -4 ~/.codebuddy/skills/design-diagrams/SKILL.md
 # description: ...
 # ---
 
-# 出图能力自检（需 Node ≥ 18；跑技能自带的上游测试子集，退出码 0 = 全过）
+# 出图能力自检（需 Node ≥ 18；跑技能自带的测试子集，退出码 0 = 清单内全过）
 node ~/.codebuddy/skills/design-diagrams/test/run-valid.mjs
 ```
 
-两个技能目录都在，且 `run-valid.mjs` 退出码为 `0`，才算安装完整。用「方式一」安装时，`install.mjs` 已自动做过一次渲染自检。
+安装是否完整，看**两个技能目录都在**、且（按「方式一」安装时）`install.mjs` 打印的自动自检通过——即 `自检：渲染 architecture 样例 SVG … 通过`。`run-valid.mjs` 是**仓库内**的回归入口：它同样能在安装副本里跑，但会**跳过**少数需要仓库上下文（技能包之外的文件）的用例——例如 `install.test.mjs` 需要仓库根的 `install.mjs`，安装副本里没有这个文件——这些用例在副本里显示为 `skipped` 而不是 `failed`，属**预期**，不代表安装有问题。用「方式一」安装时，`install.mjs` 已自动做过一次渲染自检。
 
 安装后需要**新开一个 CodeBuddy 会话**，技能才会被加载。
 
@@ -132,8 +134,10 @@ node ~/.codebuddy/skills/design-diagrams/test/run-valid.mjs
 node install.mjs
 
 # 方式二（git clone）安装的：pull 之后 design-diagrams 的同级副本要重新拷
+# （同样必须写 `design-diagrams/.`：目标目录已存在时，少了 `/.'` 只会把源目录
+#   嵌套进目标里，design-diagrams 本身并没有被更新）
 cd ~/.codebuddy/skills/brainstorming && git pull
-cp -R ~/.codebuddy/skills/brainstorming/design-diagrams ~/.codebuddy/skills/design-diagrams
+cp -R ~/.codebuddy/skills/brainstorming/design-diagrams/. ~/.codebuddy/skills/design-diagrams/
 ```
 
 （方式三、方式四安装的，重新执行对应拷贝命令覆盖即可）
@@ -327,7 +331,7 @@ rm -rf /tmp/sp
 26. 本轮设计文档体系调整（架构定方向、把细节下压到模块）：架构模板重排为 12 节，功能点需求说明独立成节、其后各节顺延编号（全局功能流程移到第 10 节）；类归属章节改为核心类设计，写入可机械核对的核心类判定标准（出现在全局功能流程某条流程的模块级调用链上，或作为跨模块接口矩阵某行的接口承载者），并声明架构核心类清单是各已设计模块类清单并集的子集、属于未设计模块的核心类先临时登记待其落盘时收口；代码文件树收敛为「模块文件夹 + 核心文件」，只要求可定位全部核心类的定义文件、不要求文件级完备；全局功能流程登记**全部**功能流程（含只在一个模块内完成的），每条标注服务功能点与每跳承担的核心类、只写方向级；模块模板在职责与边界节下新增「1.2 本模块参与的功能点」子节，第 2.1 节类清单升为本模块完整类清单的唯一权威，每条流程增服务功能点标注；技能把澄清指引改为功能点层 / 架构层 / 模块层三层提问清单与「先功能点、再模块划分、再核心类、再文件树、最后流程」的推进顺序，并重写自审第 8、10 项；审查提示词重写类归属判据（核心类可定位、同一个类不跨两个模块、架构核心类清单为各已设计模块类清单并集的子集）、删除「文件树停在目录」校准条，并新增功能点与流程双向覆盖等判据
 27. （D-1）`## Incremental Persist Protocol` 新增 `Rule 7`——「A changed entry re-renders its diagram in the same persist」：图是被说明条目的派生产物，属改动这些条目的同一次落盘；改动带图条目（架构 §10 全局流程、模块 §5 流程、§6.3 模块依赖关系）时同批创建 / 重渲染其**图与 IR** 并列入变更清单；**未触及的条目不动其图**（与文字逐字保留同理）；新增流程即新增图，**删除流程即删除其图与 IR**（孤儿图是陈旧产物）；IR 与图同批刷新，不脱节
 28. （D-2）新增整节 `## Diagrams in the Design Documents`，与 `design-diagrams/SKILL.md` 的入参契约逐项一致：内部技能声明；出图时机（落盘阶段、随文档同批进变更清单门、不单独落盘）；IR 由本技能自该节已有内容生成、事实来源限定该节、用户不写 IR；Skill 工具调用与入口命令；五类图选型；落盘路径与图名派生（含冲突报双方、不静默改名）；同名流程共用一份图文件；md 引用形态与正文不得内联 `<svg>`；校验硬门（不过不产出、不覆盖既有同名）；两轮降级口径（目标错误数 = 错误级诊断条数不含警告、基线轮计入两轮、第 2 轮未低于第 1 轮即停且退出码 3、两选项交回用户不代选）；Node < 18 留占位降级且不阻塞落盘
-29. （D-3）`## Change List Gate` 清单项新增 `Diagrams` 一栏——「every diagram this persist will create or re-render, each named with the flow or section it belongs to, or `无`；未变条目之图不列入也不重渲染」
+29. （D-3）`## Change List Gate` 清单项新增 `Diagrams` 一栏——「every diagram this persist will create or re-render, each named with the flow or section it belongs to, or `无`；**本栏还列出本次预期新建 / 重渲染、但未通过校验而以占位保留的图，标 `未通过校验` 并写明原因**；未变条目之图不列入也不重渲染」
 
 > **已核对但未改的处（对照说明，非偏离项）**：`## Process Flow` 未新出图节点——出图发生在既有的 "Write or merge docs" 环节内；`## Self-Review`、`## Subagent Review`、`## User Review Gate`、Red Flags 表、Checklist 均未扩图相关项——图相关的审查判据归 `design-doc-reviewer-prompt.md`。这几处经核对属**预期结果**，不是本次遗漏，不应登记为偏离。
 
