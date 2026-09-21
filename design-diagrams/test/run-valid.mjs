@@ -152,7 +152,10 @@ export const UPSTREAM_VALID = [
  * 一起计入总判定，但不会被同步上游的流程覆盖。
  */
 export const LOCAL_TESTS = [
-  // 例：'design-diagrams-smoke.test.mjs',
+  // 任务 2.1 —— Node 侧 CSS 抽取器（静态复刻 viewer/export.js 的规则抽取）
+  'svg-css-extract.test.mjs',
+  // 任务 2.2 —— 主题变量解析（静态复刻 getComputedStyle 的变量计算语义）
+  'svg-theme-vars.test.mjs',
 ];
 
 /** 上游全绿清单 + 本地新增清单 = 本入口实际执行的文件。 */
