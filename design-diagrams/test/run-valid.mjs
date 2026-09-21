@@ -162,6 +162,8 @@ export const LOCAL_TESTS = [
   'svg-degrade.test.mjs',
   // 任务 2.5 —— 图名派生（保留字母数字与 CJK、折叠去首尾、空结果回落、冲突报双方）
   'derive-name.test.mjs',
+  // 任务 4.1 —— 一键安装脚本（版本硬门、预演列文件、指定目标实装、安装后渲染自检）
+  'install.test.mjs',
 ];
 
 /** 上游全绿清单 + 本地新增清单 = 本入口实际执行的文件。 */
