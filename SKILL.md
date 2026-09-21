@@ -512,7 +512,10 @@ diagnostic, and the current and historical counts — and put the two options,
 **keep the placeholder and persist** and **keep fixing**, back to your human
 partner; **do not choose for them**. If round 2 does drop, continue, and from
 then on compare each round with the previous one, stopping when two consecutive
-rounds fail to drop.
+rounds fail to drop. When a diagram stops this way and your human partner
+chooses **keep the placeholder and persist**, list that diagram in the
+`Diagrams` column of the change list, marked `未通过校验`, together with the
+reason (the unresolved diagnostics and the error count).
 
 **When the environment is unsuitable.** If the environment has no Node meeting
 the required version (minimum **18**), skip the diagram, leave a placeholder in
@@ -548,8 +551,10 @@ The change list states:
   column has a place for it.
 - **Diagrams** — every diagram this persist will create or re-render, each named
   with the flow or section it belongs to (per Rule 7 and **Diagrams in the
-  Design Documents**), or `无`. A diagram whose entry did not change is not
-  listed and is not re-rendered.
+  Design Documents**), or `无`. This column also lists any diagram this persist
+  expected to create or re-render but which failed validation and is kept as a
+  placeholder, marked `未通过校验` with its reason. A diagram whose entry did not
+  change is not listed and is not re-rendered.
 - **Conflicts** — every Rule 3 difference awaiting a decision
 - **Notes** — anything the human needs in order to judge the list: an
   inference you filled in on their behalf, an entry you widened beyond what
