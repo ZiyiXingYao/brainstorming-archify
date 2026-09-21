@@ -21,7 +21,7 @@ Subagent (general-purpose):
     **Documents to review:** [DESIGN_DOC_PATHS]
     **Architecture template:** [ARCHITECTURE_TEMPLATE_PATH]   ← absolute path to architecture-doc-template.md
     **Module template:** [MODULE_TEMPLATE_PATH]               ← absolute path to module-doc-template.md
-    **Approved change list:** [CHANGE_LIST_SUMMARY]           ← what the human approved: new files, modified files and which sections, what was declared untouched, new dependencies, pending conflicts. State whether it was announced as an architecture overhaul
+    **Approved change list:** [CHANGE_LIST_SUMMARY]           ← what the human approved: new files (including every diagram file this write will create or re-render, each with the flow it belongs to), modified files and which sections, what was declared untouched, new dependencies, pending conflicts. State whether it was announced as an architecture overhaul
     **Findings from the architecture review (if this is a later batch):** [PRIOR_BATCH_FINDINGS]
 
     ## Which Template Applies to Which Document
@@ -83,6 +83,8 @@ Subagent (general-purpose):
     | Decision traceability | Key decisions state their rationale and rejected alternatives |
     | Ambiguity | Sentences that could be read two ways, enough to produce the wrong design |
     | Scope | **(architecture)** one project's architecture, expressed as a module split, flow set, and file tree — not a grab-bag of unrelated systems; **(module)** one module, not several |
+    | Diagram consistency | Every `diagrams/<name>.svg` a document references exists and the reference resolves relative to that document — a reference to a missing or unresolvable diagram file is a defect. The components, participants, or states shown in a diagram do not contradict the prose of the section the diagram accompanies; a contradiction is a defect and both contradicting places — the diagram element and the sentence — must be named. A flow that appears under the same name in both the architecture document and a module document carries the same diagram type in both — the same flow name drawn as two different diagram types is a defect. The document body contains no inline `<svg>` tag: diagrams are referenced as images, so an inline `<svg>` in the body is a defect |
+    | Diagram change-list coverage | The approved change list enumerates every diagram file this write will create or re-render, each paired with the flow it belongs to; a diagram file written outside the change list is a defect. A diagram that fails geometric validation does not enter the finished product and is instead marked in the change list with its status and reason |
 
     ## Calibration
 
@@ -115,7 +117,12 @@ Subagent (general-purpose):
     tree that stops at module folders and core files, and an architecture core-class
     list that is a strict subset of the **already-designed** modules' class lists, are both the templates
     working as designed. Neither are wording style, uneven section depth, "could be
-    more detailed", or a document not carrying the other template's sections.
+    more detailed", or a document not carrying the other template's sections. Nor are the
+    architecture document's class structure relationships (8.2) and class call relationships
+    (8.3), or a module document's class relationships (2.2), still expressed as prose, tables,
+    or mermaid — that is the intended result of this change, because a class diagram needs a
+    class-diagram capability the diagram toolchain does not have; do not report these three
+    sections as missing an SVG diagram.
 
     Approve unless there are serious gaps.
 

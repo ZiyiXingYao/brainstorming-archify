@@ -419,12 +419,108 @@ changes and both are announced in the change list.
   and every cross-reference in other module documents. Never leave a
   stale path behind.
 
+**Rule 7 — A changed entry re-renders its diagram in the same persist.** A
+diagram is a derived artifact of the entries it illustrates, so it belongs to
+the persist that changes those entries. When this discussion changes an entry
+that carries a diagram — a global flow in the architecture's section 10, a
+module flow in a module document's section 5, or the module dependency
+relationship in section 6.3 — create or re-render that diagram **and its IR** in
+the same persist, and list it in the change list alongside the document changes.
+Entries this discussion did not touch keep their diagrams untouched, exactly as
+they keep their text word-for-word: never re-render a diagram whose entry did
+not change. Adding a flow adds its diagram; removing a flow removes the diagram
+and IR that no longer have an entry — an orphaned diagram is a stale artifact,
+not a harmless leftover. The IR is refreshed in the same persist as the diagram,
+so the pair never disagrees about what was rendered.
+
 The module list in `01-架构设计.md` section 6.2 is the single source of
 truth for which modules exist; the interface matrix in section 7 is the
 single source of truth for which cross-module interfaces are settled;
 a module document's section 4 is the single source of truth for the
 signatures of the dependencies that module declares. Every document must
 agree with all three.
+
+## Diagrams in the Design Documents
+
+Diagrams are **sidecar SVG files** attached to a section — never inline
+content, and never a user-facing feature of this skill. They are produced by
+the `design-diagrams` skill, which is **internal**: this skill calls it, and it
+is never invoked from a user's direct request to draw a diagram.
+
+**When diagrams are produced.** Diagrams are produced in the persist stage, as
+part of the same persist as the document entries they illustrate. They go into
+the Change List Gate together with the document changes, and are written only
+once that list is approved. **Never write a diagram outside the change list.**
+
+**Who writes the IR.** You generate the typed JSON IR yourself, from what the
+section **already contains**. The facts in the IR are limited to that section:
+do not introduce a component, participant, state or relationship the section
+does not have. Your human partner keeps talking about the design in natural
+language — they do not write IR and do not need to know a schema exists.
+
+**How to call it.** Invoke the `design-diagrams` skill with the Skill tool,
+passing the diagram **type**, the **IR**, and the **target path**; it renders
+the diagram and returns the validation result and the artifact paths. Its entry
+point underneath is:
+
+```bash
+node <design-diagrams skill dir>/bin/design-diagrams.mjs svg <type> <ir.json> <out.svg>
+```
+
+Choose the type by the nature of what is described, never by taste:
+
+- overall system structure (components, services, databases, cloud resources,
+  security boundaries) → `architecture`
+- division of labour between responsible parties or stages, with approval gates
+  and exception branches (swimlanes) → `workflow`
+- who calls whom, in what order, and what each step returns (API call chains,
+  cache fill, authorization checks) → `sequence`
+- where data comes from, what processes it, where it is stored, or where a
+  sensitive-data boundary must be marked → `dataflow`
+- state transitions, retries, waiting and terminal states → `lifecycle`
+
+**Where a diagram lands, and its name.** A diagram lands at
+`<directory of the design document>/diagrams/<diagram name>.svg`, and its IR
+lands beside it with the same name and a `.json` extension. Derive the diagram
+name from the flow name or the section's semantic name: keep letters, digits and
+CJK characters, replace every other character with `-`, collapse runs of `-` into
+one, strip leading and trailing `-`, and lowercase the ASCII part; if the result
+is empty, fall back to the diagram type name. When two derived names collide,
+append `-2`, `-3`, … and **report both sides of the collision** — never rename
+silently.
+
+**One flow, one file.** A flow name that appears in both the architecture
+document and a module document shares **one** diagram file, because the two must
+use the same diagram type; sharing the file removes the risk of two copies
+drifting apart.
+
+**How the document references it.** Reference the diagram with
+`![<description>](diagrams/<diagram name>.svg)`. The document body MUST NOT
+contain an `<svg>` tag — never inline the SVG.
+
+**The validation hard gate.** Before it produces a diagram, `design-diagrams`
+runs the renderer's geometry validation (node overlap, an edge passing through an
+unrelated node, occluded relationship labels). A diagram that fails validation
+**is not produced**, and an existing file of the same name **is not overwritten**.
+
+**Two-round degradation.** The target error count is the number of
+**error-level** entries in the validation diagnostics — warnings do not count.
+The baseline round counts as one of the two: round 1 records the baseline; if
+round 2's count is **not lower** than round 1's, stop auto-fixing immediately
+(exit code 3). Then report the unresolved items back — which diagram, which
+diagnostic, and the current and historical counts — and put the two options,
+**keep the placeholder and persist** and **keep fixing**, back to your human
+partner; **do not choose for them**. If round 2 does drop, continue, and from
+then on compare each round with the previous one, stopping when two consecutive
+rounds fail to drop. When a diagram stops this way and your human partner
+chooses **keep the placeholder and persist**, list that diagram in the
+`Diagrams` column of the change list, marked `未通过校验`, together with the
+reason (the unresolved diagnostics and the error count).
+
+**When the environment is unsuitable.** If the environment has no Node meeting
+the required version (minimum **18**), skip the diagram, leave a placeholder in
+the document saying why, and mark that state in the change list. This degradation
+**never blocks the document from being persisted**.
 
 ## Change List Gate
 
@@ -453,6 +549,12 @@ The change list states:
   section 2.1 class list, or `无`. This column exists because the architecture
   template and self-review item 8 require that reconciliation while no other
   column has a place for it.
+- **Diagrams** — every diagram this persist will create or re-render, each named
+  with the flow or section it belongs to (per Rule 7 and **Diagrams in the
+  Design Documents**), or `无`. This column also lists any diagram this persist
+  expected to create or re-render but which failed validation and is kept as a
+  placeholder, marked `未通过校验` with its reason. A diagram whose entry did not
+  change is not listed and is not re-rendered.
 - **Conflicts** — every Rule 3 difference awaiting a decision
 - **Notes** — anything the human needs in order to judge the list: an
   inference you filled in on their behalf, an entry you widened beyond what
