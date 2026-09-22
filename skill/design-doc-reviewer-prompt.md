@@ -33,14 +33,14 @@ Subagent (general-purpose):
 
     Route every document to exactly one template by its file name and its
     content — never check a document against a template other than its own,
-    and never skip the routing step:
+    and never skip the routing step. The number prefix on the file name is
+    what makes the routing mechanical:
 
     - `01-架构设计.md` (the architecture overview, or 架构总纲) → the
-      architecture template
-    - `specs/design/接口契约.md` (the interface contract) → the
-      interface-contract template
-    - every other document in `specs/design/` (the module documents) → the
-      module template
+      architecture template (架构模板)
+    - `NN-<模块名>.md` whose number is **02 or above** (the module documents —
+      `02-`, `03-`, … `10-`) → the module template (模块模板)
+    - `specs/design/00-接口契约.md` (the interface contract, 接口契约模板) → the interface-contract template
 
     Documents that are **not** managed design documents route to no template
     and are not reviewed here — for example the skill's own files (`SKILL.md`,
@@ -60,12 +60,7 @@ Subagent (general-purpose):
     the change-list file this persist wrote, rather than treating the list as
     unreadable because it is not in `specs/design/`.
 
-    A routing error is itself a defect to report: naming a document on the
-    wrong template makes every finding drawn from it suspect. The interface
-    contract's path and file name are fixed at `specs/design/接口契约.md` with
-    no numeric prefix, so a document named `0-接口契约.md`, `contract.md`, or
-    the like is a routing failure — report it, and do not fall back to checking
-    it against another template.
+    A routing error is itself a defect to report: naming a document on the wrong template makes every finding drawn from it suspect. The interface contract's path and file name are fixed at `specs/design/00-接口契约.md`, so a document named `接口契约.md` with no prefix, `0-接口契约.md` with the wrong prefix, `contract.md`, or the like is a routing failure — report it, and do not fall back to checking it against another template.
 
     Check each document against its own template only. A module document is
     not expected to carry a background section, and the architecture document
@@ -108,7 +103,7 @@ Subagent (general-purpose):
 
     Rows marked **(module)** apply only to module documents; **(architecture)**
     only to `01-架构设计.md`; **(interface contract)** only to
-    `specs/design/接口契约.md`; the unmarked rows apply to the architecture and
+    `specs/design/00-接口契约.md`; the unmarked rows apply to the architecture and
     module documents. The interface contract is checked against its own
     template and against its own **(interface contract)** rows below; beyond
     those, the unmarked rows that are **generic rather than topic-specific**

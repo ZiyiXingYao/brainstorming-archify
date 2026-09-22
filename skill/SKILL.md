@@ -143,7 +143,7 @@ that path's gates before implementation.
 | "They just asked casually, so I'll write the doc anyway" | The Persist Gate: ask first. No consent, no file. |
 | "I'll write the doc in whatever shape feels right" | Design documents MUST follow `architecture-doc-template.md`, `module-doc-template.md`, or `interface-contract-template.md`, in section and in order. |
 | "No interface came up in this discussion, so no interface contract is needed" | Whether the interface contract is produced is a mechanical test, not a topic judgment: any one of the seven interface families — MySQL, Redis, MQ, HTTP, gRPC, dynamic-library API, TCP — being present means the document MUST be produced. A skip justified by "we did not touch interfaces" is a defect. |
-| "The interface contract can be `0-接口契约.md` so it sorts with the others" | The interface contract's path and file name are fixed at `specs/design/接口契约.md`, with no numeric prefix — the prefix belongs to the architecture document and the module documents. An alias such as `0-接口契约.md` or `contract.md` is a defect. |
+| "The interface contract can be `0-接口契约.md` so it sorts with the others" | The interface contract's path and file name are fixed at `specs/design/00-接口契约.md`. Its `00-` is a fixed literal prefix that sits outside the module ordinal sequence — the architecture overview is fixed `01-` and the module documents are `02+` — so the `00-` does not change as modules are added or removed, is not governed by the "append, never renumber" rule, and is never renumbered even when a new module is added. Any other name — no-prefix `接口契约.md`, single-zero `0-接口契约.md`, or the English alias `contract.md` — is a defect. |
 | "This is a module discussion, but I'll tidy up the architecture doc while I'm in there" | Untouched sections stay word-for-word. Only entries actually affected by this discussion may change. |
 | "I know the module list well enough, I'll just write the doc" | Reading `specs/design/` first is a hard prerequisite. Writing without reading silently erases other discussions' work. |
 | "Field tables look like spec mode, so I'll describe them in prose instead" | Field tables, function tables, call chains, and interface matrices are design description, not acceptance criteria. They are required, not forbidden. |
@@ -895,7 +895,7 @@ Legend keys: `start`, `active`, `waiting`, `decision`, `success`, `failure`,
 ## Handoff to a Downstream Process
 
 This skill ends at the persisted document set under `specs/design/`:
-`01-架构设计.md`, one document per designed module, `接口契约.md` when its
+`01-架构设计.md`, one document per designed module, `00-接口契约.md` when its
 mechanical trigger fires, and the diagram triples under
 `specs/design/diagrams/`. Because every document references its diagrams by a
 path relative to itself, that one directory is self-contained — **it** is the
@@ -917,7 +917,7 @@ The change list states:
 
 - **New files** — path, and which template each follows
 - **Interface-contract determination** — the mechanical verdict for
-  `specs/design/接口契约.md`: either it is produced because at least one of the
+  `specs/design/00-接口契约.md`: either it is produced because at least one of the
   seven interface families (MySQL, Redis, MQ, HTTP, gRPC, dynamic-library API,
   TCP) is present — name the families that hit — or it is not produced because
   none is present, in which case the ground for **every one of the seven** is
@@ -1039,10 +1039,15 @@ reading time.
    relative to the project root, not to the current working directory.
    Create `specs/design/` first if it does not exist.
    - `01-架构设计.md` is fixed for the architecture document
-   - The interface contract document is `specs/design/接口契约.md` — that
-     file name is fixed and carries **no numeric prefix**, because the prefix
-     belongs to the architecture document and the module documents. Do not
-     produce `0-接口契约.md` or `contract.md`, and never fold its content into
+   - The interface contract document is `specs/design/00-接口契约.md` — that
+     file name is fixed, and its `00-` is a fixed literal prefix. It sits
+     **outside the module ordinal sequence**: the architecture overview is fixed
+     `01-` and the module documents are `02+`. Being outside that sequence, the
+     `00-` does not change as modules are added or removed and is **not governed
+     by the "append, never renumber" rule** below; it is never renumbered, even
+     when a new module is added. Never produce any other name — no-prefix
+     `接口契约.md`, single-zero `0-接口契约.md`, or the English alias
+     `contract.md` are all defects — and never fold its content into
      `01-架构设计.md` or a module document.
    - Module documents are named after the functional module and numbered
      after the current maximum. **Append, never renumber** — inserting a
@@ -1064,7 +1069,8 @@ in that template's order — no section added, removed, or reordered:
 - **Module document** — `module-doc-template.md`, written to
   `specs/design/<NN>-<module name>.md`.
 - **Interface contract** — `interface-contract-template.md`, written to
-  `specs/design/接口契约.md` (fixed name, no numeric prefix).
+  `specs/design/00-接口契约.md` (fixed name; its `00-` is a fixed literal prefix,
+  outside the module ordinal sequence and never renumbered).
 
 **When the interface contract is produced — a mechanical test, not a topic
 judgment.** If the project has **any one** of the seven interface families —
@@ -1119,7 +1125,7 @@ Check each item and fix in place:
 10. **Coverage completeness:** Does every functional point in the architecture's section 5 have at least one section 10 flow serving it, and does every section 10 flow name at least one functional point — the two sets covering each other in both directions, with no functional point left claimed by no module? **(module)** Does every class in the class list have a detailed-design entry with both a field table and a function table — or an explicit `不适用` with a reason where one of them genuinely does not apply? Does every cross-module call named in a function table appear in the dependency contract? **(architecture)** Does the file tree reach module folders and core files only, with every **core** class's `定义文件` locatable in it? A non-core class's source file need not appear and its absence is not a defect — the module documents' class lists are the authority for the complete class inventory.
 11. **Read-before-write:** Was `specs/design/` actually read before anything was written, and does the write set match what the approved change list described? If the change list was never approved, stop and report that — it is a process failure, not a wording issue.
 12. **Write-set completeness — the *affected* set, not the *planned* set:** This is the **second** run of the sweep that built the change list — the first ran before anything was written, and this one verifies the result. Items 7 and 11 check that what you declared untouched is untouched, and that you wrote what you said you would. Neither catches a stale statement you never noticed. So re-read every section that mentions anything this discussion touched — a module-list class count, a module's 设计状态 and its `（待创建）` marker, interface-matrix statuses, §8.1's provisional-registration prose, flow names and their 服务功能点 — and confirm that each statement which has gone false is either in the write set or explicitly recorded as still true. Then **state the sweep's result**: which sections you re-read, and either the entries you added or `no additional stale statements found`. A change list that names only the entries you meant to edit, while a count or a status that this discussion invalidated sits unchanged, is a defect.
-13. **Interface-contract compliance:** If `specs/design/接口契约.md` is in the write set, check it against `interface-contract-template.md`:
+13. **Interface-contract compliance:** If `specs/design/00-接口契约.md` is in the write set, check it against `interface-contract-template.md`:
     - **Three-part families:** each of sections 1–7 carries all three parts in order — `x.1` 清单表 (the list table), `x.2` 逐项契约 (the per-item contract), `x.3` 该类规则 (the family's rules). A missing part with no `不适用：<reason>` declaration is a defect.
     - **Traceable columns:** every `x.1` 清单表 carries the traceable column set its family prescribes — the list below **governs**, so a family that needs only one side is complete with that one side alone (dynamic-library API 「调用方」; TCP 「对端」) and is not missing an owner column — and the set is never flattened to a single 「写入方」-style label that does not fit the family: MySQL 「数据维护方 + 本服务侧的读写权限」; Redis 「写入方 + 读取方」; MQ 「方向（完整链路两端）+ 分片键」; HTTP / gRPC 「提供方 + 调用方」; dynamic-library API 「调用方」; TCP 「对端」. A missing column, or a blank cell in any row, is a defect.
     - **Field-table minimum:** every `x.2` field table gives at least a name, a type-or-length, and a meaning. The table is authoritative; a raw snippet (a DDL, proto, header, or frame) is only corroborating evidence — when the two disagree, the table wins and the snippet is corrected to match it.
@@ -1149,7 +1155,7 @@ record that it was self-performed. Pass it:
 
 One subagent reviews all three document types. Route each document to its
 template: `01-架构设计.md` follows the architecture template,
-`specs/design/接口契约.md` follows the interface-contract template, and every
+`specs/design/00-接口契约.md` follows the interface-contract template, and every
 other document follows the module template.
 
 When the write set exceeds five documents, split the review: review

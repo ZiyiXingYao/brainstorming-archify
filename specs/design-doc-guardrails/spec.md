@@ -79,8 +79,13 @@ The design-doc-guardrails capability documents the published behavior for users 
 
 #### Scenario: 接口契约文档没有配图
 
-- **WHEN** 自审判定 `接口契约.md` 缺少配图
+- **WHEN** 自审判定 `00-接口契约.md` 缺少配图
 - **THEN** 判定为规则冲突，接口契约文档不要求配图
+
+#### Scenario: 接口契约文件名与规定不符
+
+- **WHEN** 自审发现落盘物为 `接口契约.md`（无前缀）或 `0-接口契约.md`（单零前缀）
+- **THEN** 自审判定为缺陷，规定名为 `00-接口契约.md`
 
 #### Scenario: 未建立共识理解就进入方案讨论
 
@@ -104,7 +109,7 @@ The design-doc-guardrails capability documents the published behavior for users 
 
 ### Requirement: 审查判据
 
-设计文档审查提示词 SHALL 使用与架构模板一致的节号引用，重写类归属判据，且 MUST NOT 保留与新规则矛盾的校准条。该提示词 SHALL 增加**三类模板的路由判据**：审查子代理 SHALL 按文件名与内容把每份待审文档路由到架构模板、模块模板或接口契约模板中的正确一份，MUST NOT 用错模板核对；路由到接口契约模板时 SHALL 按其章节与三段式核对。
+设计文档审查提示词 SHALL 使用与架构模板一致的节号引用，重写类归属判据，且 MUST NOT 保留与新规则矛盾的校准条。该提示词 SHALL 增加**三类模板的路由判据**：审查子代理 SHALL 按文件名与内容把每份待审文档路由到架构模板、模块模板或接口契约模板中的正确一份，MUST NOT 用错模板核对；路由到接口契约模板时 SHALL 按其章节与三段式核对。三类受管文档的识别口径 SHALL 与序号前缀规则一致：`01-架构设计.md` 走架构模板、`0N-<模块名>.md`（N ≥ 2）走模块模板、`00-接口契约.md` 走接口契约模板。
 
 #### Scenario: 架构树停在模块目录
 
@@ -123,7 +128,7 @@ The design-doc-guardrails capability documents the published behavior for users 
 
 #### Scenario: 接口契约的路由
 
-- **WHEN** 审查子代理拿到 `specs/design/接口契约.md`
+- **WHEN** 审查子代理拿到 `specs/design/00-接口契约.md`
 - **THEN** 它路由到接口契约模板，不按架构模板或模块模板核对
 
 #### Scenario: 接口契约缺逐项契约
@@ -138,7 +143,7 @@ The design-doc-guardrails capability documents the published behavior for users 
 
 #### Scenario: 因接口契约无图报告缺陷
 
-- **WHEN** 审查子代理因 `接口契约.md` 没有 SVG 配图而报告缺陷
+- **WHEN** 审查子代理因 `00-接口契约.md` 没有 SVG 配图而报告缺陷
 - **THEN** 该判据判定为校准错误，必须从提示词中删除
 
 ### Requirement: 节号引用一致性
@@ -284,17 +289,17 @@ SHALL 在 `MAINTAINING.md` 的 `## 后续变更登记` 小节登记本次未纳�
 
 ### Requirement: 接口契约文档的按需产出判定
 
-技能 SHALL 按**可机械核对的判据**决定是否产出 `接口契约.md`：项目在 MySQL 数据表、Redis、MQ、HTTP、gRPC、动态库 API、TCP 七类对外接口中**命中任意一类**即必须产出；七类全部不命中时 MUST NOT 产出该文档，并 SHALL 在落盘阶段的变更清单中逐类写明不命中的判定依据。技能 MUST NOT 以「本次讨论未涉及接口」为由跳过产出。
+技能 SHALL 按**可机械核对的判据**决定是否产出 `00-接口契约.md`：项目在 MySQL 数据表、Redis、MQ、HTTP、gRPC、动态库 API、TCP 七类对外接口中**命中任意一类**即必须产出；七类全部不命中时 MUST NOT 产出该文档，并 SHALL 在落盘阶段的变更清单中逐类写明不命中的判定依据。技能 MUST NOT 以「本次讨论未涉及接口」为由跳过产出。
 
 #### Scenario: 项目仅依赖 MySQL
 
 - **WHEN** 项目只在启动时读一个 MySQL 库，没有 Redis、MQ、HTTP、gRPC、动态库 API、TCP
-- **THEN** 命中 MySQL 一类，必须产出 `接口契约.md`，其余六类节按「不适用：<原因>」保留标题
+- **THEN** 命中 MySQL 一类，必须产出 `00-接口契约.md`，其余六类节按「不适用：<原因>」保留标题
 
 #### Scenario: 项目七类全部不命中
 
 - **WHEN** 项目为纯内存计算库，无任何持久化、通道、网络与动态库依赖
-- **THEN** 不产出 `接口契约.md`，并在变更清单中逐类写明不命中的判定依据
+- **THEN** 不产出 `00-接口契约.md`，并在变更清单中逐类写明不命中的判定依据
 
 #### Scenario: 项目存在 TCP 私有协议
 
@@ -308,17 +313,22 @@ SHALL 在 `MAINTAINING.md` 的 `## 后续变更登记` 小节登记本次未纳�
 
 ### Requirement: 接口契约文档的落盘路径与形态
 
-产出接口契约文档时 SHALL 落在 `<项目根>/specs/design/接口契约.md`，文件名固定为 `接口契约.md`、不带数字前缀；技能 MUST NOT 产出 `0-接口契约.md`、`contract.md` 之类的别名，也 MUST NOT 把接口契约内容并入架构总纲或任一模块文档。
+产出接口契约文档时 SHALL 落在 `<项目根>/specs/design/00-接口契约.md`，文件名固定为 `00-接口契约.md`。`00-` SHALL 是**固定字面前缀**，其语义与其他两类受管文档的序号不同——它不参与模块序号序列（架构总纲固定 `01-`、各模块文档为 `02+`），不随模块增删而变化，也不受「序号追加不重排」机制管辖；它只表示「全项目唯一一份的接口契约排在最前」。技能 MUST NOT 产出其他任何命名——含无前缀的 `接口契约.md`、单零前缀的 `0-接口契约.md`、英文别名 `contract.md`——也 MUST NOT 把接口契约内容并入架构总纲或任一模块文档。
 
 #### Scenario: 检索落盘路径
 
 - **WHEN** 检索技能中接口契约文档的落盘路径
-- **THEN** 唯一路径为 `specs/design/接口契约.md`
+- **THEN** 唯一路径为 `specs/design/00-接口契约.md`
 
-#### Scenario: 产出为带数字前缀或英文别名
+#### Scenario: 产出为无前缀、单零前缀或英文别名
 
-- **WHEN** 产出物命名为 `0-接口契约.md` 或 `specs/design/contract.md`
+- **WHEN** 产出物命名为 `接口契约.md`、`0-接口契约.md` 或 `specs/design/contract.md`
 - **THEN** 判定为缺陷
+
+#### Scenario: 把 00- 当成模块序号
+
+- **WHEN** 某处把 `00-` 当作模块序号序列的一环（例如新增模块后重编号接口契约文档、或把接口契约纳入「序号追加不重排」的管辖）
+- **THEN** 判定为缺陷——`00-` 是固定字面前缀，永不重编号
 
 ### Requirement: design-diagrams 上游文档的现状一致性
 
@@ -531,3 +541,34 @@ README SHALL 同时记录**分叉基准**与**已同步到的最新上游坐标*
 
 - **WHEN** 检查 `skill/SKILL.md`
 - **THEN** 其中不出现内核默认图例的具体标签文本（如 `Agent logic`／`Agent 逻辑`、`Context / trace`／`上下文 / 追踪`）
+
+### Requirement: 接口契约文档文件名的一致性守卫
+
+接口契约文档的文件名 SHALL 在技能、三份模板与规格基线中一致为 `00-接口契约.md`。任何位置出现无前缀的 `接口契约.md`、单零前缀的 `0-接口契约.md`、英文别名 `contract.md`，或出现「不带数字前缀」「数字前缀留给架构总纲与各模块文档」这类与规定名相反的旧口径，SHALL 判定为缺陷。
+
+该一致性 SHALL 分**两道**守住，各管各的时点：
+
+- **实现期守活文件**：一条机械断言 SHALL 断言 `skill/`、`templates/` 下存在 `00-接口契约.md` 的引用，且这两个目录内不出现无前缀路径 `specs/design/接口契约.md` 与「不带数字前缀」表述。
+- **基线守合并**：`specs/` 属已发布基线，实现期 MUST NOT 直接改；其一致性 SHALL 由本变更的 delta 经 `spec-merger` 合并进基线、取得发布回执来证明。
+
+机械断言 MUST NOT 扫描 `specs/` 基线。理由：基线的更新时点晚于实现期（只在收口前合并），把基线纳入断言会让测试结果依赖「合并是否已经发生」——同一个断言在合并前后给出不同结论，属坏的测试设计，也会让「先跑红再转绿」的 TDD 纪律无法在实现波次内收口。
+
+#### Scenario: 旧口径回流
+
+- **WHEN** 某次改动把技能或模板里的接口契约文件名改回无前缀形态，或重新写入「不带数字前缀」的表述
+- **THEN** 机械断言失败，改动不得合入
+
+#### Scenario: 新名在四处齐备
+
+- **WHEN** 检索 `skill/SKILL.md`、`skill/design-doc-reviewer-prompt.md` 与三份模板
+- **THEN** 均能检索到 `00-接口契约.md`，且没有残留的无前缀命名
+
+#### Scenario: 断言不依赖基线合并时点
+
+- **WHEN** 在 delta 尚未合并进 `specs/` 基线时运行该机械断言
+- **THEN** 断言只按 `skill/` 与 `templates/` 判定，不因 `specs/` 基线仍含旧口径而失败
+
+#### Scenario: 基线由合并而不是断言收口
+
+- **WHEN** 收口前执行 delta 合并
+- **THEN** 基线中接口契约文档的文件名与相关口径同步为 `00-接口契约.md`，以发布回执为证
