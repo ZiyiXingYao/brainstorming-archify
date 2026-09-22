@@ -15,7 +15,7 @@ tests/
 ├── render.smoke.test.mjs         冒烟：渲染五类图，校验三件套（独立脚本，原生 assert）
 ├── render.entry.test.mjs         入口契约：透传子命令 / 参数校验 / 失败不留半成品 / 原子提交 / 两轮降级
 ├── install.test.mjs              安装脚本：版本硬门 / 备份 / 平铺与整目录规则 / 装后 doctor / 用法错误
-├── doc-consistency.test.mjs      文档一致性：SKILL.md 关键约定、模板配图章节、旧技能名残留
+├── doc-consistency.test.mjs      文档一致性：SKILL.md 关键约定、模板配图章节、旧技能名残留、状态取值单一权威、内核文档无已删命令
 ├── engine.test.mjs               把内核回归集接进本入口：唤起 scripts/diagram-engine/test/run-valid.mjs 并断言全过
 └── README.md                     本文件
 ```
@@ -25,7 +25,7 @@ tests/
 ```bash
 # 全部：一条命令覆盖「仓库测试 + 绘图内核回归集」
 node --test tests/*.test.mjs
-# → 35 个用例，0 失败（含 engine.test.mjs 唤起的内核 13 文件 / 238 用例）
+# → 40 个用例，0 失败（含 engine.test.mjs 唤起的内核 13 文件 / 238 用例）
 
 # 只跑冒烟（独立脚本）
 node tests/render.smoke.test.mjs
@@ -66,9 +66,21 @@ node tests/render.smoke.test.mjs
 
 机械看门人：`skill/SKILL.md` 必须含绘图规划 Gate、三件套、落点 `specs/design/diagrams/`、
 命名 `<document number>-<diagram name>`、交互版链接行、主节点上限、showcase、修复顺序、间距公式、
-品牌仅内置 ID，**自审恰为 15 项**，且不含 `design-diagrams` 与 `--repo-root`；
+品牌仅内置 ID，**自审恰为 15 项**，**修复顺序恰为 ①–⑥ 且 ⑤ 是标签超宽档**，
+且不含 `design-diagrams` 与 `--repo-root`；
 两份配图模板含三件套与两行引用，接口契约模板保持「不配图」口径；
 `skill/` 与 `templates/` 无旧技能名残留；README 只允许历史条目提及旧技能名；审查提示词含三件套判据。
+
+另有三组机械门，分别对应三类「改了一处、漏了另一处」：
+
+① **状态取值单一权威**——四档取值与 `详见` 列的 `待调用方落盘` 标记只在架构模板第 7 节定义一次，
+   其余三份文件必须出现指向第 7 节的引用。断言边界：它证明「权威块齐全 + 每份文件都有引用」，
+   **不能**证明「每一处提及都带了引用」——那要靠人读。
+② **内核非测试文档**（`scripts/diagram-engine/**`，跳过 `test/` 与 `node_modules/`）不得再把
+   `archify brands` / `archify migrate` / `archify compare` / `archify validate` / `npm test`
+   写成现行能力——`schemas/README.md` 曾四处这么写，而 `skill/`、`templates/` 有看门人、它没有。
+③ **brand-marks 源码**不得残留联网抓取实现（`node:http` / `node:https` / `node:dns` / `node:net`、
+   `checkedFetch`、`captureRemoteBrand`、`captureBrandReference`、私有地址守卫、抓取超时环境变量）。
 
 ## 样例来自哪里
 

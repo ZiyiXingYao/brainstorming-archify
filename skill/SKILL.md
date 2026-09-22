@@ -148,7 +148,7 @@ that path's gates before implementation.
 | "I know the module list well enough, I'll just write the doc" | Reading `specs/design/` first is a hard prerequisite. Writing without reading silently erases other discussions' work. |
 | "Field tables look like spec mode, so I'll describe them in prose instead" | Field tables, function tables, call chains, and interface matrices are design description, not acceptance criteria. They are required, not forbidden. |
 | "The design is approved, so I can write the files" | Design approval is not write approval. Present the change list and wait. |
-| "The provider got designed, so that `待提供` row is handled" | It is not handled until the row is flipped to 已落地, 有差异 or 待调用方 (the last when the caller module is not designed yet). An unflipped row is a gap nobody owns. |
+| "The provider got designed, so that `待提供` row is handled" | It is not handled until the row is flipped to one of section 7's four statuses. An unflipped row is a gap nobody owns. |
 | "I renamed the module; the file name and references can follow later" | The file name carries the module name. Rename and update every reference in the same persist, or leave a stale path behind. |
 | "The spike works, so I'll keep the code" | A spike's output is an answer. Keeping the code is a new request — classify it. |
 | "It grew, but I'm almost done — no need to re-classify" | Hidden complexity upgrades the path mid-task. Stop and say so. |
@@ -243,9 +243,13 @@ digraph brainstorming {
 ```
 
 **On the persist stage:** every path that answers *yes* at the Persist Gate then
-runs the same three decisions in order — the **Diagram Planning Gate** (when this
-persist will produce diagrams), the **Change List Gate**, and the **User Review
-Gate**. The per-path steps in the Checklist above cover the **design stage only**
+runs the same three **persist-stage** decisions in order — the **Diagram
+Planning Gate** (when this persist will produce diagrams), the **Change List
+Gate**, and the **User Review Gate**. That triple is deliberately *not* the
+"Three Gates" listed further down, which counts the three **session-level**
+gates: there the Persist Gate takes the Diagram Planning Gate's slot, because
+passing the Persist Gate is this stage's entry condition rather than one of its
+decisions. The per-path steps in the Checklist above cover the **design stage only**
 and deliberately do not enumerate these persist-stage gates, so "the Bounded path
 ends at the Persist Gate" is not a statement that a bounded change skips them.
 What differs between bounded and architectural is the **output scope**, not the
@@ -427,19 +431,17 @@ parameters, return type, and boundary semantics — because the call site
 already lives in the caller's code, so the provider's later signature is
 bound by it. **This paragraph covers only the case where that provider
 module does not exist yet** — Rule 4 is about undesigned modules. When the
-provider is already designed, do not write `待提供`: record the row and flip
-it to `已落地`, `有差异`, or `待调用方` in the same persist, per the paragraph below.
+provider is already designed, do not write `待提供`: record the row and flip it
+to whichever of section 7's four statuses the situation calls for, in the same
+persist. **That four-value table is the single definition** — read it rather
+than a copy, so a value never drifts between documents.
 Register a `待提供` row in the architecture document's
 cross-module interface matrix, and surface it in the change list,
 because the human needs to know which modules are now owed a design.
 
-When a module is designed, every `待提供` row naming it as provider must
-be resolved in that same persist: flipped to `已落地` when the hard
-constraints match, flipped to `有差异` when they do not, or flipped to
-`待调用方` when the **caller** module has not been designed yet. `待调用方` is a
-legitimate terminal state — its owner is that not-yet-designed caller, and the
-caller flips it to `已落地` or `有差异` when it is designed in turn. Leaving such a row at
-`待提供` after its provider has been designed means the gap has no owner.
+When a module is designed, every `待提供` row naming it as provider must be
+resolved in that same persist, following section 7's flip rules. Leaving such a
+row at `待提供` after its provider has been designed means the gap has no owner.
 
 **Status lives only in the interface matrix.** A module document's
 dependency contract states the requirement — provider, class, expected
@@ -473,9 +475,10 @@ changes and both are announced in the change list.
   others and report them: those gaps are now unowned.
 - **Renaming**: the file name carries the module name, so a rename is a
   file rename plus, in the same persist, an update of every reference to
-  it — the module list's 对应文档 cell, every interface-matrix 详见 cell,
-  and every cross-reference in other module documents. Never leave a
-  stale path behind.
+  it — the module list's 对应文档 cell, every interface-matrix 详见 cell
+  (that column's own values, including the `待调用方落盘` marker, are
+  defined in section 7), and every cross-reference in other module
+  documents. Never leave a stale path behind.
 
 **Rule 7 — A changed entry re-renders its diagram in the same persist.** A
 diagram is a derived artifact of the entries it illustrates, so it belongs to
@@ -696,10 +699,13 @@ One left-to-right spine with short vertical branches. Prefer **6–12 primary
 components**; group only real ownership, trust, process or deployment
 boundaries — boundaries do not replace relationships. Grid placement is preferred
 where the schema supports it. To use it, set `layout: { "mode": "grid", "cols": <1-12> }`
-and give every component its logical `row` (≥ 0) and `col` (≥ 0) — you still never
-plan pixel coordinates. **If you omit `layout` entirely, the schema requires an
-explicit `pos` `[x, y]` on every component** (free placement), which is the
-bounded exception; grid mode is the normal path. Either way **node and route
+(`cols` is optional — the schema requires only `mode`) and give every component
+its logical `row` (≥ 0) and `col` (≥ 0) — you still never plan pixel
+coordinates. **If you omit `layout` entirely, the renderer's layout check
+requires an explicit `pos` `[x, y]` on every component** (free placement). That
+rule lives in `renderers/architecture/render-architecture.mjs`, **not** in the
+JSON Schema, so a schema-only validation will not catch it. Free placement is
+the bounded exception; grid mode is the normal path. Either way **node and route
 geometry is computed by the renderer, never by you** — but do not read that as
 "the first render is final": **relationship labels are the exception.** The renderer
 measures and places them, and its placement only counts once it clears the node,
@@ -720,8 +726,8 @@ Lanes express responsibility or phase; columns `0..5` express logical
 progression. **Every node carries a `type` from the shared component-type enum** —
 `frontend`, `backend`, `database`, `cloud`, `security`, `messagebus`, `external`
 (see `schemas/common.schema.json`) — chosen by what that node *is*, never by which
-lane it sits in; the same enum is used by architecture, workflow and dataflow nodes.
-Dataflow stages carry their own stage semantics; sequence participants and
+lane it sits in; the same enum is used by architecture, sequence participants,
+workflow and dataflow nodes. Dataflow stages carry their own stage semantics;
 lifecycle states have their own mode-specific fields instead. Start new workflows on `schema_version: 2` (the readable compiler);
 keep `schema_version: 1` only when an existing source must retain its fixed
 legacy geometry — never change only `schema_version` on a document that carries
@@ -849,8 +855,9 @@ The change list states:
   later needs no separate declaration — the entry is the declaration.
 - **Interface-matrix changes** — every row this persist adds, and whether it
   stays `待提供` or flips. When every provider involved is already designed,
-  write `无新增待提供行（相关行同批翻 已落地 / 待调用方 / 有差异）`. This field is never
-  blank, and it is not "none" merely because no module ends up owed a design.
+  write `无新增待提供行（相关行同批翻牌）` — do not restate the status values in this
+  field; section 7 owns them. This field is never blank, and it is not "none"
+  merely because no module ends up owed a design.
 - **Core-class reconciliation** — every §8.1 entry this persist moves from
   provisional registration (owned by a 未设计 module) into a designed module's
   section 2.1 class list, or `无`. This column exists because the architecture
@@ -1001,7 +1008,7 @@ Check each item and fix in place:
 6. **Scope check:** Is each document focused on a single design — one architecture, or one module — rather than several independent subsystems?
 7. **Incremental merge integrity:** For every document that already existed, are the untouched sections word-for-word unchanged? Has any content belonging to other modules, or produced by earlier discussions, been dropped?
 8. **Cross-document consistency:** Is the architecture's core-class list a subset of the union of the **already-designed** module documents' class lists — with no class owned by two modules, and no core class left without an owning module once its module is designed (a core class belonging to a module that is still 未设计 is registered provisionally and must be reconciled into that module's section 2.1 class list when the module is designed, via the `待提供` flip machinery)? Do the dependency-contract entries and the interface-matrix rows cover each other as **sets** — a module's contract may legitimately carry several entries, including class-only references whose signature is `—`, against a single matrix row, so compare the sets rather than the row counts? Does every **functional** flow appear in the architecture's global flow section under the same name — including one that completes inside a single module — while a purely module-internal **implementation** flow must not be registered there, and do that registered flow and its same-named flow in a module document agree on the 服务功能点 they serve? Does every reference resolve — no pointer to a renamed or deleted module, no orphan module document whose module is missing from the list?
-9. **Dependency closure:** Is every `待提供` row in the interface matrix whose provider module has now been designed flipped to `已落地`, `有差异` or `待调用方` (the last when the caller module is not designed yet)? An unflipped row means the gap has no owner. And is status absent from every module document's dependency contract — it belongs only in the matrix?
+9. **Dependency closure:** Is every `待提供` row in the interface matrix whose provider module has now been designed flipped to one of section 7's four statuses? An unflipped row means the gap has no owner. And is status absent from every module document's dependency contract — it belongs only in the matrix?
 10. **Coverage completeness:** Does every functional point in the architecture's section 5 have at least one section 10 flow serving it, and does every section 10 flow name at least one functional point — the two sets covering each other in both directions, with no functional point left claimed by no module? **(module)** Does every class in the class list have a detailed-design entry with both a field table and a function table — or an explicit `不适用` with a reason where one of them genuinely does not apply? Does every cross-module call named in a function table appear in the dependency contract? **(architecture)** Does the file tree reach module folders and core files only, with every **core** class's `定义文件` locatable in it? A non-core class's source file need not appear and its absence is not a defect — the module documents' class lists are the authority for the complete class inventory.
 11. **Read-before-write:** Was `specs/design/` actually read before anything was written, and does the write set match what the approved change list described? If the change list was never approved, stop and report that — it is a process failure, not a wording issue.
 12. **Write-set completeness — the *affected* set, not the *planned* set:** This is the **second** run of the sweep that built the change list — the first ran before anything was written, and this one verifies the result. Items 7 and 11 check that what you declared untouched is untouched, and that you wrote what you said you would. Neither catches a stale statement you never noticed. So re-read every section that mentions anything this discussion touched — a module-list class count, a module's 设计状态 and its `（待创建）` marker, interface-matrix statuses, §8.1's provisional-registration prose, flow names and their 服务功能点 — and confirm that each statement which has gone false is either in the write set or explicitly recorded as still true. Then **state the sweep's result**: which sections you re-read, and either the entries you added or `no additional stale statements found`. A change list that names only the entries you meant to edit, while a count or a status that this discussion invalidated sits unchanged, is a defect.

@@ -7464,10 +7464,12 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       };
     })();
 
-    /* Verified repository evidence is emitted only after the renderer checks
-       the authored GitHub revision, source blobs, and optional line ranges
-       against the explicit --repo-root. It remains outside the SVG so every
-       canonical visual export stays free of repository paths. */
+    /* Repository evidence is NOT produced by this build: the renderer no longer
+       verifies a GitHub revision, source blobs or line ranges, and always emits
+       a null payload. The shape is kept because this panel still consumes a
+       caller-injected verified payload; when it is absent the passport's
+       evidence area simply stays hidden. When present it stays outside the SVG,
+       so every canonical visual export is free of repository paths. */
     Archify.sourceEvidence = (function () {
       var element = document.getElementById('archify-source-evidence-data');
       var payload = null;

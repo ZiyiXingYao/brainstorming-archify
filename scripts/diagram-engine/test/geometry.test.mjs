@@ -3,7 +3,7 @@
 // can't distinguish a geometry regression from an intentional layout change —
 // so they get a direct oracle here. Zero deps: node:test + node:assert.
 //
-//   node --test test/*.test.mjs   (or: npm test)
+//   node --test test/*.test.mjs
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

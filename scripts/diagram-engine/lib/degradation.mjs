@@ -5,7 +5,7 @@
  * 目标错误数口径（本模块的承重定义）
  * ----------------------------------
  * 「目标错误数 = 校验诊断中错误级条目的条数，不含警告」。
- * 落到 `archify validate --quality showcase --json` 的实际产物上：
+ * 落到本驱动 `validate --quality showcase --json` 的实际产物上：
  *
  *   失败：{ schemaVersion, ok:false, stage, type, input, error,
  *           diagnostics:[{ code, severity, message, subject, evidence, supportedFixes }] }
@@ -65,7 +65,7 @@ export const STATE_DIR_ENV = 'DESIGN_DIAGRAMS_STATE_DIR';
 export const MAX_ROUNDS = 20;
 
 /**
- * 解析 `archify validate --json` 的 stdout。
+ * 解析本驱动 `validate --json` 的 stdout。
  * @param {string} stdout
  * @returns {object|null} 可解析为对象时返回，否则 null
  */

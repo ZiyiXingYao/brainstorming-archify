@@ -98,20 +98,19 @@ reordering. ID-less documents remain valid and their relationship pins stay
 local to the current page.
 
 Every semantic node collection (`components`, `nodes`, `participants`, and
-`states`) also accepts one optional `brand`: either a canonical string returned
-by `archify brands --json`, or a digest-pinned `{ "url", "sha256" }` object
-returned by `archify brands capture <url> --json`. Known IDs and known-brand
-domains use the bundled vector catalogue. Unknown URLs must be captured in that
-explicit command before authoring; render and validate never perform an
-unpinned network capture. Unsafe, unavailable, changed, or unsupported content
-fails closed with a brand diagnostic. Omitted `brand` preserves the prior
-output.
+`states`) also accepts one optional `brand`: a canonical built-in brand ID, as
+listed in `renderers/shared/generated-brand-marks.mjs`, or a known-brand domain
+name that resolves to one of those IDs. This build has **no brand-capture
+capability and never makes a network request**: a URL string, or the
+digest-pinned `{ "url", "sha256" }` object the upstream CLI could produce, is
+rejected with a `brand/unsupported-url` diagnostic. Omitted `brand` preserves
+the prior output.
 
 ## schema_version policy
 
 Workflow supports schema versions 1 and 2. Version 1 remains the fixed-layout
-compatibility contract; version 2 opts into the readable workflow compiler and
-can be produced explicitly with `archify migrate workflow ... --to-schema 2`.
+compatibility contract; version 2 opts into the readable workflow compiler.
+This build has no `migrate` subcommand — author schema version 2 directly.
 The other four diagram schemas keep `schema_version` pinned to `1`.
 
 Workflow also accepts optional `semanticChecks`. `allowedRoots` and
@@ -163,14 +162,17 @@ express cleanly here: duplicate view IDs, duplicate focus IDs, focus IDs that do
 not exist in the diagram's semantic collection, and duplicate authored
 relationship IDs within the mode's relationship collection.
 
-Architecture additionally supports opt-in, revision-pinned repository evidence.
-`meta.repository` names a public GitHub URL and full commit SHA; a component may
-carry one to three `sources` with repo-relative POSIX paths, optional line
-ranges, and optional labels. Shape is schema-checked, then the renderer requires
-`--repo-root`: the local Git origin must match, and Git must prove the commit,
-blobs, and requested lines. Verified evidence is embedded outside the canonical
-SVG for the Semantic Passport and Node Finder; ordinary documents and visual
-exports carry no repository evidence.
+Architecture additionally declares an opt-in, revision-pinned repository
+evidence shape. `meta.repository` names a public GitHub URL and full commit SHA;
+a component may carry one to three `sources` with repo-relative POSIX paths,
+optional line ranges, and optional labels. **The shape is still schema-checked,
+but this build no longer populates it**: the revision/blob/line verification and
+the `--repo-root` argument were removed together with the rest of the
+code-provenance capability, so the render path always emits `null`. The fields
+are kept because the Viewer's Semantic Passport still consumes them when a
+caller injects a verified payload; while it is absent the passport's evidence
+area stays hidden, and ordinary documents and visual exports never carry
+repository paths.
 
 ## Visual quality and engineering truth
 
@@ -193,8 +195,11 @@ The profile validates only authored IR. It does not discover infrastructure,
 infer owners, or prove that a diagram matches a live environment. If a fact is
 unknown, leave the profile unset or obtain the fact instead of inventing it.
 
-`npm test` runs the generator in check mode and fails when the committed
-validators drift from their schemas.
+`npm run check:validators` and `npm run check:brand-marks` re-run the two
+generators in check mode and fail when the committed artifacts drift from
+`schemas/` and `brand-marks/catalog.json`. They need the `devDependencies`
+installed; the shipped skill does not, because both generated files are
+committed.
 
 ## Error format
 

@@ -343,7 +343,7 @@ function commitArtifacts(entries) {
 /**
  * 记录本轮「目标错误数」到轮次状态，并给出降级判定。
  *
- * 目标错误数口径 = `archify validate --json` 的 `diagnostics[]` 里 `severity==='error'`
+ * 目标错误数口径 = 本驱动 `validate --json` 的 `diagnostics[]` 里 `severity==='error'`
  * 的条数（不含警告）；轮次状态按「图类型 + 目标 SVG 绝对路径」为键落系统临时目录，
  * 跨调用存活（失败时不往目标目录写任何东西）。本函数**只读/写状态与返回判定**，
  * 输出与退出码由调用方决定。
@@ -449,7 +449,7 @@ function commandRender(args) {
     if (validate.stdout) process.stderr.write(validate.stdout);
     if (validate.stderr) process.stderr.write(validate.stderr);
     if (!validate.stdout && !validate.stderr) {
-      process.stderr.write(`校验未通过（archify validate 退出码 ${validate.status ?? 1}）。\n`);
+      process.stderr.write(`校验未通过（validate 退出码 ${validate.status ?? 1}）。\n`);
     }
     if (tracked) {
       const previous = tracked.decision.previousErrors;

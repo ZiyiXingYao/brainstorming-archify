@@ -5,9 +5,13 @@
  * 本次把上游「读 SKILL.md 做内容断言」的文档用例随失效测试一起删掉了，文档便再没有
  * 机械看门人。本文件把那部分补回来，锁住本次改写的关键约定，防止后续静默回退：
  *   ① `skill/SKILL.md` 含绘图规划 Gate、三件套、落点/命名硬规则、两行引用、主节点上限、
- *      自审 15 项，且不含已被裁剪掉的机制名与 `--repo-root`；
+ *      自审 15 项、修复顺序 ①–⑥，且不含已被裁剪掉的机制名与 `--repo-root`；
  *   ② 三份模板齐备，两份配图模板含三件套与两行引用；
- *   ③ 迁移残留：`skill/`、`templates/` 内不得出现 `design-diagrams`（README 只允许历史条目）。
+ *   ③ 迁移残留：`skill/`、`templates/` 内不得出现 `design-diagrams`（README 只允许历史条目）；
+ *   ④ 接口矩阵状态只在架构模板第 7 节定义一次，其余三份文件只引用、不复述；
+ *   ⑤ 内核非测试文档不得再把已删命令（`archify brands` / `archify migrate` /
+ *      `archify compare` / `archify validate` / `npm test`）写成现行能力；
+ *   ⑥ brand-marks 源码不得残留联网抓取实现。
  *
  * 只用 Node 内置模块，不依赖 node_modules。
  */
@@ -126,41 +130,102 @@ test('审查提示词含三件套判据', () => {
 });
 
 /* ---------------------------------------------------------------------------
- * 状态四值的「成套出现」不变式
+ * 状态取值：一处权威定义 + 其余只引用
  *
- * 背景：接口矩阵的状态从三档扩为四档（新增 `待调用方`）时，同一口径散落在四个
- * 文件的多个枚举处（Red Flags 行、变更清单字段写法、自审第 9 项、架构模板的翻牌
- * 规则、模块模板的翻牌提示、审查提示词的依赖覆盖判据）。实跑 dry-run 连续两轮都
- * 抓出「改了一处、漏了另一处」，于是把它变成机械门：
- *   - 任何一行只要枚举了状态（同时出现 `待提供` 与 `已落地`），就必须同时出现 `待调用方`；
- *   - 四个承载该口径的文件都必须出现 `待调用方`。
+ * 背景：接口矩阵的状态取值曾在 12 处手抄、写法各异（表格单元格、箭头、一档一行
+ * ……），连续多轮 dry-run 都抓到「改了一处、漏了另一处」。把断言提成按段落判断
+ * 治不了根——副本仍在，只是漏检变难。根治办法是取消副本：取值含义只在架构模板
+ * 第 7 节定义一次，其余文件只写指向它的引用。
+ *   - 权威块必须齐全（四档 + `详见` 列的 `待调用方落盘` 标记）且自证唯一；
+ *   - 其余三份文件必须出现指向第 7 节的引用。
+ * 断言边界：它证明「权威块齐全 + 每份文件都有引用」，不能证明「每一处提及都带了
+ * 引用」——那要靠人读。所以引用句写在该文件最显眼的位置（区块开头或整段首句）。
  * ------------------------------------------------------------------------- */
 
-const MATRIX_STATUS_FILES = Object.freeze([
+const AUTHORITATIVE = ARCH_TEMPLATE;
+const POINTER_FILES = Object.freeze([
   SKILL,
-  'skill/design-doc-reviewer-prompt.md',
-  ARCH_TEMPLATE,
   MODULE_TEMPLATE,
+  'skill/design-doc-reviewer-prompt.md',
 ]);
+const MATRIX_STATUSES = Object.freeze(['待提供', '待调用方', '已落地', '有差异']);
 
-test('矩阵状态枚举必须成套（不漏 待调用方）', () => {
-  const offenders = [];
-  for (const rel of MATRIX_STATUS_FILES) {
-    read(rel).split('\n').forEach((line, index) => {
-      if (line.includes('待提供') && line.includes('已落地') && !line.includes('待调用方')) {
-        offenders.push(`${rel}:${index + 1}  ${line.trim().slice(0, 90)}`);
-      }
-    });
+test('状态取值只在架构模板第 7 节定义一次', () => {
+  const arch = read(AUTHORITATIVE);
+  assert.match(arch, /状态枚举（四档，权威定义）/, '权威块应有可辨识的题注');
+  assert.match(arch, /唯一权威定义/, '权威块应声明自己是唯一权威');
+  for (const value of MATRIX_STATUSES) {
+    assert.ok(arch.includes(value), `权威块应包含取值 ${value}`);
   }
-  assert.deepEqual(
-    offenders,
-    [],
-    `这些行枚举了接口矩阵状态却漏掉 待调用方（四档为 待提供 / 待调用方 / 已落地 / 有差异）：\n${offenders.join('\n')}`,
-  );
+  assert.ok(arch.includes('待调用方落盘'), '权威块应同时定义 `详见` 列的标记词');
+  assert.match(arch, /章节级\*\*标记/, '应澄清 不适用 是章节级标记、不是状态取值');
 });
 
-test('四个承载口径的文件都含 待调用方', () => {
-  for (const rel of MATRIX_STATUS_FILES) {
-    assert.match(read(rel), /待调用方/, `${rel} 应含 待调用方`);
+test('其余三份文件引用第 7 节而不是复述取值', () => {
+  for (const rel of POINTER_FILES) {
+    assert.match(read(rel), /section 7|第 7 节/, `${rel} 应指向架构模板第 7 节的权威块`);
   }
+});
+
+test('修复顺序为 ①–⑥，且 ⑤ 是标签超宽档', () => {
+  const section = read(SKILL).split('**Repair order.**')[1]?.split('\n\n')[0] ?? '';
+  assert.ok(section.length > 0, '应能定位 Repair order 段');
+  for (const mark of ['①', '②', '③', '④', '⑤', '⑥']) {
+    assert.ok(section.includes(mark), `修复顺序应含 ${mark}`);
+  }
+  assert.ok(!section.includes('⑦'), '修复顺序不应超出 ⑥');
+  assert.match(section.split('⑤')[1] ?? '', /label/i, '⑤ 应是标签宽于节点框那一档');
+});
+
+/* ---------------------------------------------------------------------------
+ * 内核侧：文档不得再把已删命令写成现行能力；源码不得残留联网抓取
+ *
+ * `schemas/README.md` 曾把 `archify brands capture`、`archify migrate`、
+ * 「renderer requires --repo-root」和 `npm test` 写成现行用法，而四者都已随裁剪
+ * 删除——`skill/`、`templates/` 有看门人，`scripts/` 下的文档没有，所以漏了。
+ * ------------------------------------------------------------------------- */
+
+const KERNEL = 'scripts/diagram-engine';
+const REMOVED_COMMANDS = Object.freeze([
+  'archify brands',
+  'archify migrate',
+  'archify compare',
+  'archify validate',
+  'npm test',
+]);
+
+test('内核非测试文档不再把已删命令写成现行能力', () => {
+  const offenders = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const rel = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name === 'node_modules' || entry.name === 'test') continue;
+        walk(rel);
+        continue;
+      }
+      if (!/\.(md|json|html)$/.test(entry.name)) continue;
+      const text = read(rel);
+      for (const command of REMOVED_COMMANDS) {
+        if (text.includes(command)) offenders.push(`${rel}: ${command}`);
+      }
+    }
+  };
+  walk(KERNEL);
+  assert.deepEqual(offenders, [], `这些内核文档仍在提供已删能力：\n${offenders.join('\n')}`);
+});
+
+test('brand-marks 源码不再含联网抓取实现', () => {
+  const source = read('scripts/diagram-engine/renderers/shared/brand-marks.mjs');
+  const banned = [
+    /node:http/, /node:https/, /node:dns/, /node:net/, /createHash/,
+    /checkedFetch/, /captureRemoteBrand/, /captureBrandReference/,
+    /readLimited/, /iconCandidates/, /isPrivateBrandAddress/, /mapConcurrent/,
+    /ARCHIFY_BRAND_ALLOW_PRIVATE/, /ARCHIFY_BRAND_CAPTURE_TIMEOUT_MS/,
+  ];
+  for (const pattern of banned) {
+    assert.doesNotMatch(source, pattern, `不应残留 ${pattern}`);
+  }
+  assert.match(source, /export async function prepareDiagramBrandMarks/, '应保留品牌解析入口');
+  assert.match(source, /never captures a site URL|no network request is reachable/, '应声明无抓取能力');
 });

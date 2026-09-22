@@ -46,7 +46,7 @@
 | `bin/archify.mjs` → `bin/render-driver.mjs` | 子命令分派裁到只留 `render`／`validate`／`doctor`；删除 23 个只服务已砍子命令的函数及其专用 helper（**2139 → 562 行**） |
 | `bin/design-diagrams.mjs` → `bin/render.mjs` | 本仓库新增件改造而来：出口由 `svg <type> <ir.json> <out.svg>` 改为 `render <type> <ir.json> <outdir>`，一次产出 `.json`／`.svg`／`.html` 三件套；`validate`／`doctor` 透传给内部驱动 |
 | 删除 `--repo-root` 溯源 | 删 `renderers/shared/repository-evidence.mjs`、`repository-location.mjs`；清掉 `renderers/shared/cli.mjs` 与 `render-driver.mjs` 中的参数、环境变量与调用点；连带清理 5 个上游测试文件登记 |
-| 品牌摘掉联网分支 | `renderers/shared/brand-marks.mjs` 的 `prepareDiagramBrandMarks` 改为失败关闭：URL 字符串与 `{url,sha256}` 直接报诊断，**不再发起任何网络请求**；107 个内置 canonical ID 照常解析 |
+| 品牌摘掉联网分支 | `renderers/shared/brand-marks.mjs` 的 `prepareDiagramBrandMarks` 改为失败关闭：URL 字符串与 `{url,sha256}` 直接报诊断，**渲染路径不再发起任何网络请求**；内置 canonical ID 照常解析。后续补做：同文件里不可达的抓取实现（`checkedFetch`／`captureRemoteBrand`／`captureBrandReference` 等）连同 `lookup`／`http`／`https`／`net` 导入一并删除——此前只是绕过、未删 |
 | `renderers/*/README.md` | 指向 `examples/*.json` 的 worked example 引用改指 `tests/fixtures/sample-*.json` |
 | `package.json` | `bin` 字段与 `scripts` 按裁剪后实况重写，删掉指向不存在的父级 `../scripts/*.mjs` 的死链 |
 | `test/run-valid.mjs` | 白名单按裁剪后实测重写（见第 3 节） |
