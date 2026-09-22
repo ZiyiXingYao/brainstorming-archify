@@ -15,7 +15,7 @@ tests/
 ├── render.smoke.test.mjs         冒烟：渲染五类图，校验三件套（独立脚本，原生 assert）
 ├── render.entry.test.mjs         入口契约：透传子命令 / 参数校验 / 失败不留半成品 / 原子提交 / 两轮降级
 ├── install.test.mjs              安装脚本：版本硬门 / 备份与备份冲突守卫 / 平铺与整目录规则 / 装后 doctor / 用法错误
-├── doc-consistency.test.mjs      文档一致性：SKILL.md 关键约定、模板配图章节、旧技能名残留、状态取值单一权威、内核文档无已删命令
+├── doc-consistency.test.mjs      文档一致性：SKILL.md 关键约定、模板配图章节、改名残留、状态取值单一权威、内核文档无已删命令
 ├── engine.test.mjs               把内核回归集接进本入口：唤起 scripts/diagram-engine/test/run-valid.mjs 并断言全过
 └── README.md                     本文件
 ```
@@ -73,6 +73,14 @@ node tests/render.smoke.test.mjs
 且不含 `design-diagrams` 与 `--repo-root`；
 两份配图模板含三件套与两行引用，接口契约模板保持「不配图」口径；
 `skill/` 与 `templates/` 无旧技能名残留；README 只允许历史条目提及旧技能名；审查提示词含三件套判据。
+
+其中「改名残留」这条的扫描面是**分级**的：`skill/`、`templates/` 扫 `design-diagrams` 与
+`codebuddy-brainstorming` **两代**历史名，`scripts/` 只扫后一代，另在三个目录内一律禁掉改名前的落盘目录
+`.brainstorming/change-lists`。**为什么不把 `design-diagrams` 也扫到 `scripts/`**：那下面有多处合法出现——
+`UPSTREAM.md` 专门记录了内核目录 `design-diagrams/` → `scripts/diagram-engine/` 的改名，
+`lib/degradation.mjs` 用 `design-diagrams-progress` 当临时状态目录名，若干内核文件头沿用旧自述；
+扫过去要靠白名单硬撑，不如把边界写清。禁词与扫描面集中在测试顶部的 `RETIRED_NAME_SCOPE` /
+`RETIRED_CHANGE_LIST_DIR` 两个常量里。
 
 另有三组机械门，分别对应三类「改了一处、漏了另一处」：
 

@@ -306,10 +306,10 @@ devDependencies，这 6 个文件会变成候选回填项；在当前硬约束�
    不受影响。
 3. **先跑入口**：`node scripts/diagram-engine/test/run-valid.mjs`——**应当全绿、退出码 0**。
    如果红了，先按 5.2 归类：清单内文件变红 = 真回归；清单外的新漂移 = 先归属再决定。
-4. **重新做一次逐文件测量并更新清单**（必须**串行逐文件**，理由见 5.3.2）：
+4. **重新做一次逐文件测量并更新清单**（必须**串行逐文件**，理由见 5.3.2；**在技能源码树根执行**，
+   即含 `scripts/diagram-engine/` 的那个仓库根——下面的清单路径都是相对它写的）：
 
    ```bash
-   cd /code/codebuddy-brainstorming-add-design-diagrams
    for f in scripts/diagram-engine/test/*.test.mjs; do
      out=$(node --test --test-reporter=tap "$f" 2>&1); status=$?
      p=$(printf '%s\n' "$out" | sed -n 's/^# pass \([0-9]\+\)$/\1/p')

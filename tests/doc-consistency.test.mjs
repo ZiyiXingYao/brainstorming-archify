@@ -7,7 +7,8 @@
  *   ① `skill/SKILL.md` 含绘图规划 Gate、三件套、落点/命名硬规则、两行引用、主节点上限、
  *      自审 15 项、修复顺序 ①–⑥，且不含已被裁剪掉的机制名与 `--repo-root`；
  *   ② 三份模板齐备，两份配图模板含三件套与两行引用；
- *   ③ 迁移残留：`skill/`、`templates/` 内不得出现 `design-diagrams`（README 只允许历史条目）；
+ *   ③ 迁移残留：活文件不得出现两代历史名与改名前的落盘目录——`skill/`、`templates/` 扫两代名，
+ *      `scripts/` 只扫 `codebuddy-brainstorming`（README 只允许历史条目提及 `design-diagrams`）；
  *   ④ 接口矩阵状态只在架构模板第 7 节定义一次，其余三份文件只引用、不复述；
  *   ⑤ 内核非测试文档不得再把已删命令（`archify brands` / `archify migrate` /
  *      `archify compare` / `archify validate` / `npm test`）写成现行能力；
@@ -31,6 +32,18 @@ const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const SKILL = 'skill/SKILL.md';
 const ARCH_TEMPLATE = 'templates/architecture-doc-template.md';
 const MODULE_TEMPLATE = 'templates/module-doc-template.md';
+
+// 改名残留扫描面。技能有两代历史名：先叫 `design-diagrams`，后叫 `codebuddy-brainstorming`，
+// 现名 `brainstorming-archify`；落盘目录也曾由 `.brainstorming/change-lists` 改到带 `-archify` 的形态。
+// `design-diagrams` 的扫描面只到 `skill/`、`templates/`：`scripts/` 下有多处**合法**出现——
+// `UPSTREAM.md` 记录了内核目录 `design-diagrams/` → `scripts/diagram-engine/` 的改名，
+// `lib/degradation.mjs` 用 `design-diagrams-progress` 当临时状态目录名，若干内核文件头沿用旧自述；
+// 把扫描面扩过去要靠白名单硬撑，不如划清边界。
+const RETIRED_NAME_SCOPE = [
+  { dirs: ['skill', 'templates'], names: ['design-diagrams', 'codebuddy-brainstorming'] },
+  { dirs: ['scripts'], names: ['codebuddy-brainstorming'] },
+];
+const RETIRED_CHANGE_LIST_DIR = '.brainstorming/change-lists';
 
 test('技能入口在约定位置', () => {
   for (const rel of [SKILL, 'skill/design-doc-reviewer-prompt.md']) {
@@ -120,16 +133,26 @@ test('接口契约模板保持“不配图”口径', () => {
   assert.match(template, /不配图|不需要\s*`?diagrams\/`?/, '应保留不配图口径');
 });
 
-test('skill/ 与 templates/ 内无旧技能名残留', () => {
+test('活文件无改名残留（两代历史名与旧落盘目录）', () => {
   const offenders = [];
-  for (const dir of ['skill', 'templates']) {
-    for (const name of fs.readdirSync(path.join(ROOT, dir))) {
-      const rel = path.join(dir, name);
-      if (!fs.statSync(path.join(ROOT, rel)).isFile()) continue;
-      if (/\bdesign-diagrams\b/.test(read(rel))) offenders.push(rel);
+  const scan = (rel, names) => {
+    const abs = path.join(ROOT, rel);
+    if (fs.statSync(abs).isDirectory()) {
+      for (const child of fs.readdirSync(abs)) {
+        if (child === 'node_modules') continue;
+        scan(path.join(rel, child), names);
+      }
+      return;
     }
+    const text = fs.readFileSync(abs, 'utf8');
+    if (names.some((name) => text.includes(name)) || text.includes(RETIRED_CHANGE_LIST_DIR)) {
+      offenders.push(rel);
+    }
+  };
+  for (const { dirs, names } of RETIRED_NAME_SCOPE) {
+    for (const dir of dirs) scan(dir, names);
   }
-  assert.deepEqual(offenders, [], `这些文件仍含旧技能名：${offenders.join(', ')}`);
+  assert.deepEqual(offenders, [], `这些文件仍含改名前的名字：${offenders.join(', ')}`);
 });
 
 test('README 只允许历史条目提及旧技能名', () => {
