@@ -52,6 +52,11 @@ The design-doc-guardrails capability documents the published behavior for users 
 
 技能自审 SHALL 检查：架构文档核心类清单只含核心类且判定标准可用、架构文件树可定位全部核心类的定义文件、功能点与流程双向覆盖、模块文档类清单为完整类清单的唯一权威、模板合规与无占位符。本次产出含接口契约文档时，自审 SHALL 追加检查：七类接口节各自三段式完整、清单表含该族口径的可追溯列（按族口径为准，只需一侧的族以那一侧即为完整）、字段表含名称／类型或长度／语义、表格与附证片段不矛盾、兜底节无硬塞且无漏记、以及**不因该文档没有配图而报缺陷**。此外，自审 SHALL 含一项**共识理解**检查：在提出特性或方案之前是否已建立对方可评估、可纠正的共识理解（对应 `## Establish Shared Understanding` 节），并在被纠正后已更新；未建立即进入特性或方案讨论的，判定为缺陷。
 
+自审 SHALL 另含**图与文字一致性**检查：每张图的三件套齐备且同前缀同目录、图片行与交互版链接行成对、
+图中出现的组件／参与者／状态与同节文字表述不矛盾、同一流程跨文档引用同一文件、
+落点与命名符合 `specs/design/diagrams/<文档序号>-<图名>.<图类型>.<扩展名>`、
+以及单图主节点不超过 12。绘图规划 Gate 的确认结论 SHALL 在自审时与最终落盘的图清单逐图核对。
+
 #### Scenario: 架构文件树停在模块目录
 
 - **WHEN** 架构文档的代码文件树只给出模块文件夹与核心文件
@@ -86,6 +91,16 @@ The design-doc-guardrails capability documents the published behavior for users 
 
 - **WHEN** 自审清单增减了条目
 - **THEN** README《需要重放的改动清单》中记录该项数的条目必须同批更正
+
+#### Scenario: 图与文字不一致未被自审发现
+
+- **WHEN** 某张图的节点与同节文字表述互相矛盾，而自审未报告
+- **THEN** 判定为自审缺陷，一致性检查项必须能拦下此类矛盾
+
+#### Scenario: 三件套缺件未被自审发现
+
+- **WHEN** 某张图缺少 `.html` 交互页，而自审未报告
+- **THEN** 判定为自审缺陷
 
 ### Requirement: 审查判据
 
@@ -128,7 +143,10 @@ The design-doc-guardrails capability documents the published behavior for users 
 
 ### Requirement: 节号引用一致性
 
-六份技能文件（`SKILL.md`、`architecture-doc-template.md`、`module-doc-template.md`、`interface-contract-template.md`、`design-doc-reviewer-prompt.md`、`README.md`）中对三份模板章节的引用 SHALL 全部指向各模板的实际章节，不得指向不存在的章节或沿用旧语义。
+六份技能文件（`skill/SKILL.md`、`templates/architecture-doc-template.md`、
+`templates/module-doc-template.md`、`templates/interface-contract-template.md`、
+`skill/design-doc-reviewer-prompt.md`、`README.md`）中对三份模板章节的引用 SHALL 全部指向各模板的实际章节，
+不得指向不存在的章节或沿用旧语义；六份文件的位置引用 SHALL 与重排后的仓库布局一致。
 
 #### Scenario: 检索节号引用
 
@@ -140,17 +158,27 @@ The design-doc-guardrails capability documents the published behavior for users 
 - **WHEN** 核对「六份技能文件」这一说法在技能、规格与任务中的所指
 - **THEN** 三处的枚举一致，均为上列六份，不存在把 `design-doc-reviewer-prompt.md` 排除在外或另行计入第十七份文件的写法
 
+#### Scenario: 文件位置引用与重排后的布局一致
+
+- **WHEN** 检索六份文件的路径引用（含 README 的目录树与安装说明）
+- **THEN** 引用的是 `skill/`、`templates/`、`scripts/`、`tests/` 下的实际位置，
+  不存在仍指向仓库根平铺位置的残留
+
 ### Requirement: README 与上游偏离清单同步
 
-README SHALL 更新架构章节数与章节清单、重写代码文件树说明、更新权威表与流程分层中的节号、更新特性说明，并在《同步上游》偏离清单中逐条登记对 `brainstorming/SKILL.md` 的改动。
+README SHALL 更新架构章节数与章节清单、重写代码文件树说明、更新权威表与流程分层中的节号、更新特性说明，并在《同步上游》偏离清单中逐条登记对 `skill/SKILL.md` 的改动。
 
-以下为**现行状态性要求**（已由此前的变更满足；任何后续变更 MUST NOT 使其退化）：模板登记为**三套**（架构总纲、功能模块、接口契约），含目录树、安装说明的文件清单与特性说明；README **每一处**提及 `node install.mjs --dry-run` 的位置都写明该模式同样受 **Node 主版本硬门约束**（版本不满足即以非零退出码结束且不写任何文件），措辞统一为「同样受 Node 主版本硬门约束」，不得让任何一处读起来像「预演不受版本限制」；《需要重放的改动清单》是**活指令**，其正文必须与当前技能现状一致，不得保留按旧基准写就的过时措辞。
+以下为**现行状态性要求**（已由此前的变更满足；任何后续变更 MUST NOT 使其退化）：模板登记为**三套**（架构总纲、功能模块、接口契约），含目录树、安装说明的文件清单与特性说明；README **每一处**提及 `node scripts/install.mjs --dry-run` 的位置都写明该模式同样受 **Node 主版本硬门约束**（版本不满足即以非零退出码结束且不写任何文件），措辞统一为「同样受 Node 主版本硬门约束」，不得让任何一处读起来像「预演不受版本限制」；《需要重放的改动清单》是**活指令**，其正文必须与当前技能现状一致，不得保留按旧基准写就的过时措辞。
 
-**本次变更** SHALL 把 README 的上游基准坐标与 `--ref` 示例更新为已同步到的坐标；SHALL 把《需要重放的改动清单》中经复核需改写的条目按复核结论更新，并把记录自审项数的那一条改为实际项数；SHALL 把 `## 后续变更` 小节中"升级上游基准"那一行收口（移除或标注已完成）。
+**本次变更** SHALL 把 README 的目录树、安装命令、模板与文件清单、绘图内核说明全部改写为
+重排后的四目录形态（`skill/`、`templates/`、`scripts/`、`tests/`），SHALL 把安装命令统一为
+`node scripts/install.mjs`（含 `--dry-run`），SHALL 说明绘图内核的新入口与三件套产物形态，
+SHALL 把《需要重放的改动清单》中受重排影响的条目更新为新路径与项数，
+SHALL 在 `## 后续变更` 小节登记本次未纳入的相邻工作。
 
 #### Scenario: 运行上游对比脚本
 
-- **WHEN** 运行 `./sync-upstream.sh`
+- **WHEN** 运行 `./scripts/sync-upstream.sh`
 - **THEN** 脚本仍能输出上游与本地 `SKILL.md` 的双向 diff，不因本次改动而失效
 
 #### Scenario: 阅读偏离清单
@@ -166,31 +194,49 @@ README SHALL 更新架构章节数与章节清单、重写代码文件树说明�
 #### Scenario: 第二个上游的同步说明
 
 - **WHEN** 阅读 README 的上游同步章节
-- **THEN** 能找到 `design-diagrams` 所搬运的 `archify` 上游仓库、搬运时的版本标识与许可证归属，以及同步上游版本时如何用技能内自带测试集判定回归
+- **THEN** 能找到绘图内核所搬运的 `archify` 上游仓库、搬运时的版本标识与许可证归属，以及同步上游版本时如何用 `scripts/diagram-engine/test/run-valid.mjs` 判回归
 
 #### Scenario: 模板登记为三套
 
 - **WHEN** 阅读 README 中模板与安装文件清单相关的描述
-- **THEN** 全部为三套模板（架构总纲、功能模块、接口契约），不存在仍写「两套模板」或目录树缺 `interface-contract-template.md` 的残留
+- **THEN** 全部为三套模板（架构总纲、功能模块、接口契约），不存在仍写「两套模板」或目录树缺接口契约模板的残留
 
 #### Scenario: 预演模式的版本硬门
 
-- **WHEN** 阅读 README 中任意一处关于 `node install.mjs --dry-run` 的说明
+- **WHEN** 阅读 README 中任意一处关于 `node scripts/install.mjs --dry-run` 的说明
 - **THEN** 该处或其紧邻处写明「同样受 Node 主版本硬门约束」；全文该措辞的出现次数不少于 `--dry-run` 的出现次数
 
-#### Scenario: 基准坐标与内容同时到位
+#### Scenario: 目录树与实况一致
 
-- **WHEN** 阅读 README 的上游同步章节
-- **THEN** 基准坐标、`--ref` 示例与《需要重放的改动清单》都指向同一个当前坐标，且 `## 后续变更` 小节中本项已收口
+- **WHEN** 把 README 的目录树与仓库根目录实际内容逐条对照
+- **THEN** 两者一致：顶层只有 `skill/`、`templates/`、`scripts/`、`tests/` 四个目录加仓库级文件，
+  且树中列出的文件都实际存在
+
+#### Scenario: 旧路径残留
+
+- **WHEN** 在 README 中检索仓库根平铺路径（根下的 `install.mjs`、根下的模板与技能文件、`design-diagrams/`）
+- **THEN** 零命中，或命中处已被改写为重排后的路径
 
 ### Requirement: 图的审查判据
 
-审查子代理的判据 SHALL 覆盖图与文档的一致性，包括图文件存在性、引用可解析性、图内容与文档表述不矛盾、
-同名流程图类型一致四项。
+审查子代理的判据 SHALL 覆盖图与文档的一致性，包括：三件套齐备同前缀同目录、引用可解析
+（图片行指向 `.svg`、紧随一行链接指向同名 `.html`）、图内容与文档表述不矛盾、
+同名流程图类型一致、同一流程跨文档引用同一文件、以及落点与命名符合
+`specs/design/diagrams/<文档序号>-<图名>.<图类型>.<扩展名>`。
+
+#### Scenario: 三件套缺件
+
+- **WHEN** 某张图只有 `.svg` 与 `.json`，缺少 `.html`，或三件的前缀／目录不一致
+- **THEN** 判定为缺陷
 
 #### Scenario: 文档引用的图不存在
 
-- **WHEN** 设计文档引用了 `diagrams/` 下的某个 SVG，但该文件不存在或路径不可解析
+- **WHEN** 设计文档引用了 `diagrams/` 下的某个文件，但该文件不存在或路径不可解析
+- **THEN** 判定为缺陷
+
+#### Scenario: 缺少交互版链接行
+
+- **WHEN** 文档只有图片行引用 `.svg`，没有紧随的链接行指向同名 `.html`
 - **THEN** 判定为缺陷
 
 #### Scenario: 图与文档表述矛盾
@@ -203,6 +249,11 @@ README SHALL 更新架构章节数与章节清单、重写代码文件树说明�
 - **WHEN** 同一流程名在架构文档与模块文档中配了不同类型的图
 - **THEN** 判定为缺陷
 
+#### Scenario: 落点或命名违规
+
+- **WHEN** 图落在 `specs/design/diagrams/` 之外，或文件名缺文档序号、缺图类型段
+- **THEN** 判定为缺陷
+
 #### Scenario: 正文内联了 SVG
 
 - **WHEN** 设计文档正文中出现 `<svg>` 标签而非图片引用
@@ -210,18 +261,24 @@ README SHALL 更新架构章节数与章节清单、重写代码文件树说明�
 
 ### Requirement: 出图随变更清单门同批批准
 
-落盘阶段的变更清单 SHALL 列出本次将新建或重渲染的图文件，与文档改动同批提交用户批准；
-MUST NOT 在变更清单之外单独落盘图文件。
+落盘阶段的变更清单 SHALL 列出本次将新建或重渲染的**三件套**图文件（`.json`／`.svg`／`.html`），
+与文档改动同批提交用户批准；MUST NOT 在变更清单之外单独落盘图文件。
+绘图规划 Gate 的确认结论 SHALL 在该清单中逐图复核，两者不一致时以清单为准并回到规划。
 
 #### Scenario: 落盘前的清单
 
 - **WHEN** 一次落盘将新建或重渲染若干张图
-- **THEN** 变更清单中逐个列出这些图文件及其对应流程，与文档改动一并获批后才写盘
+- **THEN** 变更清单中逐个列出这些图的三件套文件、对应流程与所属章节，与文档改动一并获批后才写盘
 
 #### Scenario: 图在校验中失败
 
 - **WHEN** 某张图在落盘前未通过几何校验
 - **THEN** 该图不进入竣工产物，并在变更清单中标注其状态与原因
+
+#### Scenario: 规划与清单不一致
+
+- **WHEN** 变更清单中出现的图与绘图规划 Gate 已确认的图清单不一致
+- **THEN** 判定为缺陷，必须把差异报告给用户并回到规划
 
 ### Requirement: 接口契约文档的按需产出判定
 
@@ -263,11 +320,20 @@ MUST NOT 在变更清单之外单独落盘图文件。
 
 ### Requirement: design-diagrams 上游文档的现状一致性
 
-`design-diagrams/UPSTREAM.md` 中所有以「`design-diagrams/SKILL.md` 尚未创建／本次有意不建」为排除前提的叙述 SHALL 与当前仓库实况一致。这些位置至少包含：第 4 节组 B 的分组说明与其七个测试文件表、第 5.2 节中依赖组 B 的判据条目、第 5.3 节已知限制里依赖该前提的条目、第 6 节中与之相关的未决点。重核时 SHALL 对七个测试文件**逐个**给出当前实测结论（仍失败／已可转绿）并注明结论的取得方式；对已可转绿者 SHALL 说明是否回填验证入口的通过清单，本次不回填时 SHALL 写明原因。MUST NOT 保留已经过期的叙述。
+`scripts/diagram-engine/UPSTREAM.md` 中所有以「`design-diagrams/SKILL.md` 尚未创建／本次有意不建」为排除前提的叙述 SHALL 与当前仓库实况一致。这些位置至少包含：第 4 节组 B 的分组说明与其七个测试文件表、第 5.2 节中依赖组 B 的判据条目、第 5.3 节已知限制里依赖该前提的条目、第 6 节中与之相关的未决点。重核时 SHALL 对七个测试文件**逐个**给出当前实测结论（仍失败／已可转绿）并注明结论的取得方式；对已可转绿者 SHALL 说明是否回填验证入口的通过清单，本次不回填时 SHALL 写明原因。MUST NOT 保留已经过期的叙述。
+
+本次变更 SHALL 另核该文档中一切指向已删文件与已改路径的引用：`examples/`、`references/`、
+`migrations/`、`delta/`、`recipes/`、`brand-marks/` 源、内核 `scripts/` 下已删的构建工具、
+`bin/design-diagrams.mjs`、`bin/preview.mjs`、`bin/visual-check.mjs`、`bin/open-artifact.mjs`、
+`--repo-root` 相关模块，以及 `bin/archify.mjs` → `bin/render-driver.mjs` 的改名、以及「回归集留在
+`scripts/diagram-engine/test/` 内、不搬迁」这一事实（规划期曾拟迁 `tests/upstream/`，执行期实测搬迁即
+全红而否决，该目录不存在）；每条 SHALL 改为重排后的事实或注明该项已随裁剪移除。
+该文档 SHALL NOT 把 `bin/archify.mjs`（及其改名后的 `bin/render-driver.mjs`）描述为已随裁剪移除——
+它是 `render` 与 `validate` 子命令的实现体，属保留范围。
 
 #### Scenario: 检索过期陈述
 
-- **WHEN** 在 `design-diagrams/UPSTREAM.md` 中检索「有意不建」这类以「尚未创建」为前提的陈述
+- **WHEN** 在 `scripts/diagram-engine/UPSTREAM.md` 中检索「有意不建」这类以「尚未创建」为前提的陈述
 - **THEN** 零命中，或该陈述已被替换为重核后的实测结论
 
 #### Scenario: 逐文件实测结论
@@ -280,10 +346,20 @@ MUST NOT 在变更清单之外单独落盘图文件。
 - **WHEN** 阅读第 5.2 节、第 5.3 节与第 6 节中涉及组 B 的段落
 - **THEN** 这些段落同样不以「`SKILL.md` 尚未创建」为前提，且与第 4 节组 B 的重核结论一致
 
+#### Scenario: 把保留的渲染驱动误写为已删
+
+- **WHEN** 该文档把 `bin/archify.mjs` 或其改名后的 `bin/render-driver.mjs` 描述为已随裁剪移除
+- **THEN** 判定为缺陷——它是 `render` 与 `validate` 子命令的实现体，属保留范围，须改为改名与裁子命令后的事实
+
 #### Scenario: 已可转绿但本次不回填
 
 - **WHEN** 某测试文件已可整体转绿而本次不改验证入口的通过清单
 - **THEN** 该文件处写明「已可转绿，本次不回填」及其原因，避免被读成遗漏
+
+#### Scenario: 指向已删文件的引用
+
+- **WHEN** 检索该文档中对已删树与已删入口的引用
+- **THEN** 每条都已改为重排后的事实或注明已随裁剪移除，不存在指向不存在路径的描述
 
 ### Requirement: 建立共识理解的必经步骤
 
@@ -363,3 +439,35 @@ README SHALL 同时记录**分叉基准**与**已同步到的最新上游坐标*
 
 - **WHEN** 运行 `./sync-upstream.sh --ref <新坐标>`
 - **THEN** 脚本退出码为 0，输出可与本地 `SKILL.md` 双向 diff，且 diff 中只剩已登记的偏离
+
+### Requirement: 绘图规划 Gate
+
+`skill/SKILL.md` SHALL 在需求收敛之后、生成绘图 JSON 之前设一道**绘图规划 Gate**：
+先把本次需要的图逐个列出——**要哪些图、每张是什么图类型、落在文档的哪一节**——
+呈给用户并取得确认后，才生成绘图 JSON 并调用绘图内核渲染；图与设计文档同批落盘，
+并挂接既有的**校验硬门**与**变更清单门**。技能 MUST NOT 在规划未经确认时先生成 IR 或先渲染。
+
+主技能 SHALL 在本节内承载绘图的 JSON 结构、字段说明与绘图约束（并入自上游 `archify` 技能文档），
+使绘图规范只有一处来源；MUST NOT 再维护第二份描述绘图的技能文档。
+
+#### Scenario: 收敛后的出图规划
+
+- **WHEN** 一次设计讨论收敛并进入落盘
+- **THEN** 技能先给出本次的图清单（图名、图类型、所属文档与章节）并等待确认，
+  确认之后才生成 JSON、调渲染器、写盘
+
+#### Scenario: 未确认就渲染
+
+- **WHEN** 技能在规划未获确认时已生成 IR 或已渲染出图
+- **THEN** 判定为缺陷
+
+#### Scenario: 图类型按性质选定
+
+- **WHEN** 技能为某条流程或某段结构选图类型
+- **THEN** 选择依据是该流程或该段的性质（整体结构→架构图、责任分工与审批分支→工作流图、
+  调用顺序→时序图、数据来源处理去向→数据流图、状态迁移与终态→生命周期图），不按作者偏好
+
+#### Scenario: 绘图规范只有一处来源
+
+- **WHEN** 在仓库内检索绘图 JSON 结构与字段说明
+- **THEN** 只在 `skill/SKILL.md` 中有描述，`scripts/diagram-engine/` 下不存在第二份技能文档

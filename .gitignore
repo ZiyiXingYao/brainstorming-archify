@@ -1,4 +1,4 @@
 # spec-superflow 变更工作区：过程与审计产物（提案、规格草稿、契约、审查报告、执行台账）不纳入版本控制。
 # 已发布的规范基线在 specs/，照常提交。
 changes/
-design-diagrams/node_modules/
+scripts/diagram-engine/node_modules/
