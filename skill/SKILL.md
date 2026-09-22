@@ -537,7 +537,9 @@ do not introduce a component, participant, state or relationship the section
 does not have. Your human partner keeps talking about the design in natural
 language — they do not write IR and do not need to know a schema exists.
 
-**How to call it.** One command per diagram, from the skill root:
+**How to call it.** One command per diagram, run from the skill root — the
+directory that holds `SKILL.md` and `scripts/` (in this source repository that is
+the repo root; once installed it is the installed skill directory):
 
 ```bash
 node scripts/diagram-engine/bin/render.mjs render <type> <ir.json> <outdir>
@@ -587,6 +589,11 @@ Output placement is a hard rule, not a preference:
 - File name: `<document number>-<diagram name>.<diagram type>.<ext>`, e.g.
   `03-task-flow.workflow.svg` — the number matches the design document, so a
   reader can tell at a glance which document a diagram belongs to.
+- **Author the IR in that same directory.** Write the source IR at
+  `<project root>/specs/design/diagrams/<document number>-<diagram name>.<diagram type>.json`
+  and pass **that directory** as `<outdir>`. The triple's `.json` and the input
+  IR are then the same file, which is the normal path — the renderer leaves it
+  untouched when the bytes already match, so nothing is overwritten.
 - Derive `<diagram name>` from the flow name or the section's semantic name:
   keep letters, digits and CJK characters, replace every other character with
   `-`, collapse runs of `-` into one, strip leading and trailing `-`, and
@@ -699,7 +706,9 @@ One left-to-right spine with short vertical branches. Prefer **6–12 primary
 components**; group only real ownership, trust, process or deployment
 boundaries — boundaries do not replace relationships. Grid placement is preferred
 where the schema supports it. To use it, set `layout: { "mode": "grid", "cols": <1-12> }`
-(`cols` is optional — the schema requires only `mode`) and give every component
+(`cols` is optional — the schema requires only `mode`; the other grid controls are
+`gapX` / `gapY` for the column and row gaps and `cellW` / `cellH` for the cell
+size — widening the gaps is the normal fix when labels have no room) and give every component
 its logical `row` (≥ 0) and `col` (≥ 0) — you still never plan pixel
 coordinates. **If you omit `layout` entirely, the renderer's layout check
 requires an explicit `pos` `[x, y]` on every component** (free placement). That
@@ -796,6 +805,11 @@ Legend keys: `start`, `active`, `waiting`, `decision`, `success`, `failure`,
   workflow, dataflow and lifecycle; it skips single relationships and explicit
   `via` / `channelX` / `channelY` / `labelAt` routes. Sequence messages never
   spread.
+- **The authored `route` field is the per-relationship path control**, and it is
+  also what opts that relationship out of Port Spread. Which values a type
+  accepts differs per type — read the `route` property in
+  `schemas/<diagram type>.schema.json` rather than guessing, because a wrong
+  value fails schema validation. Reach for it in repair-order step ④.
 - Showcase route rhythm: every non-zero segment ≥ 8px and every interior segment
   ≥ 16px; unrelated collinear overlap of ≥ 8px fails showcase. An edge crossing
   an unrelated opaque node is a hard failure regardless of profile.
@@ -806,12 +820,18 @@ Legend keys: `start`, `active`, `waiting`, `decision`, `success`, `failure`,
   errors; ② node overlap or out-of-range placement; ③ edge-through-node and
   endpoint-direction errors; ④ crossings, ambiguous corridors, border runs and
   route rhythm; ⑤ a node label wider than its own node box (the renderer says
-  `Label "…" is wider than node "…"`) — shorten the wording or widen that node,
-  whose width is the one geometry control you are allowed to author here;
+  `Label "…" is wider than node "…"`) — shorten the wording, or widen that node
+  through its `width` field (the one geometry control you are allowed to author
+  here);
   ⑥ label-to-node, then label-to-label, then label-to-route clearance. Run
   `validate` after every edit, apply **one** diagnosed geometry control at a
   time, and consume `diagnostics[]` by its stable `code`, exact `subject`,
   measured `evidence` and `supportedFixes`.
+  **Scale matters:** ①–② are single-control changes, but a *cluster* of ③/④
+  diagnostics that survives a second round usually means the **topology or the
+  layout** is wrong — a hub with many spokes, or gaps too tight for the labels —
+  and the repair is structural (redraw the spine, widen the grid), not a label
+  nudge. Expect that, instead of reading every failure as a one-line tweak.
 
 ## Handoff to a Downstream Process
 
@@ -1025,7 +1045,10 @@ Check each item and fix in place:
 ## Subagent Review
 
 After self-review passes, dispatch a review subagent using
-`design-doc-reviewer-prompt.md` in this skill's directory. Pass it:
+`design-doc-reviewer-prompt.md` in this skill's directory. **If this environment
+cannot dispatch a subagent, do not treat the review as skippable** — the fallback
+procedure at the end of this section says how to run it yourself and how to
+record that it was self-performed. Pass it:
 
 - the path to every document in the write set
 - the path to all three templates — `architecture-doc-template.md`,
