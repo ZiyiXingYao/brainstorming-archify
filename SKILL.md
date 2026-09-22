@@ -53,7 +53,9 @@ recognize and correct, grounded in what they want to accomplish.
    the selected path's design artifact: the design documents (the
    architecture overview, the module documents, or the interface contract)
    for architectural work, or the in-chat design/probe for bounded work and
-   spikes. Check proposed features and technical choices against that
+   spikes — a bounded change still reaches the Persist Gate afterwards,
+   where it is persisted as the affected module document, or not persisted
+   at all. Check proposed features and technical choices against that
    understanding.
 
 When the request already supplies the purpose and constraints, reflect
