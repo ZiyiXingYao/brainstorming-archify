@@ -7,7 +7,9 @@
  * ----
  *   node scripts/install.mjs                安装到 ~/.codebuddy/skills/brainstorming
  *   node scripts/install.mjs --dry-run      只列出将写入的文件与目标路径，不修改文件系统
- *   node scripts/install.mjs --target <dir> 指定安装根目录（用于演练）
+ *                                          （同样受 Node 主版本硬门约束）
+ *   node scripts/install.mjs --target <dir> 指定技能安装目录（用于演练；不会自动追加 brainstorming/）
+ *                                          （默认：~/.codebuddy/skills/brainstorming）
  *   node scripts/install.mjs --help         显示用法
  *
  * 装成什么形态
@@ -191,7 +193,8 @@ export function usage() {
 行为：
   - 启动先检查 Node 主版本，低于 ${REQUIRED_NODE_MAJOR} 时非零退出且不写入任何文件；
   - 安装到 <目标目录> 本身的根：skill/ 内文件平铺到该目录，templates/ 与 scripts/ 整目录复制。
-    '--target' 传的是**技能目录**，不是它的上级——脚本不会自动追加 ${SKILL_NAME}/ 子目录；
+    '--target' 传的是**技能目录**，不是它的上级——脚本不会自动追加 ${SKILL_NAME}/；
+    scripts/sync-upstream.sh 是仓库维护工具，**不随安装复制**（见本文件 SKIP_REL_PREFIXES）；
   - 目标已存在时，先把它整体备份为 <目标目录名>.bak-<时间戳>，再写入；
   - 安装后对已安装副本执行 bin/render.mjs doctor 自检（该链路不依赖 node_modules）。
 

@@ -79,7 +79,7 @@ node scripts/install.mjs
 |------|------|
 | `node scripts/install.mjs` | 安装 `brainstorming` 技能到 `~/.codebuddy/skills/brainstorming/` |
 | `node scripts/install.mjs --dry-run` | 只列出将写入的文件与目标路径，不改文件系统；该模式**同样受 Node 主版本硬门约束** |
-| `node scripts/install.mjs --target <dir>` | 指定安装根目录 |
+| `node scripts/install.mjs --target <dir>` | 指定**技能安装目录**（默认 `~/.codebuddy/skills/brainstorming`）；传的是技能目录本身，不会自动追加 `brainstorming/` |
 | `node scripts/install.mjs --help` | 打印用法 |
 
 **装成的形态**
@@ -177,7 +177,7 @@ node tests/render.smoke.test.mjs                 # 只跑冒烟（独立脚本�
 ```
 
 其中 `tests/engine.test.mjs` 会在根入口里**唤起绘图内核的回归集**
-（`scripts/diagram-engine/test/run-valid.mjs`，13 文件 / 238 用例）并断言全过——
+（`scripts/diagram-engine/test/run-valid.mjs`，13 文件 / 241 用例）并断言全过——
 所以「跑根目录测试」就等于「跑全部测试」，不会漏掉引擎。回归集**不搬进 `tests/`**：
 它位置耦合（用例把内核根解析为自己所在目录的上一级），搬出即系统性失效。
 

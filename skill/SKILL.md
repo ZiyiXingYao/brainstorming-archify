@@ -900,7 +900,9 @@ fired, and handing the set over does not require re-deriving it.
 ## Change List Gate
 
 An approved design does not authorise writing files. Before any file is
-created or modified, present a change list and wait for an explicit yes.
+created or modified, present a change list and wait for an explicit yes. (The one
+exception is named in the Diagram Planning Gate: the source IR is written before
+this gate because `validate` must read it from disk — nothing else is.)
 The change list states:
 
 - **New files** — path, and which template each follows
@@ -1090,7 +1092,7 @@ Check each item and fix in place:
     - **Catch-all section:** outward interfaces outside the seven families go in section 8, never forced into sections 1–7 and never omitted; when the section is empty its heading stays, carrying `不适用：<reason>`.
     - **No diagrams:** the interface contract carries no SVG diagrams and needs no `diagrams/` directory — do not report a defect for its having none.
 14. **Shared understanding:** Per **Establish Shared Understanding**, was a shared understanding your human partner could assess and correct in place *before* any feature or approach was proposed, and updated once they corrected it? Entering feature or approach discussion without it is a defect.
-15. **Diagram triples:** For every diagram the change list carries, is the whole **triple** present under `specs/design/diagrams/` with one common prefix — `<document number>-<diagram name>.<diagram type>` — and all three extensions `.json`, `.svg`, `.html`, never split across directories and never outside `specs/design/diagrams/`? Does the document use the fixed two-line reference (the image line plus the `> [打开交互式版本](…)` line), with no `<svg>` tag anywhere in the body? Do the figures agree with the text of their own section — same components, participants and states, no contradiction — and does a same-named flow in the architecture and a module document reference the **same** three files with the same type, under the owning document's number? Is every diagram within the 12-primary-node limit, and does every name carry both its document-number prefix and its type segment? Is the confirmed **Diagram Planning Gate** plan accounted for one-to-one in the change list? **A diagram kept as a `未通过校验` placeholder is compliant when it has no triple and its section carries the fixed placeholder line instead of the two-line reference** — count it as accounted for; a missing triple with no placeholder note is what makes a defect.
+15. **Diagram triples:** For every diagram the change list carries, is the whole **triple** present under `specs/design/diagrams/` with one common prefix — `<document number>-<diagram name>.<diagram type>` — and all three extensions `.json`, `.svg`, `.html`, never split across directories and never outside `specs/design/diagrams/`? Does the document use the fixed two-line reference (the image line plus the `> [打开交互式版本](…)` line), with no `<svg>` tag anywhere in the body? Do the figures agree with the text of their own section — same components, participants and states, no contradiction — and does a same-named flow in the architecture and a module document reference the **same** three files with the same type, under the owning document's number? Is every diagram within the 12-primary-node limit, and does every name carry both its document-number prefix and its type segment? Is the confirmed **Diagram Planning Gate** plan accounted for one-to-one in the change list? **A diagram kept as a `未通过校验` placeholder is compliant when it has no triple — including no leftover `.json` source IR in `diagrams/` — and its section carries the fixed placeholder line instead of the two-line reference** — count it as accounted for; a missing triple with no placeholder note, or an orphan IR with no placeholder note, is what makes a defect.
 
 ## Subagent Review
 

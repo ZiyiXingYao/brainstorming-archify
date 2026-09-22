@@ -432,7 +432,10 @@ function commandRender(args) {
   }
 
   // 1) 校验：不过则立即非 0，不产出任何文件、不覆盖既有同名文件。
-  const validate = runNode([DRIVER, 'validate', type, input, '--quality', 'showcase', '--json']);
+  // 不写 --quality：让驱动按 IR 的 meta.quality_profile 判定（缺该字段时按 advisory），
+  // 与技能对 --quality「省略即用 IR 里的值」的口径一致——否则显式选了 standard 的图
+  // 也会被按 showcase 卡住，等于该档位无法通过唯一入口使用。
+  const validate = runNode([DRIVER, 'validate', type, input, '--json']);
   if (validate.status !== 0) {
     // 记录本轮目标错误数并做两轮降级判定（只碰状态目录，不碰目标目录）。
     const tracked = trackFailureRound({ type, input, outSvg, validate });
