@@ -10,8 +10,7 @@
 | 项 | 值 |
 |---|---|
 | 上游仓库 | `https://github.com/tt-a1i/archify` |
-| 基准 commit | `5289f6867f048a7450ec5718f58459613a84cf41` |
-| 技能包版本 | `2.17.0-dev.1`（见 `skill-release.json`） |
+| 基准坐标 | commit `5289f6867f048a7450ec5718f58459613a84cf41`（技能包版本 `2.17.0-dev.1`，见 `skill-release.json`） |
 | 发布通道 | `channel: "development"` |
 | 稳定 tag | **无** |
 | 更新清单地址 | `https://tt-a1i.github.io/archify/skill-updates/archify/stable.json`（上游自托管，供运行时查更新用，**不是**本仓库的基准坐标） |

@@ -34,12 +34,50 @@ human-readable design documents.
 to a separate process (for example spec-superflow). This skill is not
 responsible for that handoff.
 
+## Establish Shared Understanding
+
+The outcome of brainstorming is an understanding your human partner can
+recognize and correct, grounded in what they want to accomplish.
+
+1. **Discover intent.** Use the request and available context to identify
+   the intended outcome, who it is for, and what success looks like. When
+   that information is missing, ask one focused question about purpose or
+   intended use before proposing features or an approach. Knowing the app
+   genre does not tell you why your partner wants it. Gathering missing
+   requirements does not ask them to authorize the task again.
+2. **Write back your understanding.** Summarize the intended outcome,
+   relevant constraints, and success criteria in a short note your partner
+   can assess. Separate what they said from assumptions. Invite correction
+   and incorporate their answer before treating this as the design brief.
+3. **Carry intent into the design.** Preserve the agreed understanding in
+   the selected path's design artifact: the design documents (the
+   architecture overview, the module documents, or the interface contract)
+   for architectural work, or the in-chat design/probe for bounded work and
+   spikes — a bounded change still reaches the Persist Gate afterwards,
+   where it is persisted as the affected module document, or not persisted
+   at all. Check proposed features and technical choices against that
+   understanding.
+
+When the request already supplies the purpose and constraints, reflect
+that understanding instead of asking the same questions again. Keep the
+note concise; its accuracy and the opportunity to correct it matter.
+
 <HARD-GATE>
-Do NOT invoke any implementation skill, write any code, scaffold any
-project, or take any implementation action until you have told your
-human partner what you intend and they have approved it. This applies
-to EVERY task on EVERY path below — the ceremony scales with the task;
-the approval gate never does.
+Before taking any implementation action, including invoking an
+implementation skill, writing product code, scaffolding, installing
+product dependencies, or creating an external project, complete the
+selected path's prerequisites:
+
+- Spike: your human partner approves the question and the probe.
+- Bounded: your human partner approves the short in-chat design.
+- Architectural: presentation and approval of the design, plus the
+  Persist Gate, the Change List Gate, and the user review gate.
+
+A reply approves the stage actually presented. Approval of an idea or
+feature scope does not approve artifacts that do not exist yet. Resume
+at the earliest incomplete stage; do not turn one approval into permission
+to skip the rest of the selected path. Read-only project exploration is
+allowed while those prerequisites remain incomplete.
 </HARD-GATE>
 
 ## Three Paths
@@ -88,18 +126,17 @@ stop, say so, and step up. Nothing downgrades mid-task.
 
 ## Anti-Pattern: "Too Simple To Need Approval"
 
-Every path ends with your human partner approving your intent before
-implementation. A todo list, a single-function utility, a config
-change — the design may be two sentences in chat, but you MUST present
-it and get approval. "Simple" tasks are where unexamined assumptions
-cause the most wasted work. What scales with simplicity is the
-artifact, never the approval.
+Every path ends with your human partner approving what that path
+requires before implementation. A bounded change may need only two
+sentences in chat. A new todo-list project is architectural and requires
+the design documents. Scale the artifact to the selected path; complete
+that path's gates before implementation.
 
 ## Red Flags
 
 | Thought | Reality |
 |---------|---------|
-| "This is too simple to need a design" | Simple means a short design, not no design. Two sentences in chat, then approval. |
+| "This is too simple to need a design" | Follow the selected path: a bounded change gets a short chat design; an architectural change gets the design documents. |
 | "I'll call it bounded and skip the design doc" | Reaching for a label to skip work IS the doubt — take the heavier path. |
 | "It's bounded and the design is obvious — I'll start while they read it" | The gate is the approval, not the design's length. Present, then stop until you hear yes. |
 | "I understand this kind of app, so it's bounded" | Bounded measures the repo, not your familiarity. A new project has no existing flow — it is architectural. |
@@ -124,6 +161,7 @@ Classify first, announce the path, then create a task for each item on
 your path and complete them in order.
 
 **Spike:**
+0. **Establish shared understanding** — identify the intended outcome, who it is for, and what success looks like; when that is missing, ask one focused question, then write back a short note your human partner can correct before proposing features or an approach.
 1. **Explore project context** — enough to frame the probe
 2. **Present question + probe plan** — 2-3 sentences
 3. **Get approval** — a nod is enough
@@ -131,6 +169,7 @@ your path and complete them in order.
 5. **Report findings** — a recommendation; label anything built as throwaway
 
 **Bounded:**
+0. **Establish shared understanding** — identify the intended outcome, who it is for, and what success looks like; when that is missing, ask one focused question, then write back a short note your human partner can correct before proposing features or an approach.
 1. **Explore project context** — check files, docs, recent commits
 2. **Ask clarifying questions** — one at a time, the ones that matter
 3. **Present short design in chat** — approach, files touched, testing
@@ -142,6 +181,7 @@ your path and complete them in order.
    document only if your human partner asks for one.
 
 **Architectural:**
+0. **Establish shared understanding** — identify the intended outcome, who it is for, and what success looks like; when that is missing, ask one focused question, then write back a short note your human partner can correct before proposing features or an approach.
 1. **Explore project context** — check files, docs, recent commits
 2. **Ask clarifying questions** — work the three-layer question list in **Understanding the idea**, in that list's order (functional-point layer → architecture layer → module layer), which maps onto the five design steps those layers name. One layer per message.
 3. **Propose 2-3 approaches** — with trade-offs and your recommendation
@@ -152,7 +192,8 @@ your path and complete them in order.
 
 ```dot
 digraph brainstorming {
-    "Classify: spike / bounded / architectural" [shape=diamond];
+"Classify: spike / bounded / architectural" [shape=diamond];
+"Establish shared understanding" [shape=box];
     "Present question + probe (2-3 sentences)" [shape=box];
     "Ask clarifying questions (bounded)" [shape=box];
     "Present short design in chat" [shape=box];
@@ -171,9 +212,10 @@ digraph brainstorming {
     "User reviews doc?" [shape=diamond];
     "Done" [shape=doublecircle];
 
-    "Classify: spike / bounded / architectural" -> "Present question + probe (2-3 sentences)" [label="spike"];
-    "Classify: spike / bounded / architectural" -> "Ask clarifying questions (bounded)" [label="bounded"];
-    "Classify: spike / bounded / architectural" -> "Ask clarifying questions" [label="architectural"];
+"Classify: spike / bounded / architectural" -> "Establish shared understanding";
+"Establish shared understanding" -> "Present question + probe (2-3 sentences)" [label="spike"];
+"Establish shared understanding" -> "Ask clarifying questions (bounded)" [label="bounded"];
+"Establish shared understanding" -> "Ask clarifying questions" [label="architectural"];
     "Present question + probe (2-3 sentences)" -> "Investigate; report recommendation" [label="nod"];
     "Ask clarifying questions (bounded)" -> "Present short design in chat";
     "Present short design in chat" -> "User approves design?";
@@ -706,6 +748,7 @@ Check each item and fix in place:
     - **总则 completeness:** the 总则 section carries all three parts — the authority-source declaration, the scope-and-shape statement (which MUST include `in-process cross-module interfaces are not written in this document`), and the code-side artifact mapping table.
     - **Catch-all section:** outward interfaces outside the seven families go in section 8, never forced into sections 1–7 and never omitted; when the section is empty its heading stays, carrying `不适用：<reason>`.
     - **No diagrams:** the interface contract carries no SVG diagrams and needs no `diagrams/` directory — do not report a defect for its having none.
+14. **Shared understanding:** Per **Establish Shared Understanding**, was a shared understanding your human partner could assess and correct in place *before* any feature or approach was proposed, and updated once they corrected it? Entering feature or approach discussion without it is a defect.
 
 ## Subagent Review
 

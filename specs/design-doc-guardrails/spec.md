@@ -50,7 +50,7 @@ The design-doc-guardrails capability documents the published behavior for users 
 
 ### Requirement: 自审判据
 
-技能自审 SHALL 检查：架构文档核心类清单只含核心类且判定标准可用、架构文件树可定位全部核心类的定义文件、功能点与流程双向覆盖、模块文档类清单为完整类清单的唯一权威、模板合规与无占位符。本次产出含接口契约文档时，自审 SHALL 追加检查：七类接口节各自三段式完整、清单表含该族口径的可追溯列（按族口径为准，只需一侧的族以那一侧即为完整）、字段表含名称／类型或长度／语义、表格与附证片段不矛盾、兜底节无硬塞且无漏记、以及**不因该文档没有配图而报缺陷**。
+技能自审 SHALL 检查：架构文档核心类清单只含核心类且判定标准可用、架构文件树可定位全部核心类的定义文件、功能点与流程双向覆盖、模块文档类清单为完整类清单的唯一权威、模板合规与无占位符。本次产出含接口契约文档时，自审 SHALL 追加检查：七类接口节各自三段式完整、清单表含该族口径的可追溯列（按族口径为准，只需一侧的族以那一侧即为完整）、字段表含名称／类型或长度／语义、表格与附证片段不矛盾、兜底节无硬塞且无漏记、以及**不因该文档没有配图而报缺陷**。此外，自审 SHALL 含一项**共识理解**检查：在提出特性或方案之前是否已建立对方可评估、可纠正的共识理解（对应 `## Establish Shared Understanding` 节），并在被纠正后已更新；未建立即进入特性或方案讨论的，判定为缺陷。
 
 #### Scenario: 架构文件树停在模块目录
 
@@ -76,6 +76,16 @@ The design-doc-guardrails capability documents the published behavior for users 
 
 - **WHEN** 自审判定 `接口契约.md` 缺少配图
 - **THEN** 判定为规则冲突，接口契约文档不要求配图
+
+#### Scenario: 未建立共识理解就进入方案讨论
+
+- **WHEN** 技能在未弄清对方的意图（目的、为谁、什么算成功）之前就开始提出特性或方案
+- **THEN** 自审判定为缺陷
+
+#### Scenario: 自审项数与 README 记录一致
+
+- **WHEN** 自审清单增减了条目
+- **THEN** README《需要重放的改动清单》中记录该项数的条目必须同批更正
 
 ### Requirement: 审查判据
 
@@ -132,7 +142,11 @@ The design-doc-guardrails capability documents the published behavior for users 
 
 ### Requirement: README 与上游偏离清单同步
 
-README SHALL 更新架构章节数与章节清单、重写代码文件树说明、更新权威表与流程分层中的节号、更新特性说明，并在《同步上游》偏离清单中逐条登记对 `brainstorming/SKILL.md` 的改动。本次变更 SHALL 额外把**模板登记由两套改为三套**（含目录树、安装说明的文件清单与特性说明），并 SHALL 在 README **每一处**提及 `node install.mjs --dry-run` 的位置写明该模式同样受 **Node 主版本硬门约束**（版本不满足即以非零退出码结束且不写任何文件），措辞统一为「同样受 Node 主版本硬门约束」；不得只在一处补写而让其余位置读起来像「预演不受版本限制」。
+README SHALL 更新架构章节数与章节清单、重写代码文件树说明、更新权威表与流程分层中的节号、更新特性说明，并在《同步上游》偏离清单中逐条登记对 `brainstorming/SKILL.md` 的改动。
+
+以下为**现行状态性要求**（已由此前的变更满足；任何后续变更 MUST NOT 使其退化）：模板登记为**三套**（架构总纲、功能模块、接口契约），含目录树、安装说明的文件清单与特性说明；README **每一处**提及 `node install.mjs --dry-run` 的位置都写明该模式同样受 **Node 主版本硬门约束**（版本不满足即以非零退出码结束且不写任何文件），措辞统一为「同样受 Node 主版本硬门约束」，不得让任何一处读起来像「预演不受版本限制」；《需要重放的改动清单》是**活指令**，其正文必须与当前技能现状一致，不得保留按旧基准写就的过时措辞。
+
+**本次变更** SHALL 把 README 的上游基准坐标与 `--ref` 示例更新为已同步到的坐标；SHALL 把《需要重放的改动清单》中经复核需改写的条目按复核结论更新，并把记录自审项数的那一条改为实际项数；SHALL 把 `## 后续变更` 小节中"升级上游基准"那一行收口（移除或标注已完成）。
 
 #### Scenario: 运行上游对比脚本
 
@@ -163,6 +177,11 @@ README SHALL 更新架构章节数与章节清单、重写代码文件树说明�
 
 - **WHEN** 阅读 README 中任意一处关于 `node install.mjs --dry-run` 的说明
 - **THEN** 该处或其紧邻处写明「同样受 Node 主版本硬门约束」；全文该措辞的出现次数不少于 `--dry-run` 的出现次数
+
+#### Scenario: 基准坐标与内容同时到位
+
+- **WHEN** 阅读 README 的上游同步章节
+- **THEN** 基准坐标、`--ref` 示例与《需要重放的改动清单》都指向同一个当前坐标，且 `## 后续变更` 小节中本项已收口
 
 ### Requirement: 图的审查判据
 
@@ -265,3 +284,82 @@ MUST NOT 在变更清单之外单独落盘图文件。
 
 - **WHEN** 某测试文件已可整体转绿而本次不改验证入口的通过清单
 - **THEN** 该文件处写明「已可转绿，本次不回填」及其原因，避免被读成遗漏
+
+### Requirement: 建立共识理解的必经步骤
+
+`brainstorming/SKILL.md` SHALL 含一节 `## Establish Shared Understanding`，位置在 `## Scope` 之后、`<HARD-GATE>` 之前；该节 SHALL 含三件事：**发现意图**（在提出特性或方案前，用请求与已有上下文弄清意图结果、为谁而做、什么算成功；信息缺失时先问一个聚焦问题）、**回写理解**（把意图结果、相关约束、成功标准写成一段对方可评估的短备忘，区分"对方说的"与"你假设的"，邀请纠正并在被纠正后更新）、**把意图带进设计**（在所选路径的设计产物里保住这份共识，并据此检查拟议的特性与技术选择）。第三点 SHALL 指向本仓库的**设计文档**（架构总纲／模块文档／接口契约），SHALL NOT 指向 spec。`## Checklist` 的三条路径 SHALL 都含一个**共同的第 0 步**：建立共识理解——该步编号写作 `0.`，位于「宣布路径」之后、各路径原有的第 1 步（`Explore project context`）之前，既有步号 SHALL NOT 重排；`## Process Flow` 的流程图中 SHALL 相应有一个三条路径共用的前置节点，使图与清单一致。`## Self-Review` SHALL 含对应的检查项。
+
+#### Scenario: 阅读 SKILL.md 的节顺序
+
+- **WHEN** 检索 `## Establish Shared Understanding` 的位置
+- **THEN** 它位于 `## Scope` 之后、`<HARD-GATE>` 之前
+
+#### Scenario: 该节落在所选路径的设计产物上
+
+- **WHEN** 阅读该节的第三点
+- **THEN** 它说的是把共识带进设计文档（架构总纲／模块文档／接口契约），不出现 spec 作为落点
+
+#### Scenario: 该步骤在流程里有落点
+
+- **WHEN** 阅读 `## Checklist`
+- **THEN** Spike、Bounded、Architectural 三条路径都以编号 `0.` 的"建立共识理解"作为第一步，其后的既有步号未重排；且 `## Process Flow` 的流程图里有一个三条路径共用的前置节点与之对应
+
+#### Scenario: 请求已自带目的与约束
+
+- **WHEN** 请求本身已经给出目的与约束
+- **THEN** 该节要求的是把这份理解复述回去，而不是把同样的问题再问一遍
+
+### Requirement: 按路径分级的审批先决条件
+
+`SKILL.md` 的 `<HARD-GATE>` SHALL 按路径给出各自的审批先决条件——Spike 需对方批准问题与探针、Bounded 需对方批准聊天内的短设计、Architectural 需完成**该路径的全部前置门禁**；Architectural 的先决条件 SHALL 以本仓库实际存在的门禁表述（设计呈现与批准、Persist Gate、Change List Gate、用户审查门），SHALL NOT 出现 `spec`、`implementation plan`、`writing-plans` 或任何指向下游技能调用序的措辞；并且 SHALL NOT 在**设计批准与 Persist Gate 之间**强加先后顺序——两者是独立的门，`## The Persist Gate` 已规定落盘门要在结论说得出口时即问、不等设计批准。该门 SHALL 另含三条语义：**一次回复只批准实际呈现的那一阶段**；**批准一个想法或特性范围不等于批准尚不存在的产物**；**先决条件未完成时允许只读的项目探索，且要回到最早未完成的阶段，不得把一次批准当作跳过该路径其余阶段的口径**。`<HARD-GATE>` SHALL NOT 保留上游旧段的收尾句（"the ceremony scales with the task; the approval gate never does"）——该句随被替换的整段一并移除，不得留在门内成为与新分级表述并存的第二套口径。`## Anti-Pattern: "Too Simple To Need Approval"` 段与 Red Flags 表中对应的一行 SHALL 与新的门禁语义一致（逐路径表述，不再用"artifact 随简单度缩放、审批不缩放"这一套措辞）。
+
+#### Scenario: 逐路径的先决条件
+
+- **WHEN** 阅读 `<HARD-GATE>`
+- **THEN** Spike、Bounded、Architectural 三条路径各有明确的先决条件，且 Architectural 那一条列出的是本仓库实际存在的门（设计呈现与批准、Persist Gate、Change List Gate、用户审查门）
+
+#### Scenario: 不给两道独立的门强加顺序
+
+- **WHEN** 阅读 `<HARD-GATE>` 的 Architectural 先决条件
+- **THEN** 它不把设计批准写成落盘门的前置，也不把落盘门写成设计批准的前置；与 `## The Persist Gate` 的"结论说得出口就问、两门独立"口径一致
+
+#### Scenario: 上游术语残留
+
+- **WHEN** 在 `SKILL.md` 中检索 `spec`、`implementation plan`、`writing-plans`
+- **THEN** 这些词不出现在 `<HARD-GATE>` 或与审批先决条件相关的表述里
+
+#### Scenario: 批准不延伸
+
+- **WHEN** 讨论中对方批准了某个想法或特性范围
+- **THEN** 该批准不被当作对尚不存在的产物的批准，且要求回到最早未完成的阶段
+
+#### Scenario: 先决条件未完成期间的只读探索
+
+- **WHEN** 审批先决条件尚未完成
+- **THEN** 允许只读的项目探索，不允许任何实现动作或下游技能调用
+
+#### Scenario: 反模式段与 Red Flags 行一致
+
+- **WHEN** 阅读 `## Anti-Pattern: "Too Simple To Need Approval"` 段与 Red Flags 表中"这条太简单不需要设计"那一行
+- **THEN** 二者都按所选路径表述（bounded 得到聊天内的短设计，architectural 得到设计文档），与 `<HARD-GATE>` 的分级一致
+
+### Requirement: 上游基准坐标与重放清单与实况一致
+
+README SHALL 同时记录**分叉基准**与**已同步到的最新上游坐标**（tag 与 commit），不得只记录分叉基准而让读者以为已同步到最新版本。《需要重放的改动清单》的**正文** SHALL 与当前基准一致——经复核需改写的条目已改写、已由新基准覆盖的条目已删除，SHALL NOT 保留指向过时基准的坐标、示例命令或按旧行文写就的过时措辞；该清单是**活指令**，其每一条在被重放后都应与技能现状相符。仓库内所有「上游坐标」表述 SHALL 采用同一形态——**有稳定 tag 的上游写成「`<tag>`（commit `<短 sha>`）」；无稳定 tag 的上游写成「commit `<全值>`（技能包版本 `<version>`）」，两者缺一不可**。适用范围 SHALL 至少包含：README 上游坐标表格的**两个**单元格、README 的 `--ref` 示例命令、以及 README 与 `design-diagrams/UPSTREAM.md` 中 `archify` 基准的描述。某处本已满足该形态时，该处为 no-op，SHALL 在证据里如实记录而非含糊写"已对齐"。
+
+**本次变更** SHALL 对该清单**逐条**复核（每条给出：仍适用／需改写——并写出改写后的正文／已由新基准覆盖而删除），据此更新清单正文，并把逐条结论作为**变更证据**留存（结论本身不作为永久需求的一部分）；SHALL 跑 `./sync-upstream.sh --ref <新坐标>` 复验，确认输出中不残留未说明的差异。
+
+#### Scenario: 只改坐标不内容
+
+- **WHEN** README 的基准坐标被改为新 tag，但 `SKILL.md` 未按新基准重放改动清单
+- **THEN** 判定为缺陷——坐标与内容必须同时到位
+
+#### Scenario: 清单正文与当前基准一致
+
+- **WHEN** 阅读《需要重放的改动清单》
+- **THEN** 其正文与当前基准一致：经复核需改写的已改写、已由新基准覆盖的已删除，不存在按旧基准写就的过时措辞
+
+#### Scenario: 复验
+
+- **WHEN** 运行 `./sync-upstream.sh --ref <新坐标>`
+- **THEN** 脚本退出码为 0，输出可与本地 `SKILL.md` 双向 diff，且 diff 中只剩已登记的偏离
