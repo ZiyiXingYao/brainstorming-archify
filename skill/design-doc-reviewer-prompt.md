@@ -49,6 +49,17 @@ Subagent (general-purpose):
     `Completeness` finding, and none of the rows below apply to them.
     `specs/design/` is the only directory this routing covers.
 
+    **`.brainstorming/change-lists/` is not a managed design document.** It holds
+    the approved change lists — process artifacts under
+    `<project root>/.brainstorming/change-lists/`, written once the Change List
+    Gate is approved. Route them to no template and do not review them against any
+    template's criteria: their `<...>` hints and placeholders are expected and are
+    **not** a `Completeness` finding, and none of the rows below apply to them. When
+    a criterion below needs the approved change list's content — `change-list
+    coverage`, the diagram rows, the untouched-content row — read the content from
+    the change-list file this persist wrote, rather than treating the list as
+    unreadable because it is not in `specs/design/`.
+
     A routing error is itself a defect to report: naming a document on the
     wrong template makes every finding drawn from it suspect. The interface
     contract's path and file name are fixed at `specs/design/接口契约.md` with

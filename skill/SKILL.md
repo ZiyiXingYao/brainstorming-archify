@@ -830,8 +830,14 @@ Legend keys: `start`, `active`, `waiting`, `decision`, `success`, `failure`,
 - Set `meta.quality_profile` to `showcase` unless a dense `standard` map is
   explicitly requested. A showcase pass reports **all 9 artifact checks with 0
   composition errors and 0 warnings**.
-- Omit `meta.visual_preset`, `meta.legend` and `meta.subtitle` by default; each
-  is opt-in and its default is the truthful one.
+- Omit `meta.visual_preset` and `meta.subtitle` by default; both are opt-in.
+- **Before omitting `meta.legend`, check the kernel's default legend against this
+  section's node semantics.** The legend keys are renderer-owned and their default
+  labels carry upstream archify domain meanings, so an omitted legend is truthful
+  only when those labels happen to say what this section's nodes mean. When they
+  agree, omit it; when they do not, give `meta.legend` explicitly with this
+  section's own labels. Do not copy the kernel's default label text into this
+  document — the kernel is its single source (see `renderers/shared/i18n.mjs`).
 - Preserve exact product names, code identifiers, commands, protocols, API paths
   and environment names; they may stay English inside localized prose.
 - **Brand badges are opt-in and built-in only.** `brand` may be a canonical
@@ -966,6 +972,31 @@ note costs nothing. Omitting one of them does.
 
 Then stop. A "go ahead" approves the list; anything else means revise the
 list first.
+
+### Where the change list itself is persisted
+
+The list is not one of the managed design documents, and while this gate is open
+it is transient: re-state it in the conversation only and write nothing. **After
+this gate is approved**, in the same batch as the documents, write that one list
+to `<project root>/.brainstorming/change-lists/<UTC timestamp>-<subject slug>.md`
+— for example `20260922T112442Z-order-module.md`. The UTC timestamp comes first
+so that sorting the directory by file name reproduces persist order. The subject
+slug is the semantic English short name of the **primary document** in this
+persist, under the same rule as diagram-name slugs (ASCII letters, digits and
+`-` only; no CJK): use `architecture` for a first or architecture-level persist,
+and that module's English name for a single-module persist, taking the
+lowest-numbered document when one persist covers several. **One file per
+persist** — a later persist adds its own timestamped file and never overwrites an
+earlier one. Before approval nothing is written to that directory: the source IR
+named in the Diagram Planning Gate remains the **only** write exception before
+this gate.
+
+`.brainstorming/change-lists/` is a **process artifact**, not a managed design
+directory: it sits outside `specs/design/`, this skill never deletes it, and it is
+**not** part of the commit scope. `specs/design/` stays the **only** anchor for
+resuming a conversation, so an old file under `change-lists/` is neither evidence
+of a pending approval nor of an approved one — a resumed session still presents
+its list and gets approval as usual.
 
 ## The Three Gates
 
