@@ -124,11 +124,11 @@ stop, say so, and step up. Nothing downgrades mid-task.
 
 ## Anti-Pattern: "Too Simple To Need Approval"
 
-Every path ends with your human partner approving the required design
-before implementation. A bounded change may need only two sentences in
-chat. A new todo-list project is architectural and requires the design
-documents. Scale the artifact to the selected path; complete that
-path's reviews before implementation.
+Every path ends with your human partner approving what that path
+requires before implementation. A bounded change may need only two
+sentences in chat. A new todo-list project is architectural and requires
+the design documents. Scale the artifact to the selected path; complete
+that path's gates before implementation.
 
 ## Red Flags
 
@@ -190,8 +190,8 @@ your path and complete them in order.
 
 ```dot
 digraph brainstorming {
-    "Classify: spike / bounded / architectural" [shape=diamond];
-    establish_shared_understanding [label="Establish shared understanding", shape=box];
+"Classify: spike / bounded / architectural" [shape=diamond];
+"Establish shared understanding" [shape=box];
     "Present question + probe (2-3 sentences)" [shape=box];
     "Ask clarifying questions (bounded)" [shape=box];
     "Present short design in chat" [shape=box];
@@ -210,10 +210,10 @@ digraph brainstorming {
     "User reviews doc?" [shape=diamond];
     "Done" [shape=doublecircle];
 
-    "Classify: spike / bounded / architectural" -> establish_shared_understanding;
-    establish_shared_understanding -> "Present question + probe (2-3 sentences)" [label="spike"];
-    establish_shared_understanding -> "Ask clarifying questions (bounded)" [label="bounded"];
-    establish_shared_understanding -> "Ask clarifying questions" [label="architectural"];
+"Classify: spike / bounded / architectural" -> "Establish shared understanding";
+"Establish shared understanding" -> "Present question + probe (2-3 sentences)" [label="spike"];
+"Establish shared understanding" -> "Ask clarifying questions (bounded)" [label="bounded"];
+"Establish shared understanding" -> "Ask clarifying questions" [label="architectural"];
     "Present question + probe (2-3 sentences)" -> "Investigate; report recommendation" [label="nod"];
     "Ask clarifying questions (bounded)" -> "Present short design in chat";
     "Present short design in chat" -> "User approves design?";
