@@ -25,7 +25,7 @@ tests/
 ```bash
 # 全部：一条命令覆盖「仓库测试 + 绘图内核回归集」
 node --test tests/*.test.mjs
-# → 40 个用例，0 失败（含 engine.test.mjs 唤起的内核 13 文件 / 241 用例）
+# → 41 个用例，0 失败（含 engine.test.mjs 唤起的内核 13 文件 / 241 用例）
 
 # 只跑冒烟（独立脚本）
 node tests/render.smoke.test.mjs
@@ -85,6 +85,9 @@ node tests/render.smoke.test.mjs
 ③ **brand-marks 源码**不得残留联网抓取实现（`node:http` / `node:https` / `node:dns` / `node:net`
    或 `node:crypto` 导入、全局 `fetch()` / `XMLHttpRequest`、`checkedFetch`、`captureRemoteBrand`、
    `captureBrandReference`、私有地址守卫、抓取超时环境变量）。
+④ **出图时序只有一种说法**——「先写 IR 并跑 `validate`（不写盘）→ 图进变更清单 → 变更清单门批准后才渲染」；
+   SKILL 流程图中须有门前的校验节点，两份模板须用同一时序，且不得残留旧口径。这条断言就是为防
+   「同一事实手抄多处、只改找到的那几处」再犯。
 
 ## 样例来自哪里
 

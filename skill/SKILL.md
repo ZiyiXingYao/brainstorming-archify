@@ -206,8 +206,9 @@ digraph brainstorming {
     "Stop here (no file)" [shape=doublecircle];
     "Read templates; read specs/design" [shape=box];
     "Diagram Planning Gate: user confirms the plan?" [shape=diamond];
-    "Generate IR; render the diagram triples" [shape=box];
+    "Author the IR; run validate (writes nothing)" [shape=box];
     "Change List gate: user approves?" [shape=diamond];
+    "Render the diagram triples" [shape=box];
     "Write or merge docs" [shape=box];
     "Self-review (fix inline)" [shape=box];
     "Subagent review" [shape=box];
@@ -229,11 +230,12 @@ digraph brainstorming {
     "Persist Gate: write the doc?" -> "Stop here (no file)" [label="no"];
     "Persist Gate: write the doc?" -> "Read templates; read specs/design" [label="yes"];
     "Read templates; read specs/design" -> "Diagram Planning Gate: user confirms the plan?";
-    "Diagram Planning Gate: user confirms the plan?" -> "Change List gate: user approves?" [label="yes"];
+    "Diagram Planning Gate: user confirms the plan?" -> "Author the IR; run validate (writes nothing)" [label="yes"];
     "Diagram Planning Gate: user confirms the plan?" -> "Read templates; read specs/design" [label="no, revise the plan"];
-    "Change List gate: user approves?" -> "Generate IR; render the diagram triples" [label="yes"];
+    "Author the IR; run validate (writes nothing)" -> "Change List gate: user approves?";
+    "Change List gate: user approves?" -> "Render the diagram triples" [label="yes"];
     "Change List gate: user approves?" -> "Read templates; read specs/design" [label="no, revise the list"];
-    "Generate IR; render the diagram triples" -> "Write or merge docs";
+    "Render the diagram triples" -> "Write or merge docs";
     "Write or merge docs" -> "Self-review (fix inline)";
     "Self-review (fix inline)" -> "Subagent review";
     "Subagent review" -> "User reviews doc?";
@@ -526,10 +528,14 @@ generate any IR, present one **diagram plan** and wait for an explicit yes:
 3. **Which section** — the document and section that will carry it.
 
 Generating the IR or rendering before that plan is confirmed is a defect. Once
-the plan is confirmed, generate the IR, render, and persist the documents and
-their diagram triples together. The confirmed plan is then re-checked against
-the Change List Gate (below): the change list is authoritative, and any
-difference between the plan and the list goes back to planning.
+the plan is confirmed, **author the IR and run `validate` on it** — validation
+writes nothing, so this is not a write; it only tells you which diagrams pass.
+Build the change list from that result (naming every diagram, and marking any that
+fails as a placeholder), and present it. **Only after the Change List Gate
+approves do you render the triples and write or merge the documents**, together —
+so there is exactly one ordering, and no diagram artifact is written before the
+gate. The change list is authoritative, and any difference between the plan and
+the list goes back to planning.
 
 **Who writes the IR.** You generate the typed JSON IR yourself, from what the
 section **already contains**. The facts in the IR are limited to that section:
@@ -537,9 +543,11 @@ do not introduce a component, participant, state or relationship the section
 does not have. Your human partner keeps talking about the design in natural
 language — they do not write IR and do not need to know a schema exists.
 
-**How to call it.** One command per diagram, run from the skill root — the
-directory that holds `SKILL.md` and `scripts/` (in this source repository that is
-the repo root; once installed it is the installed skill directory):
+**How to call it.** One command per diagram. The paths below are relative to the
+**skill root** — the directory that holds `scripts/diagram-engine/`. In this source
+repository that is the repository root (this skill's own files sit in `skill/`,
+which is why the command is not run from there); once installed, `SKILL.md` is
+flattened next to `scripts/`, so the skill root is the installed skill directory.
 
 ```bash
 node scripts/diagram-engine/bin/render.mjs render <type> <ir.json> <outdir>
@@ -776,7 +784,12 @@ event/terminal column `N` aligns to the same x coordinate as main column `N + 2`
 phase band (columns `0..4`); `terminal` is the outcome band; every other lane
 shares the single middle event band, whose header joins its lane labels with ` + `.
 A recoverable failure needs a **real transition back to an active state** — a
-card or guided view saying "retry" is not topology.
+card or guided view saying "retry" is not topology. There is **no grid layout
+block** in this type: a state's place comes from its own `step` / `lane` / `col`,
+and its size from `width` / `height` / `yOffset` (see
+`schemas/lifecycle.schema.json`). When a label has no room, widen or shift the
+state with those — `gapX` / `gapY` belong to the architecture grid and do not
+exist here.
 
 Legend keys: `start`, `active`, `waiting`, `decision`, `success`, `failure`,
 `neutral`, `external`.
@@ -825,8 +838,10 @@ Legend keys: `start`, `active`, `waiting`, `decision`, `success`, `failure`,
   here);
   ⑥ label-to-node, then label-to-label, then label-to-route clearance. Run
   `validate` after every edit, apply **one** diagnosed geometry control at a
-  time, and consume `diagnostics[]` by its stable `code`, exact `subject`,
-  measured `evidence` and `supportedFixes`.
+  time — one *control*, not one diagnostic: several diagnostics that want the same
+  control (four labels each short of room) are one round, not four — and consume
+  `diagnostics[]` by its stable `code`, exact `subject`, measured `evidence` and
+  `supportedFixes`.
   **Scale matters:** ①–② are single-control changes, but a *cluster* of ③/④
   diagnostics that survives a second round usually means the **topology or the
   layout** is wrong — a hub with many spokes, or gaps too tight for the labels —
@@ -890,8 +905,9 @@ The change list states:
   This column also restates the confirmed **Diagram Planning Gate** plan, and
   lists any diagram this persist expected to create or re-render but which
   failed validation and is kept as a placeholder, marked `未通过校验` with its
-  reason. A diagram whose entry did not change is not listed and is not
-  re-rendered.
+  reason — that judgement comes from the **pre-gate `validate`**, because the
+  render itself happens only after this gate. A diagram whose entry did not change
+  is not listed and is not re-rendered.
 - **Conflicts** — every Rule 3 difference awaiting a decision
 - **Notes** — anything the human needs in order to judge the list: an
   inference you filled in on their behalf, an entry you widened beyond what

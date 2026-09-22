@@ -179,6 +179,18 @@ test('修复顺序为 ①–⑥，且 ⑤ 是标签超宽档', () => {
   assert.match(section.split('⑤')[1] ?? '', /label/i, '⑤ 应是标签宽于节点框那一档');
 });
 
+test('出图时序只有一种说法（校验在门前、渲染在门后）', () => {
+  const skill = read(SKILL);
+  assert.match(skill, /only after the Change List Gate\s+approves/i, 'SKILL 应给出唯一权威表述');
+  assert.match(skill, /"Author the IR; run validate \(writes nothing\)"/, '流程图中应在门前插校验节点');
+  // 旧口径不得残留——这条断言正是为了防「改了一处、漏了另一处」再次发生。
+  assert.doesNotMatch(skill, /Generate IR; render the diagram triples/, '不应残留旧流程图节点');
+  assert.doesNotMatch(skill, /Once\s+the plan is confirmed, generate the IR, render/, '不应残留旧口径');
+  for (const rel of [ARCH_TEMPLATE, MODULE_TEMPLATE]) {
+    assert.match(read(rel), /待变更清单门批准后/, `${rel} 应采用同一时序`);
+  }
+});
+
 /* ---------------------------------------------------------------------------
  * 内核侧：文档不得再把已删命令写成现行能力；源码不得残留联网抓取
  *
