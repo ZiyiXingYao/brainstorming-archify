@@ -282,6 +282,9 @@ specs/design/
 
 **上游基准**：`obra/superpowers` @ `v6.3.0`（commit `b36e082`）
 
+**上游现状（2026-09-22 实测）**：上游最新 tag 为 `v6.4.1`（commit `5bf4e78`），本仓库基准落后一个版本。实测 `skills/brainstorming/SKILL.md` 在 `v6.3.0` → `v6.4.1` 之间为 **250 → 285 行、diff 66 行**，新增一节 `## Establish Shared Understanding`。
+**升级基准是一次独立变更**，不得只改本文档里的版本号就宣称已同步：须把下面的《需要重放的改动清单》逐条重新施加到 `v6.4.1`，为新增的 `## Establish Shared Understanding` 判定是否需要新增一条偏离（或一条删除），再跑 `./sync-upstream.sh --ref v6.4.1` 复验 diff。该工作尚未进行。
+
 #### 用脚本看差异
 
 ```bash
