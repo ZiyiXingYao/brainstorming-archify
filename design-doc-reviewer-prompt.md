@@ -4,13 +4,17 @@ Use this template when dispatching a design document reviewer subagent.
 
 **Purpose:** Verify the design documents are complete, consistent,
 implementation-ready, and follow the fixed templates
-`architecture-doc-template.md` and `module-doc-template.md`.
+`architecture-doc-template.md`, `module-doc-template.md`, and
+`interface-contract-template.md`.
 
 **Dispatch after:** The design documents are written to `specs/design/`.
 
-**One subagent reviews both document types.** When the write set exceeds
-five documents, split the dispatch: architecture first, then module
-documents in batches, carrying the architecture findings forward.
+**One subagent reviews all three document types.** When the write set
+exceeds five documents, split the dispatch: architecture first, then the
+module documents in batches, carrying the architecture findings forward.
+The interface contract may ride with any module batch or be dispatched on
+its own — it depends on no other document's findings and no other document
+depends on its.
 
 ```
 Subagent (general-purpose):
@@ -21,18 +25,38 @@ Subagent (general-purpose):
     **Documents to review:** [DESIGN_DOC_PATHS]
     **Architecture template:** [ARCHITECTURE_TEMPLATE_PATH]   ← absolute path to architecture-doc-template.md
     **Module template:** [MODULE_TEMPLATE_PATH]               ← absolute path to module-doc-template.md
+    **Interface-contract template:** [INTERFACE_CONTRACT_TEMPLATE_PATH]   ← absolute path to interface-contract-template.md
     **Approved change list:** [CHANGE_LIST_SUMMARY]           ← what the human approved: new files (including every diagram file this write will create or re-render, each with the flow it belongs to), modified files and which sections, what was declared untouched, new dependencies, pending conflicts. State whether it was announced as an architecture overhaul
     **Findings from the architecture review (if this is a later batch):** [PRIOR_BATCH_FINDINGS]
 
     ## Which Template Applies to Which Document
 
-    - `01-架构设计.md` → the architecture template
-    - every other document in `specs/design/` → the module template
+    Route every document to exactly one template by its file name and its
+    content — never check a document against a template other than its own,
+    and never skip the routing step:
+
+    - `01-架构设计.md` (the architecture overview, or 架构总纲) → the
+      architecture template
+    - `specs/design/接口契约.md` (the interface contract) → the
+      interface-contract template
+    - every other document in `specs/design/` (the module documents) → the
+      module template
+
+    A routing error is itself a defect to report: naming a document on the
+    wrong template makes every finding drawn from it suspect. The interface
+    contract's path and file name are fixed at `specs/design/接口契约.md` with
+    no numeric prefix, so a document named `0-接口契约.md`, `contract.md`, or
+    the like is a routing failure — report it, and do not fall back to checking
+    it against another template.
 
     Check each document against its own template only. A module document is
     not expected to carry a background section, and the architecture document
     is not expected to carry per-class field and function tables. Reporting
     one for lacking what the other's template requires is a false positive.
+    An interface contract is likewise not expected to carry the architecture's
+    module split or the module documents' class, field, and function tables,
+    nor any SVG diagram — reporting it for lacking those is a false positive
+    too.
 
     ## Authority Order
 
@@ -65,7 +89,12 @@ Subagent (general-purpose):
     ## What to Check
 
     Rows marked **(module)** apply only to module documents; **(architecture)**
-    only to `01-架构设计.md`; the rest apply to both.
+    only to `01-架构设计.md`; **(interface contract)** only to
+    `specs/design/接口契约.md`; the unmarked rows apply to the architecture and
+    module documents. The interface contract is checked against its own
+    template (Template compliance) and against its own rows below — the rows
+    above about classes, flows, dependency matrices, functional points, and
+    diagrams are architecture-and-module concerns and are not applied to it.
 
     | Category | What to Look For |
     |----------|------------------|
@@ -85,6 +114,12 @@ Subagent (general-purpose):
     | Scope | **(architecture)** one project's architecture, expressed as a module split, flow set, and file tree — not a grab-bag of unrelated systems; **(module)** one module, not several |
     | Diagram consistency | Every `diagrams/<name>.svg` a document references exists and the reference resolves relative to that document — a reference to a missing or unresolvable diagram file is a defect. The components, participants, or states shown in a diagram do not contradict the prose of the section the diagram accompanies; a contradiction is a defect and both contradicting places — the diagram element and the sentence — must be named. A flow that appears under the same name in both the architecture document and a module document carries the same diagram type in both — the same flow name drawn as two different diagram types is a defect. The document body contains no inline `<svg>` tag: diagrams are referenced as images, so an inline `<svg>` in the body is a defect |
     | Diagram change-list coverage | The approved change list enumerates every diagram file this write will create or re-render, each paired with the flow it belongs to; a diagram file written outside the change list is a defect. A diagram that fails geometric validation does not enter the finished product and is instead marked in the change list with its status and reason |
+    | Interface-contract structure **(interface contract)** | Level-2 headings number **11** — `## 总则` (unnumbered) plus `## 1.` through `## 10.`; sections 1–7 each carry all three parts, in order — `x.1` 清单表 (the list table) → `x.2` 逐项契约 (the per-item contract) → `x.3` 该类规则 (the family's rules). A section 1–7 missing any of the three parts and carrying no `不适用：<reason>` declaration for that part is a defect. |
+    | Interface-contract traceable columns **(interface contract)** | Every `x.1` 清单表 carries a traceable column set (owner + consumer), chosen per family and never flattened to a single 「写入方」-style label that does not fit the family: MySQL 「数据维护方 + 本服务侧的读写权限」; Redis 「写入方 + 读取方」; MQ 「方向（完整链路两端）+ 分片键」; HTTP / gRPC 「提供方 + 调用方」; dynamic-library API 「调用方」; TCP 「对端」. A missing column, or a blank cell in any row, is a defect. |
+    | Interface-contract field tables **(interface contract)** | Every `x.2` field table gives at least three things — a name, a type-or-length, and a meaning. The table is authoritative; a raw snippet (a DDL, a proto message, a header signature, or a frame) is only corroborating evidence — when the table and the snippet disagree, the table wins and the snippet must be corrected to match it, so a disagreement is a defect that names both the table entry and the snippet. A family that naturally has no snippet (TCP, whose frame-format table carries the contract) is **not** a defect for lacking one. |
+    | Interface-contract 总则 **(interface contract)** | The 总则 section carries all three parts: the authority-source declaration (this file is the sole authority over the code-side artifacts and wins when they disagree), the scope-and-shape statement, and the code-side artifact mapping table. A missing part is a defect; so is a scope statement that says only what is covered without what is not covered, or whose non-coverage list is missing 「进程内跨模块接口不写在本文件」 (in-process cross-module interfaces are not written in this document). |
+    | Interface-contract catch-all **(interface contract)** | Outward interfaces outside the seven families (files, CLI subcommands, third-party callbacks, …) go in section 8 — never forced into sections 1–7 and never omitted. Forcing a non-family interface into sections 1–7, or omitting a known outward interface, is a defect; an empty section 8 whose heading stays with `不适用：<reason>` is **not** a defect. |
+    | Diagram scope **(interface contract)** | The interface contract is not a diagram-bearing document — it carries no SVG diagrams and needs no `diagrams/` directory. Its having no diagram is **not** a defect, and reporting one for its lack of a diagram is a calibration error. The diagram rows above do not apply to it. |
 
     ## Calibration
 
@@ -109,6 +144,17 @@ Subagent (general-purpose):
     to the intra-module function-level detail, untouched content that
     was altered or lost, a module document regenerated instead of merged, a decision
     with no rationale, an ambiguity that could mislead, a leftover placeholder.
+    So is a document routed to the wrong template. For an interface contract
+    routed to the interface-contract template, these are also issues: its
+    level-2 headings do not number 11 (`## 总则` unnumbered plus `## 1.`–`## 10.`);
+    a section 1–7 is missing its `x.1` 清单表, `x.2` 逐项契约, or `x.3` 该类规则
+    part with no `不适用：<reason>` declaration; an `x.1` 清单表 lacks the family's
+    traceable column set or has a blank cell; an `x.2` field table lacks a name, a
+    type-or-length, or a meaning, or contradicts its corroborating snippet; the
+    总则 omits the authority-source declaration, the scope-and-shape statement (or
+    its 「进程内跨模块接口不写在本文件」 line), or the code-side artifact mapping
+    table; a non-family interface is forced into sections 1–7, or a known outward
+    interface is omitted.
 
     These are **not** issues: field tables, function signature tables, call chains,
     data-shape tables, or interface matrices. Those are required design description
@@ -122,7 +168,10 @@ Subagent (general-purpose):
     (8.3), or a module document's class relationships (2.2), still expressed as prose, tables,
     or mermaid — that is the intended result of this change, because a class diagram needs a
     class-diagram capability the diagram toolchain does not have; do not report these three
-    sections as missing an SVG diagram.
+    sections as missing an SVG diagram. Nor is the interface contract's carrying no SVG
+    diagrams and needing no `diagrams/` directory — it is not a diagram-bearing document, so
+    do not report it for having none. Nor is an empty section 8 in the interface contract
+    that keeps its heading with `不适用：<reason>`.
 
     Approve unless there are serious gaps.
 
