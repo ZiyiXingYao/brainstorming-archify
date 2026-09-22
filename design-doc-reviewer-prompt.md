@@ -92,9 +92,13 @@ Subagent (general-purpose):
     only to `01-架构设计.md`; **(interface contract)** only to
     `specs/design/接口契约.md`; the unmarked rows apply to the architecture and
     module documents. The interface contract is checked against its own
-    template (Template compliance) and against its own rows below — the rows
-    above about classes, flows, dependency matrices, functional points, and
-    diagrams are architecture-and-module concerns and are not applied to it.
+    template and against its own **(interface contract)** rows below; beyond
+    those, the unmarked rows that are **generic rather than topic-specific**
+    also apply to it — Template compliance, Readability, Incremental merge
+    integrity, Completeness, Decision traceability, and Ambiguity all apply. The
+    unmarked rows that address classes, flows, dependency matrices, functional
+    points, cross-document flow consistency, or diagrams are
+    architecture-and-module concerns and are **not** applied to it.
 
     | Category | What to Look For |
     |----------|------------------|
