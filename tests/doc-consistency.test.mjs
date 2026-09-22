@@ -124,3 +124,43 @@ test('审查提示词含三件套判据', () => {
   assert.match(prompt, /12-primary-node|12 primary nodes/, '应含主节点上限判据');
   assert.match(prompt, /打开交互式版本|interactive-version/, '应含交互版链接行判据');
 });
+
+/* ---------------------------------------------------------------------------
+ * 状态四值的「成套出现」不变式
+ *
+ * 背景：接口矩阵的状态从三档扩为四档（新增 `待调用方`）时，同一口径散落在四个
+ * 文件的多个枚举处（Red Flags 行、变更清单字段写法、自审第 9 项、架构模板的翻牌
+ * 规则、模块模板的翻牌提示、审查提示词的依赖覆盖判据）。实跑 dry-run 连续两轮都
+ * 抓出「改了一处、漏了另一处」，于是把它变成机械门：
+ *   - 任何一行只要枚举了状态（同时出现 `待提供` 与 `已落地`），就必须同时出现 `待调用方`；
+ *   - 四个承载该口径的文件都必须出现 `待调用方`。
+ * ------------------------------------------------------------------------- */
+
+const MATRIX_STATUS_FILES = Object.freeze([
+  SKILL,
+  'skill/design-doc-reviewer-prompt.md',
+  ARCH_TEMPLATE,
+  MODULE_TEMPLATE,
+]);
+
+test('矩阵状态枚举必须成套（不漏 待调用方）', () => {
+  const offenders = [];
+  for (const rel of MATRIX_STATUS_FILES) {
+    read(rel).split('\n').forEach((line, index) => {
+      if (line.includes('待提供') && line.includes('已落地') && !line.includes('待调用方')) {
+        offenders.push(`${rel}:${index + 1}  ${line.trim().slice(0, 90)}`);
+      }
+    });
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    `这些行枚举了接口矩阵状态却漏掉 待调用方（四档为 待提供 / 待调用方 / 已落地 / 有差异）：\n${offenders.join('\n')}`,
+  );
+});
+
+test('四个承载口径的文件都含 待调用方', () => {
+  for (const rel of MATRIX_STATUS_FILES) {
+    assert.match(read(rel), /待调用方/, `${rel} 应含 待调用方`);
+  }
+});
