@@ -54,7 +54,7 @@ test('--target 缺值退出码 2', () => {
 
 test('版本硬门：Node 主版本不足时非零退出且不写任何文件', () => {
   const parent = tmpDir('install-gate-');
-  const target = path.join(parent, 'brainstorming');
+  const target = path.join(parent, 'brainstorming-archify');
   try {
     const result = runInstall(['--target', target], { BRAINSTORMING_NODE_VERSION: '16' });
     assert.equal(result.status, 1, '版本不足应退出码 1');
@@ -68,7 +68,7 @@ test('版本硬门：Node 主版本不足时非零退出且不写任何文件', 
 
 test('--dry-run：列出清单但不落盘', () => {
   const parent = tmpDir('install-dry-');
-  const target = path.join(parent, 'brainstorming');
+  const target = path.join(parent, 'brainstorming-archify');
   try {
     const result = runInstall(['--dry-run', '--target', target]);
     assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
@@ -81,7 +81,7 @@ test('--dry-run：列出清单但不落盘', () => {
 
 test('实装形态：skill/ 平铺到根，templates/ 与 scripts/ 整目录，并跑过自检', () => {
   const parent = tmpDir('install-real-');
-  const target = path.join(parent, 'brainstorming');
+  const target = path.join(parent, 'brainstorming-archify');
   try {
     const result = runInstall(['--target', target]);
     assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
@@ -117,7 +117,7 @@ test('实装形态：skill/ 平铺到根，templates/ 与 scripts/ 整目录，�
 
 test('目标已存在：先整体备份，既有内容完整保留在备份里', () => {
   const parent = tmpDir('install-backup-');
-  const target = path.join(parent, 'brainstorming');
+  const target = path.join(parent, 'brainstorming-archify');
   try {
     fs.mkdirSync(target, { recursive: true });
     fs.writeFileSync(path.join(target, 'PREVIOUS.md'), 'OLD-CONTENT');
@@ -125,9 +125,9 @@ test('目标已存在：先整体备份，既有内容完整保留在备份里',
     const result = runInstall(['--target', target]);
     assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
 
-    const backups = fs.readdirSync(parent).filter((name) => name.startsWith('brainstorming.bak-'));
+    const backups = fs.readdirSync(parent).filter((name) => name.startsWith('brainstorming-archify.bak-'));
     assert.equal(backups.length, 1, `应恰好产出一个备份目录，实际：${backups.join(', ')}`);
-    assert.match(backups[0], /^brainstorming\.bak-\d{8}-\d{6}$/, '备份名应为 brainstorming.bak-<时间戳>');
+    assert.match(backups[0], /^brainstorming-archify\.bak-\d{8}-\d{6}$/, '备份名应为 brainstorming-archify.bak-<时间戳>');
     const backedUp = path.join(parent, backups[0], 'PREVIOUS.md');
     assert.ok(fs.existsSync(backedUp), '既有文件应完整保留在备份里');
     assert.equal(fs.readFileSync(backedUp, 'utf8'), 'OLD-CONTENT');
@@ -141,7 +141,7 @@ test('目标已存在：先整体备份，既有内容完整保留在备份里',
 test('备份目标已存在时拒绝覆盖，不静默吞掉既有备份', async () => {
   const { backupExisting } = await import(pathToFileURL(INSTALL).href);
   const parent = tmpDir('install-backup-clash-');
-  const target = path.join(parent, 'brainstorming');
+  const target = path.join(parent, 'brainstorming-archify');
   try {
     fs.mkdirSync(target, { recursive: true });
     const stamp = '20260101-000000';
@@ -156,7 +156,7 @@ test('备份目标已存在时拒绝覆盖，不静默吞掉既有备份', async
 
 test('已安装副本可独立跑 doctor', () => {
   const parent = tmpDir('install-doctor-');
-  const target = path.join(parent, 'brainstorming');
+  const target = path.join(parent, 'brainstorming-archify');
   try {
     assert.equal(runInstall(['--target', target]).status, 0);
     const entry = path.join(target, 'scripts', 'diagram-engine', 'bin', 'render.mjs');

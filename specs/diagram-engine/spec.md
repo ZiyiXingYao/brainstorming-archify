@@ -3,7 +3,7 @@
 ## Purpose
 
 定义绘图内核必须具备的行为：把类型化 JSON IR 在 Node 侧确定性渲染为自包含 SVG 与完整交互式
-HTML 页，并作为内部能力被 `brainstorming` **直接调用**（它不是独立技能，也不维护第二份技能文档），
+HTML 页，并作为内部能力被 `brainstorming-archify` **直接调用**（它不是独立技能，也不维护第二份技能文档），
 使设计文档中的图由程序布局而非文本 DSL 近似。
 
 ## Requirements

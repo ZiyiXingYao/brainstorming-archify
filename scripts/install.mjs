@@ -1,22 +1,22 @@
 #!/usr/bin/env node
 /**
- * install.mjs —— 一键安装 brainstorming 技能
+ * install.mjs —— 一键安装 brainstorming-archify 技能
  * ============================================================================
  *
  * 用法
  * ----
- *   node scripts/install.mjs                安装到 ~/.codebuddy/skills/brainstorming
+ *   node scripts/install.mjs                安装到 ~/.codebuddy/skills/brainstorming-archify
  *   node scripts/install.mjs --dry-run      只列出将写入的文件与目标路径，不修改文件系统
  *                                          （同样受 Node 主版本硬门约束）
- *   node scripts/install.mjs --target <dir> 指定技能安装目录（用于演练；不会自动追加 brainstorming/）
- *                                          （默认：~/.codebuddy/skills/brainstorming）
+ *   node scripts/install.mjs --target <dir> 指定技能安装目录（用于演练；不会自动追加 brainstorming-archify/）
+ *                                          （默认：~/.codebuddy/skills/brainstorming-archify）
  *   node scripts/install.mjs --help         显示用法
  *
  * 装成什么形态
  * ------------
- *   目标：`<家目录>/.codebuddy/skills/brainstorming`
+ *   目标：`<家目录>/.codebuddy/skills/brainstorming-archify`
  *
- *     brainstorming/
+ *     brainstorming-archify/
  *     ├── SKILL.md                        ← skill/ 内文件**平铺**到目标根
  *     ├── design-doc-reviewer-prompt.md
  *     ├── templates/                      ← 整目录复制（三份设计文档模板）
@@ -31,7 +31,7 @@
  * ------------
  *   1. 环境不满足：**启动先在写盘之前**检查 Node 主版本，低于 18 即以非零退出码结束，
  *      明确报出所需版本与当前版本，**不写入任何文件**（`--dry-run` 同样受此硬门约束）。
- *   2. 目标已存在：先把既有目录整体备份为 `brainstorming.bak-<时间戳>`，再写入新内容，
+ *   2. 目标已存在：先把既有目录整体备份为 `brainstorming-archify.bak-<时间戳>`，再写入新内容，
  *      不就地覆盖、不删除用户既有文件。
  *   3. 拷贝规则：`skill/` 内文件平铺到目标根；`templates/` 与 `scripts/` 整目录复制。
  *   4. 安装后自检：对**已安装副本**执行一次 `diagram-engine doctor`，通过才报告成功。
@@ -60,7 +60,7 @@ const REPO_ROOT = path.resolve(HERE, '..');
 export const REQUIRED_NODE_MAJOR = 18;
 
 /** 技能目录名与默认安装位置。 */
-export const SKILL_NAME = 'brainstorming';
+export const SKILL_NAME = 'brainstorming-archify';
 export const DEFAULT_TARGET_ROOT = path.join(os.homedir(), '.codebuddy', 'skills');
 export const DEFAULT_TARGET = path.join(DEFAULT_TARGET_ROOT, SKILL_NAME);
 
@@ -185,7 +185,7 @@ export function buildManifest(repoRoot = REPO_ROOT) {
 
 export function usage() {
   return `用法：
-  node scripts/install.mjs                安装 brainstorming 技能到默认目标
+  node scripts/install.mjs                安装 brainstorming-archify 技能到默认目标
   node scripts/install.mjs --dry-run      只列出将写入的文件与目标路径，不修改文件系统
   node scripts/install.mjs --target <dir> 指定技能安装目录（默认：${DEFAULT_TARGET}）
   node scripts/install.mjs --help         显示本用法

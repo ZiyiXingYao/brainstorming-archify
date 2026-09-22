@@ -309,17 +309,17 @@ test('brand-marks 源码不再含联网抓取实现', () => {
 
 test('SKILL.md 定明变更清单的落盘形态与时机', () => {
   const skill = read(SKILL);
-  assert.match(skill, /\.brainstorming\/change-lists\//, '应给出变更清单落盘目录');
+  assert.match(skill, /\.brainstorming-archify\/change-lists\//, '应给出变更清单落盘目录');
   // 正文按排版硬换行，短语断言须容忍换行（用 \s+ 而非字面空格）。
   assert.match(skill, /After\s+this gate is approved/, '应点明清单落在门批准之后');
   assert.match(skill, /One file per\s+persist/, '应点明每次落盘一份、后次不覆盖前次');
 });
 
-test('审查提示词声明 .brainstorming/change-lists/ 属非受管文档', () => {
+test('审查提示词声明 .brainstorming-archify/change-lists/ 属非受管文档', () => {
   const prompt = read('skill/design-doc-reviewer-prompt.md');
   assert.match(
     prompt,
-    /`\.brainstorming\/change-lists\/` is not a managed design document/,
+    /`\.brainstorming-archify\/change-lists\/` is not a managed design document/,
     '应点名该目录为非受管文档',
   );
   assert.match(

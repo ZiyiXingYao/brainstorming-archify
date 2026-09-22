@@ -3,7 +3,7 @@
   "version": "2.17.0-dev.1",
   "private": true,
   "type": "module",
-  "description": "Trimmed archify rendering kernel for codebuddy-brainstorming: JSON-IR diagram renderers (architecture / workflow / sequence / dataflow / lifecycle) with render / validate / doctor only.",
+  "description": "Trimmed archify rendering kernel for brainstorming-archify: JSON-IR diagram renderers (architecture / workflow / sequence / dataflow / lifecycle) with render / validate / doctor only.",
   "license": "MIT",
   "engines": {
     "node": ">=18"

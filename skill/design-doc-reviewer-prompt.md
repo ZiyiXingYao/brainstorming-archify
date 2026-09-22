@@ -49,9 +49,9 @@ Subagent (general-purpose):
     `Completeness` finding, and none of the rows below apply to them.
     `specs/design/` is the only directory this routing covers.
 
-    **`.brainstorming/change-lists/` is not a managed design document.** It holds
+    **`.brainstorming-archify/change-lists/` is not a managed design document.** It holds
     the approved change lists — process artifacts under
-    `<project root>/.brainstorming/change-lists/`, written once the Change List
+    `<project root>/.brainstorming-archify/change-lists/`, written once the Change List
     Gate is approved. Route them to no template and do not review them against any
     template's criteria: their `<...>` hints and placeholders are expected and are
     **not** a `Completeness` finding, and none of the rows below apply to them. When

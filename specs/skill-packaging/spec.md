@@ -3,7 +3,7 @@
 ## Purpose
 
 定义本仓库的交付形态约定：仓库按 `skill/`、`templates/`、`scripts/`、`tests/` 四个目录组织，
-由 `scripts/install.mjs` 一条命令把 `brainstorming` 单一技能安装到 CodeBuddy 的技能目录，
+由 `scripts/install.mjs` 一条命令把 `brainstorming-archify` 单一技能安装到 CodeBuddy 的技能目录，
 并由仓库自带的冒烟测试在本地验证出图链路可用。
 
 ## Requirements
@@ -38,8 +38,8 @@
 
 ### Requirement: 一键安装单一技能
 
-`scripts/install.mjs` SHALL 一条命令把 `brainstorming` 技能安装到
-`<家目录>/.codebuddy/skills/brainstorming`，并在写盘之前检查运行环境、安装之后自动执行一次
+`scripts/install.mjs` SHALL 一条命令把 `brainstorming-archify` 技能安装到
+`<家目录>/.codebuddy/skills/brainstorming-archify`，并在写盘之前检查运行环境、安装之后自动执行一次
 绘图内核的环境自检。安装源 SHALL 取自重排后的三处目录：`skill/` 内文件**平铺**复制到目标根，
 `templates/` 与 `scripts/` 整目录复制到目标下的同名目录。
 
@@ -51,7 +51,7 @@
 #### Scenario: 目标目录已存在
 
 - **WHEN** 目标技能目录已存在
-- **THEN** 脚本先把既有目录整体备份为 `brainstorming.bak-<时间戳>`，再写入新内容，不就地覆盖
+- **THEN** 脚本先把既有目录整体备份为 `brainstorming-archify.bak-<时间戳>`，再写入新内容，不就地覆盖
 
 #### Scenario: 安装后的目录形态
 

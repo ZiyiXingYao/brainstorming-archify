@@ -1,5 +1,5 @@
 ---
-name: brainstorming
+name: brainstorming-archify
 description: "You MUST use this before any design or implementation work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation, and turns the settled design into human-readable design documents."
 ---
 
@@ -978,7 +978,7 @@ list first.
 The list is not one of the managed design documents, and while this gate is open
 it is transient: re-state it in the conversation only and write nothing. **After
 this gate is approved**, in the same batch as the documents, write that one list
-to `<project root>/.brainstorming/change-lists/<UTC timestamp>-<subject slug>.md`
+to `<project root>/.brainstorming-archify/change-lists/<UTC timestamp>-<subject slug>.md`
 — for example `20260922T112442Z-order-module.md`. The UTC timestamp comes first
 so that sorting the directory by file name reproduces persist order. The subject
 slug is the semantic English short name of the **primary document** in this
@@ -991,7 +991,7 @@ earlier one. Before approval nothing is written to that directory: the source IR
 named in the Diagram Planning Gate remains the **only** write exception before
 this gate.
 
-`.brainstorming/change-lists/` is a **process artifact**, not a managed design
+`.brainstorming-archify/change-lists/` is a **process artifact**, not a managed design
 directory: it sits outside `specs/design/`, this skill never deletes it, and it is
 **not** part of the commit scope. `specs/design/` stays the **only** anchor for
 resuming a conversation, so an old file under `change-lists/` is neither evidence

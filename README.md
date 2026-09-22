@@ -1,4 +1,4 @@
-# CodeBuddy Brainstorming Skill
+# Brainstorming Archify Skill
 
 > **本轮变更摘要：目录、安装与出图机制已改。**
 > 权威来源：`skill/SKILL.md`（技能行为）、`scripts/diagram-engine/UPSTREAM.md`（内核与上游关系）、
@@ -7,7 +7,7 @@
 > **仓库结构（四目录）**
 >
 > ```
-> codebuddy-brainstorming/
+> brainstorming-archify/
 > ├── skill/          SKILL.md（技能入口）+ design-doc-reviewer-prompt.md
 > ├── templates/      三份模板：architecture / module / interface-contract
 > ├── scripts/        install.mjs、sync-upstream.sh、diagram-engine/（绘图内核）
@@ -17,11 +17,11 @@
 > └── LICENSE
 > ```
 >
-> **安装（单一技能）**：不再安装两个技能。一条命令把 brainstorming 装到
-> `~/.codebuddy/skills/brainstorming/`：`node scripts/install.mjs`
+> **安装（单一技能）**：不再安装两个技能。一条命令把 brainstorming-archify 装到
+> `~/.codebuddy/skills/brainstorming-archify/`：`node scripts/install.mjs`
 > （`--dry-run` 只列清单不落盘，**同样受 Node ≥ 18 硬门约束**；目标已存在时先整体备份为
-> `brainstorming.bak-<时间戳>`；装完对已安装副本跑 `diagram-engine doctor` 自检）。
-> 绘图内核作为**技能内部构件**装在 `brainstorming/scripts/diagram-engine/`，
+> `brainstorming-archify.bak-<时间戳>`；装完对已安装副本跑 `diagram-engine doctor` 自检）。
+> 绘图内核作为**技能内部构件**装在 `brainstorming-archify/scripts/diagram-engine/`，
 > **不再是一个独立技能**，也没有第二份 `SKILL.md`。
 >
 > **出图**：唯一入口 `node scripts/diagram-engine/bin/render.mjs render <type> <ir.json> <outdir>`，
@@ -57,8 +57,8 @@
 
 ## 安装
 
-**单一技能**：一条命令装到 `~/.codebuddy/skills/brainstorming/`——绘图内核作为技能内部构件落在
-`brainstorming/scripts/diagram-engine/`，**不再有第二个技能**，也没有第二份 `SKILL.md`。手工
+**单一技能**：一条命令装到 `~/.codebuddy/skills/brainstorming-archify/`——绘图内核作为技能内部构件落在
+`brainstorming-archify/scripts/diagram-engine/`，**不再有第二个技能**，也没有第二份 `SKILL.md`。手工
 安装时，**权威文件清单是 `node scripts/install.mjs --dry-run` 的输出**（预演模式**同样受 Node
 主版本硬门约束**：版本不满足即以非零退出码结束、不写任何文件）。
 
@@ -71,21 +71,21 @@ node scripts/install.mjs
 四道行为约束：
 
 1. 启动即检查 Node 主版本，**低于 18 时以非零退出码结束且不写入任何文件**；
-2. 目标技能目录已存在时**先整体备份**为 `brainstorming.bak-<时间戳>`，不就地覆盖、不删你的既有文件；
+2. 目标技能目录已存在时**先整体备份**为 `brainstorming-archify.bak-<时间戳>`，不就地覆盖、不删你的既有文件；
 3. 拷贝规则：`skill/` 内文件**平铺**到目标根，`templates/` 与 `scripts/` **整目录**复制；
 4. 装完对**已安装副本**执行 `bin/render.mjs doctor` 自检——把「装了但跑不起来」暴露在安装期，而不是首次出图时。
 
 | 命令 | 行为 |
 |------|------|
-| `node scripts/install.mjs` | 安装 `brainstorming` 技能到 `~/.codebuddy/skills/brainstorming/` |
+| `node scripts/install.mjs` | 安装 `brainstorming-archify` 技能到 `~/.codebuddy/skills/brainstorming-archify/` |
 | `node scripts/install.mjs --dry-run` | 只列出将写入的文件与目标路径，不改文件系统；该模式**同样受 Node 主版本硬门约束** |
-| `node scripts/install.mjs --target <dir>` | 指定**技能安装目录**（默认 `~/.codebuddy/skills/brainstorming`）；传的是技能目录本身，不会自动追加 `brainstorming/` |
+| `node scripts/install.mjs --target <dir>` | 指定**技能安装目录**（默认 `~/.codebuddy/skills/brainstorming-archify`）；传的是技能目录本身，不会自动追加 `brainstorming-archify/` |
 | `node scripts/install.mjs --help` | 打印用法 |
 
 **装成的形态**
 
 ```
-~/.codebuddy/skills/brainstorming/
+~/.codebuddy/skills/brainstorming-archify/
 ├── SKILL.md                       ← skill/ 内文件平铺到目标根
 ├── design-doc-reviewer-prompt.md
 ├── templates/                     ← 三份模板整目录复制
@@ -103,8 +103,8 @@ node scripts/install.mjs
 ### 方式二：git clone
 
 ```bash
-git clone https://github.com/ZiyiXingYao/codebuddy-brainstorming.git \
-  ~/.codebuddy/skills/brainstorming
+git clone https://github.com/ZiyiXingYao/brainstorming-archify.git \
+  ~/.codebuddy/skills/brainstorming-archify
 ```
 
 本仓库根是**一个技能**的源码树。注意技能入口在 `skill/SKILL.md`，而 CodeBuddy 要求
@@ -114,23 +114,23 @@ git clone https://github.com/ZiyiXingYao/codebuddy-brainstorming.git \
 
 ```bash
 # 1. 克隆到临时目录
-git clone --depth 1 https://github.com/ZiyiXingYao/codebuddy-brainstorming.git /tmp/codebuddy-brainstorming
+git clone --depth 1 https://github.com/ZiyiXingYao/brainstorming-archify.git /tmp/brainstorming-archify
 
 # 2. 建立目标目录
-mkdir -p ~/.codebuddy/skills/brainstorming
+mkdir -p ~/.codebuddy/skills/brainstorming-archify
 
 # 3. skill/ 内文件平铺到目标根
-cp /tmp/codebuddy-brainstorming/skill/SKILL.md \
-   /tmp/codebuddy-brainstorming/skill/design-doc-reviewer-prompt.md \
-   ~/.codebuddy/skills/brainstorming/
+cp /tmp/brainstorming-archify/skill/SKILL.md \
+   /tmp/brainstorming-archify/skill/design-doc-reviewer-prompt.md \
+   ~/.codebuddy/skills/brainstorming-archify/
 
 # 4. templates/ 与 scripts/ 整目录复制（scripts 内含绘图内核，缺任何一部分出图都会跑不起来）
-mkdir -p ~/.codebuddy/skills/brainstorming/templates ~/.codebuddy/skills/brainstorming/scripts
-cp -R /tmp/codebuddy-brainstorming/templates/. ~/.codebuddy/skills/brainstorming/templates/
-cp -R /tmp/codebuddy-brainstorming/scripts/.  ~/.codebuddy/skills/brainstorming/scripts/
+mkdir -p ~/.codebuddy/skills/brainstorming-archify/templates ~/.codebuddy/skills/brainstorming-archify/scripts
+cp -R /tmp/brainstorming-archify/templates/. ~/.codebuddy/skills/brainstorming-archify/templates/
+cp -R /tmp/brainstorming-archify/scripts/.  ~/.codebuddy/skills/brainstorming-archify/scripts/
 
 # 5. 清理
-rm -rf /tmp/codebuddy-brainstorming
+rm -rf /tmp/brainstorming-archify
 ```
 
 等价清单同样可用 `node scripts/install.mjs --dry-run` 打印（预演模式**同样受 Node 主版本硬门约束**）。
@@ -140,30 +140,30 @@ rm -rf /tmp/codebuddy-brainstorming
 最省事的就是直接跑安装脚本：
 
 ```bash
-node /code/codebuddy-brainstorming/scripts/install.mjs
+node /code/brainstorming-archify/scripts/install.mjs
 ```
 
-等价的手工拷贝同「方式三」，把 `/tmp/codebuddy-brainstorming` 换成
-`/code/codebuddy-brainstorming` 即可。整条链**不需要 `node_modules`**。
+等价的手工拷贝同「方式三」，把 `/tmp/brainstorming-archify` 换成
+`/code/brainstorming-archify` 即可。整条链**不需要 `node_modules`**。
 
 ## 验证安装
 
 ```bash
-ls ~/.codebuddy/skills/brainstorming/
+ls ~/.codebuddy/skills/brainstorming-archify/
 # 期望：SKILL.md  design-doc-reviewer-prompt.md  scripts  templates
 
-ls ~/.codebuddy/skills/brainstorming/scripts/diagram-engine/bin/
+ls ~/.codebuddy/skills/brainstorming-archify/scripts/diagram-engine/bin/
 # 期望：render.mjs  render-driver.mjs      ← 唯一入口 + 内部驱动
 
-head -4 ~/.codebuddy/skills/brainstorming/SKILL.md
+head -4 ~/.codebuddy/skills/brainstorming-archify/SKILL.md
 # 期望输出：
 # ---
-# name: brainstorming
+# name: brainstorming-archify
 # description: ...
 # ---
 
 # 出图能力自检（需 Node ≥ 18；退出码 0 = 全部检查通过）
-node ~/.codebuddy/skills/brainstorming/scripts/diagram-engine/bin/render.mjs doctor
+node ~/.codebuddy/skills/brainstorming-archify/scripts/diagram-engine/bin/render.mjs doctor
 ```
 
 安装是否完整，看 **`doctor` 是否以退出码 0 结束**（用「方式一」安装时 `install.mjs`
@@ -186,20 +186,20 @@ node tests/render.smoke.test.mjs                 # 只跑冒烟（独立脚本�
 ## 更新
 
 ```bash
-# 方式一（一键安装）：重跑一次即可——目标先被备份为 brainstorming.bak-<时间戳>，再覆盖并自检
+# 方式一（一键安装）：重跑一次即可——目标先被备份为 brainstorming-archify.bak-<时间戳>，再覆盖并自检
 node scripts/install.mjs
 
 # 方式二（git clone）：pull 之后重跑安装脚本；或按「方式三」手工覆盖
-cd ~/.codebuddy/skills/brainstorming && git pull
+cd ~/.codebuddy/skills/brainstorming-archify && git pull
 ```
 
 ## 卸载
 
 ```bash
-rm -rf ~/.codebuddy/skills/brainstorming
+rm -rf ~/.codebuddy/skills/brainstorming-archify
 ```
 
-（安装时若产生过 `brainstorming.bak-<时间戳>` 备份目录，按需一并清理。）
+（安装时若产生过 `brainstorming-archify.bak-<时间戳>` 备份目录，按需一并清理。）
 
 ## 使用
 
@@ -454,7 +454,7 @@ rm -rf /tmp/sp
 
 **（补充登记）本轮修正清单时新增的两条**
 
-45. （新增）`## Change List Gate` 增补**变更清单自身的落盘形态与时机**（新增 `### Where the change list itself is persisted` 小节）：清单在门**批准之后**、与文档**同批**写盘到 `<项目根>/.brainstorming/change-lists/<UTC 时间戳>-<主题 slug>.md`（如 `20260922T112442Z-order-module.md`；UTC 时间戳在前，按文件名排序即落盘顺序；主题 slug 取本次落盘**主文档**的语义英文短名，规则同图名 slug——仅 ASCII 字母、数字与 `-`、无中日韩字符，首次或架构级落盘用 `architecture`、单模块落盘用该模块英文名、一次落盘覆盖多份时取序号最小者）；**每次落盘一份**，后次新增自己的文件、绝不覆盖前次；批准前只在对话里重列、不写盘——该门的唯一写盘例外仍只是绘图规划 Gate 点名的源 IR；`.brainstorming/change-lists/` 定性为**过程产物**而非受管设计目录——位于 `specs/design/` 之外、技能从不删除、**不在提交范围内**；`specs/design/` 仍是恢复对话的**唯一锚点**，该目录里的旧文件既不表示「待批准」也不表示「已批准」，恢复的会话照旧重列清单并重新取得批准。
+45. （新增）`## Change List Gate` 增补**变更清单自身的落盘形态与时机**（新增 `### Where the change list itself is persisted` 小节）：清单在门**批准之后**、与文档**同批**写盘到 `<项目根>/.brainstorming-archify/change-lists/<UTC 时间戳>-<主题 slug>.md`（如 `20260922T112442Z-order-module.md`；UTC 时间戳在前，按文件名排序即落盘顺序；主题 slug 取本次落盘**主文档**的语义英文短名，规则同图名 slug——仅 ASCII 字母、数字与 `-`、无中日韩字符，首次或架构级落盘用 `architecture`、单模块落盘用该模块英文名、一次落盘覆盖多份时取序号最小者）；**每次落盘一份**，后次新增自己的文件、绝不覆盖前次；批准前只在对话里重列、不写盘——该门的唯一写盘例外仍只是绘图规划 Gate 点名的源 IR；`.brainstorming-archify/change-lists/` 定性为**过程产物**而非受管设计目录——位于 `specs/design/` 之外、技能从不删除、**不在提交范围内**；`specs/design/` 仍是恢复对话的**唯一锚点**，该目录里的旧文件既不表示「待批准」也不表示「已批准」，恢复的会话照旧重列清单并重新取得批准。
 46. （补登）`## Handoff to a Downstream Process` 整节：交接物是**整个 `specs/design/` 目录**（文档集 + `diagrams/` 三件套；因每份文档都以相对自身的路径引用其图，该目录自包含，交接的是这个目录而非单个文件）；本技能**从不**调用下游流程，是否交接、交给谁由人类决定，被问到时只报出上述产物集即止；接口契约是该集合的一部分而非交接的前置条件——它因机械判定命中而存在，交接不需要重新推导。
 
 ### 上游二：archify（绘图内核）

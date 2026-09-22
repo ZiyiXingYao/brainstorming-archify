@@ -363,7 +363,7 @@ SHALL 在 `## 后续变更` 小节登记本次未纳入的相邻工作。
 
 ### Requirement: 建立共识理解的必经步骤
 
-`brainstorming/SKILL.md` SHALL 含一节 `## Establish Shared Understanding`，位置在 `## Scope` 之后、`<HARD-GATE>` 之前；该节 SHALL 含三件事：**发现意图**（在提出特性或方案前，用请求与已有上下文弄清意图结果、为谁而做、什么算成功；信息缺失时先问一个聚焦问题）、**回写理解**（把意图结果、相关约束、成功标准写成一段对方可评估的短备忘，区分"对方说的"与"你假设的"，邀请纠正并在被纠正后更新）、**把意图带进设计**（在所选路径的设计产物里保住这份共识，并据此检查拟议的特性与技术选择）。第三点 SHALL 指向本仓库的**设计文档**（架构总纲／模块文档／接口契约），SHALL NOT 指向 spec。`## Checklist` 的三条路径 SHALL 都含一个**共同的第 0 步**：建立共识理解——该步编号写作 `0.`，位于「宣布路径」之后、各路径原有的第 1 步（`Explore project context`）之前，既有步号 SHALL NOT 重排；`## Process Flow` 的流程图中 SHALL 相应有一个三条路径共用的前置节点，使图与清单一致。`## Self-Review` SHALL 含对应的检查项。
+`brainstorming-archify/SKILL.md` SHALL 含一节 `## Establish Shared Understanding`，位置在 `## Scope` 之后、`<HARD-GATE>` 之前；该节 SHALL 含三件事：**发现意图**（在提出特性或方案前，用请求与已有上下文弄清意图结果、为谁而做、什么算成功；信息缺失时先问一个聚焦问题）、**回写理解**（把意图结果、相关约束、成功标准写成一段对方可评估的短备忘，区分"对方说的"与"你假设的"，邀请纠正并在被纠正后更新）、**把意图带进设计**（在所选路径的设计产物里保住这份共识，并据此检查拟议的特性与技术选择）。第三点 SHALL 指向本仓库的**设计文档**（架构总纲／模块文档／接口契约），SHALL NOT 指向 spec。`## Checklist` 的三条路径 SHALL 都含一个**共同的第 0 步**：建立共识理解——该步编号写作 `0.`，位于「宣布路径」之后、各路径原有的第 1 步（`Explore project context`）之前，既有步号 SHALL NOT 重排；`## Process Flow` 的流程图中 SHALL 相应有一个三条路径共用的前置节点，使图与清单一致。`## Self-Review` SHALL 含对应的检查项。
 
 #### Scenario: 阅读 SKILL.md 的节顺序
 
@@ -474,16 +474,16 @@ README SHALL 同时记录**分叉基准**与**已同步到的最新上游坐标*
 
 ### Requirement: 变更清单的落盘形态、时机与非受管声明
 
-技能 SHALL 在 `## Change List Gate` 规定变更清单的落盘形态与时机：在**该门批准之后**、与文档同批写盘，落在 `<项目根>/.brainstorming/change-lists/` 下，**每次落盘一份**文件，文件名为 `<UTC 时间戳>-<主题 slug>.md`（时间戳如 `20260922T112442Z`，前缀保字典序即时序；主题 slug 取本次落盘**主文档**的语义英文短名，规则同图名 slug——只含 ASCII 字母、数字与 `-`，首次或架构级落盘取 `architecture`，单模块落盘取该模块的英文名，一次落盘涉多份主文档时取序号最靠前那份，如 `20260922T112442Z-order-module.md`）。技能 MUST NOT 在门批准之前写该次变更清单——该门的唯一写盘例外仍是绘图规划 Gate 的源 IR。该目录位于受管设计目录 `specs/design/` 之外，审查提示词 SHALL 声明其属**非受管文档**（不路由到任何模板、不按其判据评审，其 `<…>` 与占位不计为完整性缺陷）。该目录 SHALL 定性为过程产物：技能不删除其中文件，且提交范围 MUST NOT 包含该目录。`specs/design/` SHALL 仍是恢复对话的唯一锚点；`.brainstorming/` 中已存在的文件 MUST NOT 被当作「待批准」或「已批准」的证据。
+技能 SHALL 在 `## Change List Gate` 规定变更清单的落盘形态与时机：在**该门批准之后**、与文档同批写盘，落在 `<项目根>/.brainstorming-archify/change-lists/` 下，**每次落盘一份**文件，文件名为 `<UTC 时间戳>-<主题 slug>.md`（时间戳如 `20260922T112442Z`，前缀保字典序即时序；主题 slug 取本次落盘**主文档**的语义英文短名，规则同图名 slug——只含 ASCII 字母、数字与 `-`，首次或架构级落盘取 `architecture`，单模块落盘取该模块的英文名，一次落盘涉多份主文档时取序号最靠前那份，如 `20260922T112442Z-order-module.md`）。技能 MUST NOT 在门批准之前写该次变更清单——该门的唯一写盘例外仍是绘图规划 Gate 的源 IR。该目录位于受管设计目录 `specs/design/` 之外，审查提示词 SHALL 声明其属**非受管文档**（不路由到任何模板、不按其判据评审，其 `<…>` 与占位不计为完整性缺陷）。该目录 SHALL 定性为过程产物：技能不删除其中文件，且提交范围 MUST NOT 包含该目录。`specs/design/` SHALL 仍是恢复对话的唯一锚点；`.brainstorming-archify/` 中已存在的文件 MUST NOT 被当作「待批准」或「已批准」的证据。
 
 #### Scenario: 门批准后与文档同批落盘
 
 - **WHEN** 变更清单门获批并开始写本次文档
-- **THEN** 该次清单写入 `<项目根>/.brainstorming/change-lists/<UTC 时间戳>-<主题 slug>.md`，与文档同批落盘，且不落在 `specs/design/` 下
+- **THEN** 该次清单写入 `<项目根>/.brainstorming-archify/change-lists/<UTC 时间戳>-<主题 slug>.md`，与文档同批落盘，且不落在 `specs/design/` 下
 
 #### Scenario: 文件名可读且保序
 
-- **WHEN** 查看 `.brainstorming/change-lists/` 下的文件名
+- **WHEN** 查看 `.brainstorming-archify/change-lists/` 下的文件名
 - **THEN** 每个文件名由 UTC 时间戳前缀与主题 slug 组成（如 `20260922T112442Z-order-module.md`），主题 slug 只含 ASCII 字母、数字与 `-`、不出现中日韩字符，且按文件名排序即落盘先后顺序
 
 #### Scenario: 门批准之前不得写清单
@@ -499,16 +499,16 @@ README SHALL 同时记录**分叉基准**与**已同步到的最新上游坐标*
 #### Scenario: 退出后恢复对话
 
 - **WHEN** 对话退出后重开，并对同一项目再次落盘
-- **THEN** 恢复锚点是 `specs/design/`（按其既有内容做增量落盘），`.brainstorming/` 中既有清单不被当作待批准或已批准的证据，本轮仍照常呈交并取得批准
+- **THEN** 恢复锚点是 `specs/design/`（按其既有内容做增量落盘），`.brainstorming-archify/` 中既有清单不被当作待批准或已批准的证据，本轮仍照常呈交并取得批准
 
 #### Scenario: 过程产物不删除、不入库
 
 - **WHEN** 本次改动按项目惯例提交
-- **THEN** 提交范围只含文档与改动的条目，不含 `.brainstorming/`；技能也不删除该目录
+- **THEN** 提交范围只含文档与改动的条目，不含 `.brainstorming-archify/`；技能也不删除该目录
 
 #### Scenario: 审查子代理遇到清单文件
 
-- **WHEN** 审查子代理在项目里看到 `.brainstorming/change-lists/` 下的文件
+- **WHEN** 审查子代理在项目里看到 `.brainstorming-archify/change-lists/` 下的文件
 - **THEN** 它不把该文件路由到任何模板、不按其判据评审，也不因其含提示性文字或占位标记而报告缺陷
 
 #### Scenario: 审查判据依赖变更清单内容

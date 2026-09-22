@@ -1,6 +1,6 @@
 # tests —— 仓库自测面
 
-本目录放 `codebuddy-brainstorming` 自己的测试。**它不进安装**（见 `scripts/install.mjs`）。
+本目录放 `brainstorming-archify` 自己的测试。**它不进安装**（见 `scripts/install.mjs`）。
 
 ## 目录
 
@@ -61,7 +61,7 @@ node tests/render.smoke.test.mjs
 安装脚本的四道行为约束逐条锁死：版本硬门（Node < 18 → 退出码 1 且**一个文件都不写**）；
 `--dry-run` 不落盘；实装形态（`skill/` 平铺 + `templates/` 与 `scripts/` 整目录 + 内核入口存在 +
 **`tests/`、内核回归集与 `sync-upstream.sh` 都不进安装**）；目标已存在时产出
-`brainstorming.bak-<时间戳>` 且既有内容完整保留，**备份目标已被占用时拒绝静默覆盖**；
+`brainstorming-archify.bak-<时间戳>` 且既有内容完整保留，**备份目标已被占用时拒绝静默覆盖**；
 装后自检输出（断言里带检查项数，避免自检判定退化后用例仍绿）；已安装副本可独立跑 `doctor`；
 用法错误退出码 2。
 

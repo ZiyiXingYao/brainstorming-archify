@@ -131,7 +131,7 @@ export function decideRound(history, currentErrors) {
 }
 
 /**
- * 组装停止时的结构化回执，供调用方（`brainstorming`）解析出选择点。
+ * 组装停止时的结构化回执，供调用方（`brainstorming-archify`）解析出选择点。
  *
  * @param {{type: string, input: string, target: string, decision: object, unresolved: object[]}} params
  * @returns {object}

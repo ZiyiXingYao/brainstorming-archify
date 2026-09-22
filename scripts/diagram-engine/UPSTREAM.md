@@ -214,7 +214,7 @@ node scripts/diagram-engine/test/run-valid.mjs
 
 **为什么不成立**：这些断言写的是**上游 archify 的技能入口文档**（英文 authoring-router
 的文案与分节）。本仓库的 `design-diagrams/SKILL.md` 是给「内部出图技能」重写的入口
-（中文、由 `brainstorming` 调用），二者内容约定完全不同。改技能出图行为不会让它们转绿；
+（中文、由 `brainstorming-archify` 调用），二者内容约定完全不同。改技能出图行为不会让它们转绿；
 它们变红也不代表出图能力坏了。
 
 > ⚠️ **有真实覆盖被这条排除吃掉**：`automatic-port-spread`（14 个）与
@@ -246,12 +246,12 @@ node scripts/diagram-engine/test/run-valid.mjs
 | `readme-showcase.test.mjs` | 仓库根三份 README 与徽章、`docs/assets/*.png`、`.github/workflows/star-history.yml`、仓库根 `scripts/build-readme-showcase.mjs` | 7 个失败：`ENOENT … scripts/build-readme-showcase.mjs`、`ENOENT … docs/assets/archify-demo-story.png`、`ENOENT … .github/workflows/star-history.yml` |
 | `cursor-onboarding.test.mjs` | 上游 `README_EN.md` | `ENOENT … open '…/README_EN.md'` |
 | `community-proof-intake.test.mjs` | `.github/ISSUE_TEMPLATE/showcase.yml`、`bug-report.yml`、`CONTRIBUTING.md` | 3 个失败：`ENOENT … .github/ISSUE_TEMPLATE/showcase.yml` 等 |
-| `reach-share-card.test.mjs` | 上游 README 内容 | 5 个运行时用例通过；1 个失败：`AssertionError: README.md`，期望 `/Reach Share Card/`（本仓库根 README 是 brainstorming 技能的，与上游无关） |
+| `reach-share-card.test.mjs` | 上游 README 内容 | 5 个运行时用例通过；1 个失败：`AssertionError: README.md`，期望 `/Reach Share Card/`（本仓库根 README 是 brainstorming-archify 技能的，与上游无关） |
 | `route-share-card.test.mjs` | 上游 README 内容 | 7 个运行时用例通过；1 个失败：`AssertionError: README.md`，期望 `/Export → Route Share Card/` |
 | `share-card-export.test.mjs` | 上游 README 内容 | 7 个运行时用例通过；1 个失败：`AssertionError: README.md`，期望 `/Share Card/i` |
 
 **为什么不成立**：这些断言的是**上游仓库根的产品文档**（三语 README、徽章、分享卡片的
-宣传图、issue 模板、贡献指南）。本仓库根的 `README.md` 是 brainstorming 技能自己的
+宣传图、issue 模板、贡献指南）。本仓库根的 `README.md` 是 brainstorming-archify 技能自己的
 README，二者的内容约定完全不同。**改技能代码不会让它们转绿。**
 
 > ⚠️ 三个 share-card 文件各有 5～7 个**运行时用例已通过**（渲染 / 导出 / 重跑遍历等）
