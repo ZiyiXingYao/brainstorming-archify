@@ -530,6 +530,8 @@ node scripts/diagram-engine/bin/render.mjs render <type> <ir.json> <outdir>
 IR file's base name, so write the IR as
 `<document number>-<diagram name>.<diagram type>.json` — e.g.
 `01-module-dependency.architecture.json` → `01-module-dependency.architecture.{json,svg,html}`.
+For a document written in another language, the same rule with that language's
+diagram name: `01-模块依赖关系.architecture.json` → `01-模块依赖关系.architecture.*`.
 Getting this wrong is the one way to end up with a non-conforming file name.
 
 `render` writes the three same-prefix artifacts into `<outdir>`, runs the
@@ -546,6 +548,9 @@ node scripts/diagram-engine/bin/render.mjs doctor
 `validate` checks and writes nothing; a showcase pass prints
 `9 artifact checks; composition showcase: 0 errors, 0 warnings`. `doctor`
 self-checks the environment and the kernel. Both pass their exit code through.
+`--quality` **overrides** the IR's `meta.quality_profile` for that one run;
+omitting it uses the value written in the IR (and a diagram with no
+`meta.quality_profile` at all is judged advisory, not strict).
 
 **Scope note.** The three whole-session gates (Persist, Change List, User
 Review) are unchanged. This Diagram Planning Gate is a **narrow gate inside the
@@ -670,8 +675,14 @@ components**; group only real ownership, trust, process or deployment
 boundaries — boundaries do not replace relationships. Grid placement is preferred
 where the schema supports it: in grid mode you still state each component's
 **logical** placement (its grid `row`/`col`), you simply never plan pixel
-coordinates; free `pos` is for a bounded exception. Either way the renderer, not
-you, computes the actual geometry. Keep external actors outside the system boundary
+coordinates; free `pos` is for a bounded exception. **Node and route geometry is
+computed by the renderer, never by you** — but do not read that as "the first
+render is final": **relationship labels are the exception**. The renderer
+measures and places them, and its placement only counts once it clears the node,
+the other labels and the route; expect to apply one diagnosed
+`labelAt` / `labelDx` / `labelDy` / `labelSegment` adjustment and re-run, exactly
+as repair-order step ⑤ describes. Reaching a passing diagram on the second or
+third render is normal, not a sign you did something wrong. Keep external actors outside the system boundary
 when that is factually true.
 
 Component types: `frontend`, `backend`, `database`, `cloud`, `security`,
@@ -827,7 +838,11 @@ list first.
 
 Your human partner is asked three separate times in one session. They
 guard different things, and merging them loses the protection each one
-gives — do not collapse them into a single question.
+gives — do not collapse them into a single question. (The **Diagram Planning
+Gate** described under *Diagrams in the Design Documents* is **not** a fourth
+gate at this level: it is a narrow gate inside the persist, and its confirmed
+plan is re-checked by the Change List Gate below rather than replacing it. So the
+count of session-level gates stays three.)
 
 1. **Persist Gate** — *should anything be written at all?* Asked once the
    design has settled. A "no" ends the session with the chat conclusion as
