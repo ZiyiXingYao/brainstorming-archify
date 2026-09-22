@@ -471,3 +471,61 @@ README SHALL 同时记录**分叉基准**与**已同步到的最新上游坐标*
 
 - **WHEN** 在仓库内检索绘图 JSON 结构与字段说明
 - **THEN** 只在 `skill/SKILL.md` 中有描述，`scripts/diagram-engine/` 下不存在第二份技能文档
+
+### Requirement: 变更清单的落盘形态、时机与非受管声明
+
+技能 SHALL 在 `## Change List Gate` 规定变更清单的落盘形态与时机：在**该门批准之后**、与文档同批写盘，落在 `<项目根>/.brainstorming/change-lists/` 下，**每次落盘一份**文件，文件名为 `<UTC 时间戳>-<主题 slug>.md`（时间戳如 `20260922T112442Z`，前缀保字典序即时序；主题 slug 取本次落盘**主文档**的语义英文短名，规则同图名 slug——只含 ASCII 字母、数字与 `-`，首次或架构级落盘取 `architecture`，单模块落盘取该模块的英文名，一次落盘涉多份主文档时取序号最靠前那份，如 `20260922T112442Z-order-module.md`）。技能 MUST NOT 在门批准之前写该次变更清单——该门的唯一写盘例外仍是绘图规划 Gate 的源 IR。该目录位于受管设计目录 `specs/design/` 之外，审查提示词 SHALL 声明其属**非受管文档**（不路由到任何模板、不按其判据评审，其 `<…>` 与占位不计为完整性缺陷）。该目录 SHALL 定性为过程产物：技能不删除其中文件，且提交范围 MUST NOT 包含该目录。`specs/design/` SHALL 仍是恢复对话的唯一锚点；`.brainstorming/` 中已存在的文件 MUST NOT 被当作「待批准」或「已批准」的证据。
+
+#### Scenario: 门批准后与文档同批落盘
+
+- **WHEN** 变更清单门获批并开始写本次文档
+- **THEN** 该次清单写入 `<项目根>/.brainstorming/change-lists/<UTC 时间戳>-<主题 slug>.md`，与文档同批落盘，且不落在 `specs/design/` 下
+
+#### Scenario: 文件名可读且保序
+
+- **WHEN** 查看 `.brainstorming/change-lists/` 下的文件名
+- **THEN** 每个文件名由 UTC 时间戳前缀与主题 slug 组成（如 `20260922T112442Z-order-module.md`），主题 slug 只含 ASCII 字母、数字与 `-`、不出现中日韩字符，且按文件名排序即落盘先后顺序
+
+#### Scenario: 门批准之前不得写清单
+
+- **WHEN** 变更清单尚未获批
+- **THEN** 磁盘上不出现该次落盘的变更清单文件（门的唯一写盘例外仍只是源 IR）
+
+#### Scenario: 多轮落盘各留一份
+
+- **WHEN** 同一项目先后发生两次落盘（例如先后设计两个模块）
+- **THEN** 产生两个按时间戳区分的清单文件，后一次 MUST NOT 覆盖前一次
+
+#### Scenario: 退出后恢复对话
+
+- **WHEN** 对话退出后重开，并对同一项目再次落盘
+- **THEN** 恢复锚点是 `specs/design/`（按其既有内容做增量落盘），`.brainstorming/` 中既有清单不被当作待批准或已批准的证据，本轮仍照常呈交并取得批准
+
+#### Scenario: 过程产物不删除、不入库
+
+- **WHEN** 本次改动按项目惯例提交
+- **THEN** 提交范围只含文档与改动的条目，不含 `.brainstorming/`；技能也不删除该目录
+
+#### Scenario: 审查子代理遇到清单文件
+
+- **WHEN** 审查子代理在项目里看到 `.brainstorming/change-lists/` 下的文件
+- **THEN** 它不把该文件路由到任何模板、不按其判据评审，也不因其含提示性文字或占位标记而报告缺陷
+
+#### Scenario: 审查判据依赖变更清单内容
+
+- **WHEN** 审查子代理核对「图是否都在已批准的变更清单内」这类判据
+- **THEN** 它从本次落盘对应的那份清单文件读取内容，而不是因清单未落盘而无法核对
+
+### Requirement: 图例默认值的口径
+
+`skill/SKILL.md` MUST NOT 断言省略 `meta.legend` 时「默认即真实」这类无条件说法；它 SHALL 要求作者在省略图例之前先核对内核默认图例与本节节点语义是否一致，不一致时 SHALL 显式给出 `meta.legend`。该要求 MUST NOT 把内核默认图例的具体标签文本抄进 `skill/SKILL.md`——默认标签以内核 `scripts/diagram-engine/renderers/shared/i18n.mjs` 为唯一来源。
+
+#### Scenario: 依赖默认图例而默认与其语义不符
+
+- **WHEN** 一张图的节点类型在内核默认图例下的标签与本节正文语义不一致（如普通工作流节点对应内核的领域化默认标签）
+- **THEN** 技能要求作者显式给出 `meta.legend`，而不是依赖省略后的默认
+
+#### Scenario: SKILL 正文不得手抄内核默认标签
+
+- **WHEN** 检查 `skill/SKILL.md`
+- **THEN** 其中不出现内核默认图例的具体标签文本（如 `Agent logic`／`Agent 逻辑`、`Context / trace`／`上下文 / 追踪`）

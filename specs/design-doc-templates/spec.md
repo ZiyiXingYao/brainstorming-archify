@@ -464,3 +464,22 @@ MUST NOT 要求它单独在该子节占行。
 
 - **WHEN** 模块文档的对外依赖契约节没有任何指向 `specs/design/接口契约.md` 的分界指引
 - **THEN** 判定为缺陷
+
+### Requirement: 模板提示块的处置声明
+
+两份配图模板（`templates/architecture-doc-template.md`、`templates/module-doc-template.md`）SHALL 各含一条「使用说明」，声明 `<…>` 是占位与提示、落盘时替换为真实内容、MUST NOT 原样留在产物里；并 SHALL 点名「图示与出图约定」整块属提示，产物中只保留真实内容——即图的两行引用，或校验未过时的占位行。
+
+#### Scenario: 检查两份配图模板的声明
+
+- **WHEN** 检查 `templates/architecture-doc-template.md` 与 `templates/module-doc-template.md`
+- **THEN** 两份都含「不得把说明段原样留在产物里」这一声明
+
+#### Scenario: 落盘后检查产物
+
+- **WHEN** 检查据此模板生成的架构文档或模块文档
+- **THEN** 产物中不含模板的 `<…>` 提示段与「图示与出图约定」的说明文字，图位只保留两行引用或占位行
+
+#### Scenario: 声明覆盖配图约定整块
+
+- **WHEN** 阅读其中一条使用说明
+- **THEN** 它明确「图示与出图约定」整块属提示、不随产物落盘，而不是只笼统地说 `<…>` 是占位

@@ -293,3 +293,63 @@ test('brand-marks 源码不再含联网抓取实现', () => {
   assert.match(source, /export async function prepareDiagramBrandMarks/, '应保留品牌解析入口');
   assert.match(source, /never captures a site URL|no network request is reachable/, '应声明无抓取能力');
 });
+
+/* ---------------------------------------------------------------------------
+ * 变更清单落盘、图例口径与模板提示块声明（fix-gate-artifact-and-hint-blocks）
+ *
+ * 三条摩擦的规则侧：
+ *   ① 变更清单没有落盘形态与生命周期——唯一显然的位置 `specs/design/` 会被审查提示词
+ *      判成 routing defect，而该门自定「批准前不得写任何文件」又让清单无处可写；
+ *   ③ SKILL 断言「省略 `meta.legend` 时默认即真实」，而内核默认图例带上游 archify
+ *      领域语义（`workflow.backend` = `Agent logic` 等），照技能做会产出与正文矛盾的图；
+ *   ⑧ 两份配图模板把真规则混进 `<…>` 提示块，却没有像接口契约模板那样声明
+ *      「不得把说明段原样留在产物里」。
+ * 断言锚点取完整短语以免误伤；负向断言防旧口径回退。
+ * ------------------------------------------------------------------------- */
+
+test('SKILL.md 定明变更清单的落盘形态与时机', () => {
+  const skill = read(SKILL);
+  assert.match(skill, /\.brainstorming\/change-lists\//, '应给出变更清单落盘目录');
+  // 正文按排版硬换行，短语断言须容忍换行（用 \s+ 而非字面空格）。
+  assert.match(skill, /After\s+this gate is approved/, '应点明清单落在门批准之后');
+  assert.match(skill, /One file per\s+persist/, '应点明每次落盘一份、后次不覆盖前次');
+});
+
+test('审查提示词声明 .brainstorming/change-lists/ 属非受管文档', () => {
+  const prompt = read('skill/design-doc-reviewer-prompt.md');
+  assert.match(
+    prompt,
+    /`\.brainstorming\/change-lists\/` is not a managed design document/,
+    '应点名该目录为非受管文档',
+  );
+  assert.match(
+    prompt,
+    /the change-list file this persist wrote/,
+    'change-list coverage 判据应从本次落盘的那份清单文件读取内容',
+  );
+});
+
+test('SKILL.md 的 legend 口径为原则式，且不手抄内核默认标签', () => {
+  const skill = read(SKILL);
+  assert.doesNotMatch(
+    skill,
+    /its default is the truthful one/,
+    '不应再断言省略 legend 时默认即真实',
+  );
+  assert.match(
+    skill,
+    /Before omitting `meta\.legend`, check/,
+    '应要求省略前先核对内核默认图例与本节节点语义是否一致',
+  );
+  for (const label of ['Agent logic', 'Agent 逻辑', 'Context / trace', '上下文 / 追踪']) {
+    assert.ok(!skill.includes(label), `SKILL 正文不得手抄内核默认标签「${label}」`);
+  }
+});
+
+test('两份配图模板都声明提示块不得原样留在产物里', () => {
+  for (const rel of [ARCH_TEMPLATE, MODULE_TEMPLATE]) {
+    const template = read(rel);
+    assert.match(template, /不得把说明段原样留在产物里/, `${rel} 应含提示块的处置声明`);
+    assert.match(template, /「图示与出图约定」整块属提示/, `${rel} 应点名配图约定整块属提示`);
+  }
+});
