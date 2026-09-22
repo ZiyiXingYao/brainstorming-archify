@@ -207,7 +207,7 @@ node scripts/diagram-engine/test/run-valid.mjs
 
 ```bash
 # 1. 改版本号：README 顶部一行 + `## 版本` 表
-# 2. 全量测试必须绿（48 用例，含内核回归集）
+# 2. 全量测试必须绿（49 用例，含内核回归集）
 node --test tests/*.test.mjs
 # 3. 提交并推送
 git push origin main

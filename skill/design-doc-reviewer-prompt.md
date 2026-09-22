@@ -38,8 +38,8 @@ Subagent (general-purpose):
 
     - `01-架构设计.md` (the architecture overview, or 架构总纲) → the
       architecture template (架构模板)
-    - `0N-<模块名>.md` where N ≥ 2 (the module documents) → the module
-      template (模块模板)
+    - `NN-<模块名>.md` whose number is **02 or above** (the module documents —
+      `02-`, `03-`, … `10-`) → the module template (模块模板)
     - `specs/design/00-接口契约.md` (the interface contract, 接口契约模板) → the interface-contract template
 
     Documents that are **not** managed design documents route to no template
