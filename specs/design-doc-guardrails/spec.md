@@ -87,10 +87,10 @@ The design-doc-guardrails capability documents the published behavior for users 
 - **WHEN** 技能在未弄清对方的意图（目的、为谁、什么算成功）之前就开始提出特性或方案
 - **THEN** 自审判定为缺陷
 
-#### Scenario: 自审项数与 README 记录一致
+#### Scenario: 自审项数与重放清单记录一致
 
 - **WHEN** 自审清单增减了条目
-- **THEN** README《需要重放的改动清单》中记录该项数的条目必须同批更正
+- **THEN** `MAINTAINING.md`《需要重放的改动清单》中记录该项数的条目必须同批更正
 
 #### Scenario: 图与文字不一致未被自审发现
 
@@ -164,17 +164,18 @@ The design-doc-guardrails capability documents the published behavior for users 
 - **THEN** 引用的是 `skill/`、`templates/`、`scripts/`、`tests/` 下的实际位置，
   不存在仍指向仓库根平铺位置的残留
 
-### Requirement: README 与上游偏离清单同步
+### Requirement: 仓库文档与上游偏离清单同步
 
-README SHALL 更新架构章节数与章节清单、重写代码文件树说明、更新权威表与流程分层中的节号、更新特性说明，并在《同步上游》偏离清单中逐条登记对 `skill/SKILL.md` 的改动。
+README SHALL 更新架构章节数与章节清单、重写代码文件树说明、更新权威表与流程分层中的节号、更新特性说明；
+`MAINTAINING.md` SHALL 在《同步上游》偏离清单中逐条登记对 `skill/SKILL.md` 的改动。
 
-以下为**现行状态性要求**（已由此前的变更满足；任何后续变更 MUST NOT 使其退化）：模板登记为**三套**（架构总纲、功能模块、接口契约），含目录树、安装说明的文件清单与特性说明；README **每一处**提及 `node scripts/install.mjs --dry-run` 的位置都写明该模式同样受 **Node 主版本硬门约束**（版本不满足即以非零退出码结束且不写任何文件），措辞统一为「同样受 Node 主版本硬门约束」，不得让任何一处读起来像「预演不受版本限制」；《需要重放的改动清单》是**活指令**，其正文必须与当前技能现状一致，不得保留按旧基准写就的过时措辞。
+以下为**现行状态性要求**（已由此前的变更满足；任何后续变更 MUST NOT 使其退化）：模板登记为**三套**（架构总纲、功能模块、接口契约），含目录树、安装说明的文件清单与特性说明；README **每一处**提及 `node scripts/install.mjs --dry-run` 的位置都写明该模式同样受 **Node 主版本硬门约束**（版本不满足即以非零退出码结束且不写任何文件），措辞统一为「同样受 Node 主版本硬门约束」，不得让任何一处读起来像「预演不受版本限制」；`MAINTAINING.md` 的《需要重放的改动清单》是**活指令**，其正文必须与当前技能现状一致，不得保留按旧基准写就的过时措辞。
 
 **本次变更** SHALL 把 README 的目录树、安装命令、模板与文件清单、绘图内核说明全部改写为
 重排后的四目录形态（`skill/`、`templates/`、`scripts/`、`tests/`），SHALL 把安装命令统一为
 `node scripts/install.mjs`（含 `--dry-run`），SHALL 说明绘图内核的新入口与三件套产物形态，
-SHALL 把《需要重放的改动清单》中受重排影响的条目更新为新路径与项数，
-SHALL 在 `## 后续变更` 小节登记本次未纳入的相邻工作。
+SHALL 把 `MAINTAINING.md`《需要重放的改动清单》中受重排影响的条目更新为新路径与项数，
+SHALL 在 `MAINTAINING.md` 的 `## 后续变更登记` 小节登记本次未纳入的相邻工作。
 
 #### Scenario: 运行上游对比脚本
 
@@ -193,7 +194,7 @@ SHALL 在 `## 后续变更` 小节登记本次未纳入的相邻工作。
 
 #### Scenario: 第二个上游的同步说明
 
-- **WHEN** 阅读 README 的上游同步章节
+- **WHEN** 阅读 README 的「两个来源」一节与 `MAINTAINING.md` 的上游同步章节
 - **THEN** 能找到绘图内核所搬运的 `archify` 上游仓库、搬运时的版本标识与许可证归属，以及同步上游版本时如何用 `scripts/diagram-engine/test/run-valid.mjs` 判回归
 
 #### Scenario: 模板登记为三套
@@ -209,7 +210,8 @@ SHALL 在 `## 后续变更` 小节登记本次未纳入的相邻工作。
 #### Scenario: 目录树与实况一致
 
 - **WHEN** 把 README 的目录树与仓库根目录实际内容逐条对照
-- **THEN** 两者一致：顶层只有 `skill/`、`templates/`、`scripts/`、`tests/` 四个目录加仓库级文件，
+- **THEN** 两者一致：顶层只有 `skill/`、`templates/`、`scripts/`、`tests/` 四个技能目录，加
+  `specs/`（规格基线）、`changes/`（变更工作区）与仓库级文件（`README.md`、`MAINTAINING.md`、`LICENSE`），
   且树中列出的文件都实际存在
 
 #### Scenario: 旧路径残留
@@ -421,7 +423,7 @@ SHALL 在 `## 后续变更` 小节登记本次未纳入的相邻工作。
 
 ### Requirement: 上游基准坐标与重放清单与实况一致
 
-README SHALL 同时记录**分叉基准**与**已同步到的最新上游坐标**（tag 与 commit），不得只记录分叉基准而让读者以为已同步到最新版本。《需要重放的改动清单》的**正文** SHALL 与当前基准一致——经复核需改写的条目已改写、已由新基准覆盖的条目已删除，SHALL NOT 保留指向过时基准的坐标、示例命令或按旧行文写就的过时措辞；该清单是**活指令**，其每一条在被重放后都应与技能现状相符。仓库内所有「上游坐标」表述 SHALL 采用同一形态——**有稳定 tag 的上游写成「`<tag>`（commit `<短 sha>`）」；无稳定 tag 的上游写成「commit `<全值>`（技能包版本 `<version>`）」，两者缺一不可**。适用范围 SHALL 至少包含：README 上游坐标表格的**两个**单元格、README 的 `--ref` 示例命令、以及 README 与 `design-diagrams/UPSTREAM.md` 中 `archify` 基准的描述。某处本已满足该形态时，该处为 no-op，SHALL 在证据里如实记录而非含糊写"已对齐"。
+README SHALL 同时记录**分叉基准**与**已同步到的最新上游坐标**（tag 与 commit），不得只记录分叉基准而让读者以为已同步到最新版本。`MAINTAINING.md`《需要重放的改动清单》的**正文** SHALL 与当前基准一致——经复核需改写的条目已改写、已由新基准覆盖的条目已删除，SHALL NOT 保留指向过时基准的坐标、示例命令或按旧行文写就的过时措辞；该清单是**活指令**，其每一条在被重放后都应与技能现状相符。仓库内所有「上游坐标」表述 SHALL 采用同一形态——**有稳定 tag 的上游写成「`<tag>`（commit `<短 sha>`）」；无稳定 tag 的上游写成「commit `<全值>`（技能包版本 `<version>`）」，两者缺一不可**。适用范围 SHALL 至少包含：README 上游坐标表格的**两个**单元格、`MAINTAINING.md` 的 `--ref` 示例命令、以及 README 与 `scripts/diagram-engine/UPSTREAM.md` 中 `archify` 基准的描述。某处本已满足该形态时，该处为 no-op，SHALL 在证据里如实记录而非含糊写"已对齐"。
 
 **本次变更** SHALL 对该清单**逐条**复核（每条给出：仍适用／需改写——并写出改写后的正文／已由新基准覆盖而删除），据此更新清单正文，并把逐条结论作为**变更证据**留存（结论本身不作为永久需求的一部分）；SHALL 跑 `./sync-upstream.sh --ref <新坐标>` 复验，确认输出中不残留未说明的差异。
 

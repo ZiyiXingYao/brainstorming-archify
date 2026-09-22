@@ -12,14 +12,16 @@
 
 仓库 SHALL 按职责分为四个顶层目录：`skill/`（CodeBuddy 加载入口与其子代理提示词）、
 `templates/`（全部 Markdown 模板）、`scripts/`（可执行脚本与绘图内核）、`tests/`（冒烟测试、
-测试样例与上游回归集）；仓库根 SHALL 只保留 `README.md`、`LICENSE` 与 `.gitignore` 等仓库级文件。
+测试样例与上游回归集）。除此之外，仓库根 SHALL 只有两类非技能目录——`specs/`（已发布规格基线）与
+`changes/`（spec-superflow 变更工作区，被 `.gitignore` 忽略）——以及仓库级文件
+`README.md`、`MAINTAINING.md`、`LICENSE`、`.gitignore`。
 技能文件 MUST NOT 散落在仓库根。
 
 #### Scenario: 核对顶层目录
 
 - **WHEN** 列出仓库根目录
-- **THEN** 除仓库级文件外只有 `skill/`、`templates/`、`scripts/`、`tests/` 四个目录，
-  不存在平铺在根目录的 `SKILL.md`、模板或安装脚本
+- **THEN** 除 `specs/`、`changes/` 与仓库级文件外只有 `skill/`、`templates/`、`scripts/`、`tests/`
+  四个目录，不存在平铺在根目录的 `SKILL.md`、模板或安装脚本
 
 #### Scenario: 技能入口在约定位置
 

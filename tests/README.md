@@ -72,7 +72,8 @@ node tests/render.smoke.test.mjs
 品牌仅内置 ID，**自审恰为 15 项**，**修复顺序恰为 ①–⑥ 且 ⑤ 是标签超宽档**，
 且不含 `design-diagrams` 与 `--repo-root`；
 两份配图模板含三件套与两行引用，接口契约模板保持「不配图」口径；
-`skill/` 与 `templates/` 无旧技能名残留；README 只允许历史条目提及旧技能名；审查提示词含三件套判据。
+`skill/` 与 `templates/` 无旧技能名残留；旧技能名只允许留在 `MAINTAINING.md` 的历史条目里；
+审查提示词含三件套判据。
 
 其中「改名残留」这条的扫描面是**分级**的：`skill/`、`templates/` 扫 `design-diagrams` 与
 `codebuddy-brainstorming` **两代**历史名，`scripts/` 只扫后一代，另在三个目录内一律禁掉改名前的落盘目录

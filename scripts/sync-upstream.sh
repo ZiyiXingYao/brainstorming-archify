@@ -3,7 +3,7 @@
 #
 # This skill is a modified copy of superpowers' brainstorming skill. When
 # upstream changes, run this script to see the diff, then re-apply the
-# intended deviations (see the "同步上游" section in README.md).
+# intended deviations (see the "同步上游" section in MAINTAINING.md).
 #
 # Usage:
 #   ./sync-upstream.sh                 # compare against upstream default branch
@@ -78,4 +78,4 @@ diff -u "$UPSTREAM" "$LOCAL" || true
 echo "===== end of diff ====="
 echo
 echo "Next: if upstream changed, re-apply the intended deviations on top of it."
-echo "See the \"同步上游\" section in README.md for the list of deviations."
+echo "See the \"同步上游\" section in MAINTAINING.md for the list of deviations."

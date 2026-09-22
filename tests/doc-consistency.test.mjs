@@ -8,7 +8,7 @@
  *      自审 15 项、修复顺序 ①–⑥，且不含已被裁剪掉的机制名与 `--repo-root`；
  *   ② 三份模板齐备，两份配图模板含三件套与两行引用；
  *   ③ 迁移残留：活文件不得出现两代历史名与改名前的落盘目录——`skill/`、`templates/` 扫两代名，
- *      `scripts/` 只扫 `codebuddy-brainstorming`（README 只允许历史条目提及 `design-diagrams`）；
+ *      `scripts/` 只扫 `codebuddy-brainstorming`（`design-diagrams` 只允许留在 `MAINTAINING.md` 的历史条目里）；
  *   ④ 接口矩阵状态只在架构模板第 7 节定义一次，其余三份文件只引用、不复述；
  *   ⑤ 内核非测试文档不得再把已删命令（`archify brands` / `archify migrate` /
  *      `archify compare` / `archify validate` / `npm test`）写成现行能力；
@@ -155,10 +155,11 @@ test('活文件无改名残留（两代历史名与旧落盘目录）', () => {
   assert.deepEqual(offenders, [], `这些文件仍含改名前的名字：${offenders.join(', ')}`);
 });
 
-test('README 只允许历史条目提及旧技能名', () => {
-  const readme = read('README.md');
-  const hits = (readme.match(/design-diagrams/g) ?? []).length;
-  assert.ok(hits <= 3, `README 中旧技能名应只剩历史条目（≤3），实际 ${hits} 处`);
+test('旧技能名只允许留在维护文档的历史条目里', () => {
+  const hits = (rel) => (read(rel).match(/design-diagrams/g) ?? []).length;
+  assert.equal(hits('README.md'), 0, 'README 不应再出现旧技能名——历史条目已移入 MAINTAINING.md');
+  const kept = hits('MAINTAINING.md');
+  assert.ok(kept <= 3, `MAINTAINING.md 中旧技能名应只剩历史条目（≤3），实际 ${kept} 处`);
 });
 
 test('审查提示词含三件套判据', () => {
