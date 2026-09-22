@@ -1,6 +1,6 @@
 # CodeBuddy Brainstorming Skill
 
-一个可独立安装到 [CodeBuddy](https://cnb.cool/codebuddy/codebuddy-code) 的头脑风暴技能：**只管对话式设计探讨，最终（经你同意）按固定模板产出一套人类可读的实现级设计文档（一份全局架构总纲 + 每功能模块一份）。**
+一个可独立安装到 [CodeBuddy](https://cnb.cool/codebuddy/codebuddy-code) 的头脑风暴技能：**只管对话式设计探讨，最终（经你同意）按固定模板产出一套人类可读的实现级设计文档（一份全局架构总纲 + 每功能模块一份 + 按需产出的接口契约一份）。**
 
 它不写代码、不接下游技能、不产出 spec 模式文档——讨论结束后生成的文档，交给 `spec-superflow` 之类的流程继续消费。
 
@@ -8,7 +8,8 @@
 
 - **三路径分类**：Spike（探路）/ Bounded（有界）/ Architectural（架构级），按复杂度缩放流程；有界改动只在已有设计文档集时走增量，不为小改动制造整套文档
 - **落盘门（Persist Gate）**：讨论收敛后先问你要不要存成文件；只是随口问问就到此结束，不留垃圾文件
-- **两套模板**：架构总纲（`architecture-doc-template.md`）+ 功能模块（`module-doc-template.md`），章节结构锁定，产出即实现级设计
+- **三套模板**：架构总纲（`architecture-doc-template.md`）+ 功能模块（`module-doc-template.md`）+ 接口契约（`interface-contract-template.md`），章节结构锁定，产出即实现级设计
+- **接口契约按需产出**：数据模型与全部对外接口（MySQL / Redis / MQ / HTTP / gRPC / 动态库 API / TCP 七类）收敛为 `specs/design/接口契约.md` 的唯一权威源；项目命中七类中**任意一类**即必须产出，七类全不命中则不产出、并在变更清单中**逐族**写明不命中的判定依据；该文档**不配图**（不需要 `diagrams/`）
 - **增量落盘**：每次讨论先读盘再判决——只填模块内部细节时架构文档零改动；动了模块划分 / 类归属 / 文件树时才改受影响条目，其余逐字保留。带图的条目变更时，其**图与 IR 同批重渲染**并列入变更清单；**未变条目的图不动**（与文字逐字保留同理），条目删除则连带删图
 - **变更清单门**：写盘前先给变更清单（新建 / 修改哪些文件、各改哪几节、哪些逐字不动、新增了哪些依赖），批准后才落盘
 - **签名级跨模块契约**：未设计模块的依赖按签名级记录（函数名 / 入参 / 返回类型 / 边界语义为硬约束，参数类型等软约束由提供方定），记为「待提供」落到架构接口矩阵，对方模块设计时必须回应
@@ -22,7 +23,7 @@
 
 ## 安装
 
-两个技能要分别落到 `~/.codebuddy/skills/brainstorming/` 与 `~/.codebuddy/skills/design-diagrams/`。下面的方式一最省事；手工安装时，**权威文件清单是 `node install.mjs --dry-run` 的输出**。
+两个技能要分别落到 `~/.codebuddy/skills/brainstorming/` 与 `~/.codebuddy/skills/design-diagrams/`。下面的方式一最省事；手工安装时，**权威文件清单是 `node install.mjs --dry-run` 的输出**（预演模式**同样受 Node 主版本硬门约束**：版本不满足即以非零退出码结束、不写任何文件）。
 
 ### 方式一：一键安装（推荐）
 
@@ -37,7 +38,7 @@ node install.mjs
 | 命令 | 行为 |
 |------|------|
 | `node install.mjs` | 把 `brainstorming` 与 `design-diagrams` 两个技能装到 `~/.codebuddy/skills/` |
-| `node install.mjs --dry-run` | 只列出将写入的文件与目标路径，不改文件系统 |
+| `node install.mjs --dry-run` | 只列出将写入的文件与目标路径，不改文件系统；该模式**同样受 Node 主版本硬门约束**——版本不满足即以非零退出码结束、不写任何文件 |
 | `node install.mjs --target <dir>` | 指定安装根目录 |
 | `node install.mjs --help` | 打印用法 |
 
@@ -71,6 +72,7 @@ mkdir -p ~/.codebuddy/skills/brainstorming ~/.codebuddy/skills/design-diagrams
 cp /tmp/codebuddy-brainstorming/SKILL.md \
    /tmp/codebuddy-brainstorming/architecture-doc-template.md \
    /tmp/codebuddy-brainstorming/module-doc-template.md \
+   /tmp/codebuddy-brainstorming/interface-contract-template.md \
    /tmp/codebuddy-brainstorming/design-doc-reviewer-prompt.md \
    ~/.codebuddy/skills/brainstorming/
 
@@ -82,7 +84,7 @@ cp -R /tmp/codebuddy-brainstorming/design-diagrams/. ~/.codebuddy/skills/design-
 rm -rf /tmp/codebuddy-brainstorming
 ```
 
-两处 `cp` 的目标就是全部需要安装的内容；等价清单也可用 `node install.mjs --dry-run` 打印。
+两处 `cp` 的目标就是全部需要安装的内容；等价清单也可用 `node install.mjs --dry-run` 打印（预演模式**同样受 Node 主版本硬门约束**：版本不满足即以非零退出码结束、不写任何文件）。
 
 ### 方式四：从本机源码目录安装（开发者）
 
@@ -91,6 +93,7 @@ mkdir -p ~/.codebuddy/skills/brainstorming ~/.codebuddy/skills/design-diagrams
 cp /code/codebuddy-brainstorming/SKILL.md \
    /code/codebuddy-brainstorming/architecture-doc-template.md \
    /code/codebuddy-brainstorming/module-doc-template.md \
+   /code/codebuddy-brainstorming/interface-contract-template.md \
    /code/codebuddy-brainstorming/design-doc-reviewer-prompt.md \
    ~/.codebuddy/skills/brainstorming/
 cp -R /code/codebuddy-brainstorming/design-diagrams/. ~/.codebuddy/skills/design-diagrams/
@@ -100,7 +103,7 @@ cp -R /code/codebuddy-brainstorming/design-diagrams/. ~/.codebuddy/skills/design
 
 ```bash
 ls ~/.codebuddy/skills/brainstorming/
-# 期望输出：SKILL.md  architecture-doc-template.md  module-doc-template.md  design-doc-reviewer-prompt.md
+# 期望输出：SKILL.md  architecture-doc-template.md  module-doc-template.md  interface-contract-template.md  design-doc-reviewer-prompt.md
 
 ls ~/.codebuddy/skills/design-diagrams/
 # 期望输出应含：SKILL.md  bin  renderers  schemas  assets  test  …（整目录都在，不只是 SKILL.md）
@@ -169,12 +172,13 @@ specs/design/
 ├── 01-架构设计.md      架构总纲，全项目唯一一份（固定 01）
 ├── 02-<功能模块>.md    每个功能模块一份，文件名 = 模块名
 ├── 03-<功能模块>.md
+├── 接口契约.md         接口契约，按需产出且全项目唯一一份（文件名固定，不带数字前缀）
 └── diagrams/           同伴图文件：每张图为 <图名>.svg + 同名 .json 的 IR，文档以图片语法引用
 ```
 
 序号**追加不重排**：新增模块排在当前最大序号之后，即使逻辑上应靠前也不插入重排——否则会重命名既有文件、打断文档间引用。
 
-**架构总纲全局唯一**，所有模块的架构级内容（功能点需求、模块划分、核心类归属、类关系、接口、全局流程、文件树）都累积在这一份里；分模块的详细设计在各自的模块文档里。`specs/design/` 下永远只有一份架构文档，不存在"每个子项目一份架构文档"。
+**架构总纲全局唯一**，所有模块的架构级内容（功能点需求、模块划分、核心类归属、类关系、接口、全局流程、文件树）都累积在这一份里；分模块的详细设计在各自的模块文档里。`specs/design/` 下永远只有一份架构文档，不存在"每个子项目一份架构文档"。同理，**接口契约文档也全项目唯一一份**，文件名固定为 `接口契约.md`、**不带数字前缀**，不参与模块文档的序号排序。
 
 **模块划分粒度**：一个模块要能独立回答"它做什么、怎么用、依赖谁"，且能被一次讨论讲透。类详细设计一屏放不下、或要拆成多次讨论 → 该拆细；两个模块总是一起改、找不到清晰接缝 → 该合并。模块与代码目录不要求一一对应。
 
@@ -197,6 +201,8 @@ specs/design/
 **功能模块文档**（`module-doc-template.md`，7 节）：模块职责与边界 / 本模块类清单与关系 / 类详细设计（逐类的字段表 + 函数表）/ 对外依赖契约（签名级）/ 端到端业务流程 / 关键决策记录 / 待定问题与风险。其中第 1 节拆为「1.1 职责与边界」与「1.2 本模块参与的功能点」；第 2.1 节类清单是本模块**完整**类清单的唯一权威（架构总纲的核心类清单是各**已设计**模块类清单并集的子集）；第 5 节每条流程都标注**服务功能点**。
 
 对外依赖契约按调用方定义的硬约束（函数名、入参个数与含义、返回类型、边界语义）与提供方自定的软约束（参数具体类型、错误类型体系、内部结构）分列。
+
+**接口契约文档**（`interface-contract-template.md`）：**按需产出**——项目命中 MySQL / Redis / MQ / HTTP / gRPC / 动态库 API / TCP 七类对外接口中**任意一类**即必须产出；七类全不命中则不产出，并在变更清单中**逐族**写明不命中的判定依据（禁止以"本次未涉及接口"为由跳过判定）。落盘路径固定为 `specs/design/接口契约.md`，全项目唯一一份、**文件名不带数字前缀**，禁止起别名或并入其它文档。章节形状：`## 总则`（**不编号**）+ `## 1.` 至 `## 10.`，共 **11** 个二级标题（其中带号节 10 个）；七个接口类节（`1.` MySQL 数据表 / `2.` Redis key 与结构 / `3.` MQ 消息通道 / `4.` HTTP 接口 / `5.` gRPC 接口 / `6.` 动态库 API / `7.` TCP 接口）各含 `x.1` 清单表 / `x.2` 逐项契约 / `x.3` 该类规则三段，其后为第 8 节其他对外接口（兜底）、第 9 节跨类别共同约定、第 10 节待定问题与风险。该文档**不配图**，不需要 `diagrams/` 目录。
 
 **接口状态只在架构矩阵维护，三段收口**（避免「待提供」永远挂着、也避免两处状态对不上）：
 
@@ -228,7 +234,7 @@ specs/design/
 
 > 字段表、函数签名表、调用链表、接口矩阵**不算** spec 模式——它们是设计描述，是模板要求的，不是被禁止的验收条件。
 >
-> 一个 reviewer 子代理同时审两类文档：`01-架构设计.md` 对架构模板，其余对模块模板。写盘集超过 5 份时先审架构总纲，再按模块分批。
+> 一个 reviewer 子代理同时审三类文档：`01-架构设计.md` 对架构模板，模块文档对模块模板，`接口契约.md` 对接口契约模板。写盘集超过 5 份时先审架构总纲，再按模块分批。
 
 ## 目录结构
 
@@ -237,6 +243,7 @@ specs/design/
 ├── SKILL.md                          技能本体（英文，对齐上游）
 ├── architecture-doc-template.md      架构设计文档模板（中文骨架，12 节）
 ├── module-doc-template.md            功能模块设计文档模板（中文骨架，7 节）
+├── interface-contract-template.md    接口契约设计文档模板（中文骨架，`## 总则` + `## 1.`–`## 10.`，共 11 个二级标题）
 ├── design-doc-reviewer-prompt.md     子代理审查提示词（英文）
 ├── design-diagrams/                  出图技能（内部，搬运自 archify 上游；含渲染器 / schema / 测试集，见其 UPSTREAM.md）
 ├── install.mjs                       一键安装两个技能的入口脚本（Node ≥ 18）
@@ -253,6 +260,7 @@ specs/design/
 | `design-doc-reviewer-prompt.md` | 英文 | 同上 |
 | `architecture-doc-template.md` | 中文骨架 | 新文件，与上游无关；中文用户产出文档开箱即用 |
 | `module-doc-template.md` | 中文骨架 | 同上 |
+| `interface-contract-template.md` | 中文骨架 | 同上 |
 | `design-diagrams/SKILL.md` | 中文 | 新写的内部技能说明书，不是上游文件 |
 | `design-diagrams/` 其余 | 与上游一致（英文为主） | 上游 archify 逐字节搬运，不翻译，便于按 commit 比对 |
 | 产出的设计文档 | 跟随对话语言 | 人读的文档 |
@@ -332,6 +340,12 @@ rm -rf /tmp/sp
 27. （D-1）`## Incremental Persist Protocol` 新增 `Rule 7`——「A changed entry re-renders its diagram in the same persist」：图是被说明条目的派生产物，属改动这些条目的同一次落盘；改动带图条目（架构 §10 全局流程、模块 §5 流程、§6.3 模块依赖关系）时同批创建 / 重渲染其**图与 IR** 并列入变更清单；**未触及的条目不动其图**（与文字逐字保留同理）；新增流程即新增图，**删除流程即删除其图与 IR**（孤儿图是陈旧产物）；IR 与图同批刷新，不脱节
 28. （D-2）新增整节 `## Diagrams in the Design Documents`，与 `design-diagrams/SKILL.md` 的入参契约逐项一致：内部技能声明；出图时机（落盘阶段、随文档同批进变更清单门、不单独落盘）；IR 由本技能自该节已有内容生成、事实来源限定该节、用户不写 IR；Skill 工具调用与入口命令；五类图选型；落盘路径与图名派生（含冲突报双方、不静默改名）；同名流程共用一份图文件；md 引用形态与正文不得内联 `<svg>`；校验硬门（不过不产出、不覆盖既有同名）；两轮降级口径（目标错误数 = 错误级诊断条数不含警告、基线轮计入两轮、第 2 轮未低于第 1 轮即停且退出码 3、两选项交回用户不代选）；Node < 18 留占位降级且不阻塞落盘
 29. （D-3）`## Change List Gate` 清单项新增 `Diagrams` 一栏——「every diagram this persist will create or re-render, each named with the flow or section it belongs to, or `无`；**本栏还列出本次预期新建 / 重渲染、但未通过校验而以占位保留的图，标 `未通过校验` 并写明原因**；未变条目之图不列入也不重渲染」
+30. 认清**第三类受管设计文档——接口契约**：技能由「架构总纲 / 功能模块」两类扩为「架构总纲 / 功能模块 / 接口契约」三类，写盘指令同步引用 `interface-contract-template.md`
+31. 新增**机械的按需产出判定**：项目命中 MySQL / Redis / MQ / HTTP / gRPC / 动态库 API / TCP 七类对外接口中**任意一类**即必须产出接口契约文档；七类全不命中则不产出，并在变更清单中**逐族**写明不命中的判定依据；禁止以「本次未涉及接口」为由跳过判定
+32. 固定接口契约文档的落盘路径为 `specs/design/接口契约.md`，全项目唯一一份且**文件名不带数字前缀**；禁止起别名、禁止并入架构总纲或模块文档
+33. 自审清单新增**接口契约检查项**，其中明确**不得因该文档没有配图而报缺陷**（接口契约文档不配图是预期形态，报即为校准错误）
+34. 设计呈现覆盖清单由**两类扩为三类**（加入接口契约文档）
+35. 模板读取清单与审查子代理派发清单由**两类扩为三类**
 
 > **已核对但未改的处（对照说明，非偏离项）**：`## Process Flow` 未新出图节点——出图发生在既有的 "Write or merge docs" 环节内；`## Self-Review`、`## Subagent Review`、`## User Review Gate`、Red Flags 表、Checklist 均未扩图相关项——图相关的审查判据归 `design-doc-reviewer-prompt.md`。这几处经核对属**预期结果**，不是本次遗漏，不应登记为偏离。
 
