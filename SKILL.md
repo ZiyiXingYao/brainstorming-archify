@@ -159,6 +159,7 @@ Classify first, announce the path, then create a task for each item on
 your path and complete them in order.
 
 **Spike:**
+0. **Establish shared understanding** — identify the intended outcome, who it is for, and what success looks like; when that is missing, ask one focused question, then write back a short note your human partner can correct before proposing features or an approach.
 1. **Explore project context** — enough to frame the probe
 2. **Present question + probe plan** — 2-3 sentences
 3. **Get approval** — a nod is enough
@@ -166,6 +167,7 @@ your path and complete them in order.
 5. **Report findings** — a recommendation; label anything built as throwaway
 
 **Bounded:**
+0. **Establish shared understanding** — identify the intended outcome, who it is for, and what success looks like; when that is missing, ask one focused question, then write back a short note your human partner can correct before proposing features or an approach.
 1. **Explore project context** — check files, docs, recent commits
 2. **Ask clarifying questions** — one at a time, the ones that matter
 3. **Present short design in chat** — approach, files touched, testing
@@ -177,6 +179,7 @@ your path and complete them in order.
    document only if your human partner asks for one.
 
 **Architectural:**
+0. **Establish shared understanding** — identify the intended outcome, who it is for, and what success looks like; when that is missing, ask one focused question, then write back a short note your human partner can correct before proposing features or an approach.
 1. **Explore project context** — check files, docs, recent commits
 2. **Ask clarifying questions** — work the three-layer question list in **Understanding the idea**, in that list's order (functional-point layer → architecture layer → module layer), which maps onto the five design steps those layers name. One layer per message.
 3. **Propose 2-3 approaches** — with trade-offs and your recommendation
@@ -188,6 +191,7 @@ your path and complete them in order.
 ```dot
 digraph brainstorming {
     "Classify: spike / bounded / architectural" [shape=diamond];
+    establish_shared_understanding [label="Establish shared understanding", shape=box];
     "Present question + probe (2-3 sentences)" [shape=box];
     "Ask clarifying questions (bounded)" [shape=box];
     "Present short design in chat" [shape=box];
@@ -206,9 +210,10 @@ digraph brainstorming {
     "User reviews doc?" [shape=diamond];
     "Done" [shape=doublecircle];
 
-    "Classify: spike / bounded / architectural" -> "Present question + probe (2-3 sentences)" [label="spike"];
-    "Classify: spike / bounded / architectural" -> "Ask clarifying questions (bounded)" [label="bounded"];
-    "Classify: spike / bounded / architectural" -> "Ask clarifying questions" [label="architectural"];
+    "Classify: spike / bounded / architectural" -> establish_shared_understanding;
+    establish_shared_understanding -> "Present question + probe (2-3 sentences)" [label="spike"];
+    establish_shared_understanding -> "Ask clarifying questions (bounded)" [label="bounded"];
+    establish_shared_understanding -> "Ask clarifying questions" [label="architectural"];
     "Present question + probe (2-3 sentences)" -> "Investigate; report recommendation" [label="nod"];
     "Ask clarifying questions (bounded)" -> "Present short design in chat";
     "Present short design in chat" -> "User approves design?";
@@ -741,6 +746,7 @@ Check each item and fix in place:
     - **总则 completeness:** the 总则 section carries all three parts — the authority-source declaration, the scope-and-shape statement (which MUST include `in-process cross-module interfaces are not written in this document`), and the code-side artifact mapping table.
     - **Catch-all section:** outward interfaces outside the seven families go in section 8, never forced into sections 1–7 and never omitted; when the section is empty its heading stays, carrying `不适用：<reason>`.
     - **No diagrams:** the interface contract carries no SVG diagrams and needs no `diagrams/` directory — do not report a defect for its having none.
+14. **Shared understanding:** Per **Establish Shared Understanding**, was a shared understanding your human partner could assess and correct in place *before* any feature or approach was proposed, and updated once they corrected it? Entering feature or approach discussion without it is a defect.
 
 ## Subagent Review
 
