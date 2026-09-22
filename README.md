@@ -479,6 +479,28 @@ node scripts/diagram-engine/test/run-valid.mjs
 
 该项是在 `add-interface-contract-template` 变更的归档验证中被实测确认的，当时按该变更的范围边界未处理。
 
+### 技能 dry-run 暴露的待修问题（2026-09-22）
+
+用**未受污染**的代理按 `skill/SKILL.md` 实跑了一次「三模块 × 四轮」的设计（会议室预约服务），
+结论 `有阻塞`。其中**本次改动引入的**四条已当场修掉：①IR 文件名须先按最终命名写（三件套继承
+IR 的 basename，否则产出名不合规）；②`validate` 子命令的完整用法未在技能里给出；
+③架构段的「网格优先」写得像「不需要任何位置信息」（实际仍需逐组件给逻辑行/列）；
+④模板里「作者不手写 IR」与技能里「由代理生成 IR」措辞对不上。
+
+**以下为尚未处理的发现**，多数是技能设计层面的既有问题（非本次引入），登记以免丢失：
+
+| 待修 | 问题 | 严重度 |
+|---|---|---|
+| `interface-matrix-status-gaps` | 接口矩阵的状态枚举缺「调用方未设计、提供方已设计」这一档（现有三档都不适用）；架构**首轮**落盘时所有调用方都未设计，签名没有合法的被授权方 | Critical |
+| `module-flow-alignment-unsolvable` | 模块模板 §1.2「对应流程」、§5「每条流程须写服务功能点」与架构 §10「只登记功能流程、不登记实现级流程」三条联立，在「纯模块内部流程」上必然违反其一 | Critical |
+| `handoff-contract-undefined` | 技能说产物「交给下游流程消费」，但交接契约未定义（交接什么、以什么形态），接口契约在其中扮演什么角色也没说 | Important |
+| `repair-order-label-width` | 修复顺序 ①–⑤ 未覆盖实测最常见的失败「节点标签宽于节点」 | Important |
+| `matrix-column-authority` | 矩阵「详见」列的权威方向（调用方文档 vs 提供方文档）与「引用必须可解析」冲突：调用方未设计时只能指向标着「（待创建）」的文档 | Important |
+| `process-flow-diagram-gate-node` | `## Process Flow` 的流程图里没有绘图规划 Gate 节点（正文有、图里没有） | Minor |
+
+实测**验证成功、无需改动**的三条核心机制：同一流程跨文档共用同一组三件套（`01`/`02`/`03`
+三处引用同一组文件，改名后只重渲染一次三处同时更新）、三件套 + 固定两行引用、增量只改受影响条目。
+
 ## 来源与许可
 
 本技能改编自 [superpowers](https://github.com/obra/superpowers) 的 `brainstorming` 技能

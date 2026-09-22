@@ -526,11 +526,31 @@ language — they do not write IR and do not need to know a schema exists.
 node scripts/diagram-engine/bin/render.mjs render <type> <ir.json> <outdir>
 ```
 
-It writes the three same-prefix artifacts into `<outdir>`, runs the geometry
-validation first (see **The validation hard gate**), and exits non-zero without
-writing anything when validation fails. `<basename>` is the IR file name without
-its extension. Its two sibling subcommands are `validate` (check only, write
-nothing) and `doctor` (environment and kernel integrity self-check).
+**Name the IR file with the final diagram name first.** The triple inherits the
+IR file's base name, so write the IR as
+`<document number>-<diagram name>.<diagram type>.json` — e.g.
+`01-module-dependency.architecture.json` → `01-module-dependency.architecture.{json,svg,html}`.
+Getting this wrong is the one way to end up with a non-conforming file name.
+
+`render` writes the three same-prefix artifacts into `<outdir>`, runs the
+geometry validation first (see **The validation hard gate**), and exits non-zero
+without writing anything when validation fails.
+
+Its two sibling subcommands:
+
+```bash
+node scripts/diagram-engine/bin/render.mjs validate <type> <ir.json> [--json] [--layout-json] [--quality standard|showcase]
+node scripts/diagram-engine/bin/render.mjs doctor
+```
+
+`validate` checks and writes nothing; a showcase pass prints
+`9 artifact checks; composition showcase: 0 errors, 0 warnings`. `doctor`
+self-checks the environment and the kernel. Both pass their exit code through.
+
+**Scope note.** The three whole-session gates (Persist, Change List, User
+Review) are unchanged. This Diagram Planning Gate is a **narrow gate inside the
+persist**: it runs immediately before you generate any IR, and its confirmed plan
+is re-checked inside the Change List Gate rather than replacing it.
 
 ### Where a diagram lands, and its name
 
@@ -648,8 +668,10 @@ Shared `meta` fields:
 One left-to-right spine with short vertical branches. Prefer **6–12 primary
 components**; group only real ownership, trust, process or deployment
 boundaries — boundaries do not replace relationships. Grid placement is preferred
-where the schema supports it; free positions are for a bounded exception, not for
-prose-level coordinate planning. Keep external actors outside the system boundary
+where the schema supports it: in grid mode you still state each component's
+**logical** placement (its grid `row`/`col`), you simply never plan pixel
+coordinates; free `pos` is for a bounded exception. Either way the renderer, not
+you, computes the actual geometry. Keep external actors outside the system boundary
 when that is factually true.
 
 Component types: `frontend`, `backend`, `database`, `cloud`, `security`,
