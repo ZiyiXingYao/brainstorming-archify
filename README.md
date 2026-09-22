@@ -1,5 +1,39 @@
 # CodeBuddy Brainstorming Skill
 
+> **本轮变更摘要：目录、安装与出图机制已改。**
+> 权威来源：`skill/SKILL.md`（技能行为）、`scripts/diagram-engine/UPSTREAM.md`（内核与上游关系）、
+> `node scripts/install.mjs --dry-run`（安装清单）。
+>
+> **仓库结构（四目录）**
+>
+> ```
+> codebuddy-brainstorming/
+> ├── skill/          SKILL.md（技能入口）+ design-doc-reviewer-prompt.md
+> ├── templates/      三份模板：architecture / module / interface-contract
+> ├── scripts/        install.mjs、sync-upstream.sh、diagram-engine/（绘图内核）
+> ├── tests/          fixtures/ + render.smoke.test.mjs + README.md
+> ├── specs/          已发布规格基线（design-doc-guardrails / design-doc-templates / diagram-engine）
+> ├── README.md
+> └── LICENSE
+> ```
+>
+> **安装（单一技能）**：不再安装两个技能。一条命令把 brainstorming 装到
+> `~/.codebuddy/skills/brainstorming/`：`node scripts/install.mjs`
+> （`--dry-run` 只列清单不落盘，**同样受 Node ≥ 18 硬门约束**；目标已存在时先整体备份为
+> `brainstorming.bak-<时间戳>`；装完对已安装副本跑 `diagram-engine doctor` 自检）。
+> 绘图内核作为**技能内部构件**装在 `brainstorming/scripts/diagram-engine/`，
+> **不再是一个独立技能**，也没有第二份 `SKILL.md`。
+>
+> **出图**：唯一入口 `node scripts/diagram-engine/bin/render.mjs render <type> <ir.json> <outdir>`，
+> 一次产出**三件套**（`<basename>.json` / `.svg` / `.html`）。设计文档落
+> `<项目根>/specs/design/`，图落其下的 `diagrams/`，两行引用
+> （`![说明](diagrams/<序号>-<图名>.<图类型>.svg)` + `> [打开交互式版本](…)`）。
+>
+> **上游坐标**：技能文本基准 `superpowers` v6.4.1（commit `5bf4e78`）；绘图内核基准
+> `archify` commit `5289f6867f048a7450ec5718f58459613a84cf41`（技能包 `2.17.0-dev.1`），
+> 本次已按「只保留 5 类图渲染能力」裁剪，明细见
+> `scripts/diagram-engine/UPSTREAM.md`。
+
 一个可独立安装到 [CodeBuddy](https://cnb.cool/codebuddy/codebuddy-code) 的头脑风暴技能：**只管对话式设计探讨，最终（经你同意）按固定模板产出一套人类可读的实现级设计文档（一份全局架构总纲 + 每功能模块一份 + 按需产出的接口契约一份）。**
 
 它不写代码、不接下游技能、不产出 spec 模式文档——讨论结束后生成的文档，交给 `spec-superflow` 之类的流程继续消费。
@@ -17,47 +51,63 @@
 - **功能点锚点**：架构总纲枚举全部功能点，每条端到端流程标注它服务的功能点，需求与流程双向可查；模块文档第 1.2 节列出本模块参与的功能点
 - **核心类串联**：架构总纲只登记串联整体功能的核心类（第 8 节），完整类清单落在各模块文档的类清单里、由它唯一权威；架构核心类清单是**各已设计模块**类清单并集的子集，属于尚未设计模块的核心类先临时登记、待该模块落盘时收口
 - **三道审查**：AI 自审 → 子代理独立审查 → 用户确认
-- **自动出图**：落盘阶段由内部技能 `design-diagrams` 自动出图（架构图 / 工作流图 / 时序图 / 数据流图 / 生命周期图五类，**不做类图**——上游无此能力），图以同伴 SVG 落在设计文档旁的 `diagrams/` 下、文档用图片语法引用；**用户不单独调用出图技能**，图随文档同批进变更清单门
+- **自动出图（绘图规划 Gate + 内置绘图内核）**：图先在**绘图规划 Gate** 里规划（要哪些图、各是什么图类型、落在哪一节），你确认后由内置绘图内核 `scripts/diagram-engine/bin/render.mjs` 一次产出**三件套**（`.json` / `.svg` / `.html`）；架构图 / 工作流图 / 时序图 / 数据流图 / 生命周期图五类（**不做类图**——上游无此能力），单图主节点 ≤ 12。三件套落在 `<项目根>/specs/design/diagrams/`，文件名 `<文档序号>-<图名>.<图类型>.<ext>`；文档以**固定两行**引用（图片行指 `.svg`，紧随一行链接指 `.html` 交互版）。同一流程跨文档**共用同一组三件套**，序号取归属文档。图随文档同批进变更清单门；**用户不单独调用出图能力**
 - **依赖分两层**：设计文档本身是**纯 Markdown**，读写不需要任何运行时；**出图需要 Node，最低 18**——无 Node 或版本过低时跳过出图、在文档中留占位说明，**不阻塞文档落盘**
 - **可同步上游**：`SKILL.md` 保留英文原文，便于与 superpowers 上游 diff 和同步；出图技能搬运自 archify 上游，另有独立同步说明（均见「同步上游」）
 
 ## 安装
 
-两个技能要分别落到 `~/.codebuddy/skills/brainstorming/` 与 `~/.codebuddy/skills/design-diagrams/`。下面的方式一最省事；手工安装时，**权威文件清单是 `node install.mjs --dry-run` 的输出**（预演模式**同样受 Node 主版本硬门约束**：版本不满足即以非零退出码结束、不写任何文件）。
+**单一技能**：一条命令装到 `~/.codebuddy/skills/brainstorming/`——绘图内核作为技能内部构件落在
+`brainstorming/scripts/diagram-engine/`，**不再有第二个技能**，也没有第二份 `SKILL.md`。手工
+安装时，**权威文件清单是 `node scripts/install.mjs --dry-run` 的输出**（预演模式**同样受 Node
+主版本硬门约束**：版本不满足即以非零退出码结束、不写任何文件）。
 
 ### 方式一：一键安装（推荐）
 
-仓库根提供 `install.mjs`，一条命令把 `brainstorming` 与 `design-diagrams` 两个技能装到 `~/.codebuddy/skills/`：
-
 ```bash
-node install.mjs
+node scripts/install.mjs
 ```
 
-启动即检查 Node 主版本，**低于 18 时以非零退出码结束且不写任何文件**；安装完成后会真实渲染一张样例 SVG 做自检，把「装了但跑不起来」暴露在安装期而不是首次出图时。
+四道行为约束：
+
+1. 启动即检查 Node 主版本，**低于 18 时以非零退出码结束且不写入任何文件**；
+2. 目标技能目录已存在时**先整体备份**为 `brainstorming.bak-<时间戳>`，不就地覆盖、不删你的既有文件；
+3. 拷贝规则：`skill/` 内文件**平铺**到目标根，`templates/` 与 `scripts/` **整目录**复制；
+4. 装完对**已安装副本**执行 `bin/render.mjs doctor` 自检——把「装了但跑不起来」暴露在安装期，而不是首次出图时。
 
 | 命令 | 行为 |
 |------|------|
-| `node install.mjs` | 把 `brainstorming` 与 `design-diagrams` 两个技能装到 `~/.codebuddy/skills/` |
-| `node install.mjs --dry-run` | 只列出将写入的文件与目标路径，不改文件系统；该模式**同样受 Node 主版本硬门约束**——版本不满足即以非零退出码结束、不写任何文件 |
-| `node install.mjs --target <dir>` | 指定安装根目录 |
-| `node install.mjs --help` | 打印用法 |
+| `node scripts/install.mjs` | 安装 `brainstorming` 技能到 `~/.codebuddy/skills/brainstorming/` |
+| `node scripts/install.mjs --dry-run` | 只列出将写入的文件与目标路径，不改文件系统；该模式**同样受 Node 主版本硬门约束** |
+| `node scripts/install.mjs --target <dir>` | 指定安装根目录 |
+| `node scripts/install.mjs --help` | 打印用法 |
 
-### 方式二：git clone（brainstorming，并把 design-diagrams 放到同级）
+**装成的形态**
 
-`brainstorming` 的仓库本身就是技能目录，可直接克隆；`design-diagrams` 需作为**同级技能**再放一份：
+```
+~/.codebuddy/skills/brainstorming/
+├── SKILL.md                       ← skill/ 内文件平铺到目标根
+├── design-doc-reviewer-prompt.md
+├── templates/                     ← 三份模板整目录复制
+└── scripts/
+    ├── install.mjs
+    ├── sync-upstream.sh
+    └── diagram-engine/            ← 裁剪后的绘图内核（唯一入口 bin/render.mjs）
+```
+
+仓库根的 `tests/` **不进安装**——它是仓库自测面；内核自带的上游回归集
+`scripts/diagram-engine/test/` 也**不进安装**（约 2.2 MB，运行时零用途，成因见
+`scripts/diagram-engine/UPSTREAM.md` 第 3 节）。
+
+### 方式二：git clone
 
 ```bash
 git clone https://github.com/ZiyiXingYao/codebuddy-brainstorming.git \
   ~/.codebuddy/skills/brainstorming
-
-# design-diagrams 是本仓库内的子目录，要拷成同级技能才会被加载
-# （`design-diagrams/.` 表示拷「目录内容」进已存在的目标目录；少了这个 `/.'`，
-#   目标已存在时源目录会被整个放进目标里，形成 design-diagrams/design-diagrams/）
-cp -R ~/.codebuddy/skills/brainstorming/design-diagrams/. \
-      ~/.codebuddy/skills/design-diagrams/
 ```
 
-更新时 `git pull` 只更新 `brainstorming`，`design-diagrams` 的同级副本要重新拷一次（见「更新」）。
+本仓库根是**一个技能**的源码树。注意技能入口在 `skill/SKILL.md`，而 CodeBuddy 要求
+`SKILL.md` 位于技能目录根——所以克隆后请跑一次安装脚本（方式一），或按「方式三」的清单手工平铺。
 
 ### 方式三：下载后拷贝
 
@@ -65,48 +115,44 @@ cp -R ~/.codebuddy/skills/brainstorming/design-diagrams/. \
 # 1. 克隆到临时目录
 git clone --depth 1 https://github.com/ZiyiXingYao/codebuddy-brainstorming.git /tmp/codebuddy-brainstorming
 
-# 2. 确保技能目录存在
-mkdir -p ~/.codebuddy/skills/brainstorming ~/.codebuddy/skills/design-diagrams
+# 2. 建立目标目录
+mkdir -p ~/.codebuddy/skills/brainstorming
 
-# 3. 拷贝 brainstorming 技能文件（跳过 .git / README / LICENSE / 同步脚本）
-cp /tmp/codebuddy-brainstorming/SKILL.md \
-   /tmp/codebuddy-brainstorming/architecture-doc-template.md \
-   /tmp/codebuddy-brainstorming/module-doc-template.md \
-   /tmp/codebuddy-brainstorming/interface-contract-template.md \
-   /tmp/codebuddy-brainstorming/design-doc-reviewer-prompt.md \
+# 3. skill/ 内文件平铺到目标根
+cp /tmp/codebuddy-brainstorming/skill/SKILL.md \
+   /tmp/codebuddy-brainstorming/skill/design-doc-reviewer-prompt.md \
    ~/.codebuddy/skills/brainstorming/
 
-# 4. 拷贝 design-diagrams 技能（整目录搬运：含 bin / renderers / schemas / assets / test 等，
-#    缺了任何一部分出图都会跑不起来，不能只拷 SKILL.md）
-cp -R /tmp/codebuddy-brainstorming/design-diagrams/. ~/.codebuddy/skills/design-diagrams/
+# 4. templates/ 与 scripts/ 整目录复制（scripts 内含绘图内核，缺任何一部分出图都会跑不起来）
+mkdir -p ~/.codebuddy/skills/brainstorming/templates ~/.codebuddy/skills/brainstorming/scripts
+cp -R /tmp/codebuddy-brainstorming/templates/. ~/.codebuddy/skills/brainstorming/templates/
+cp -R /tmp/codebuddy-brainstorming/scripts/.  ~/.codebuddy/skills/brainstorming/scripts/
 
 # 5. 清理
 rm -rf /tmp/codebuddy-brainstorming
 ```
 
-两处 `cp` 的目标就是全部需要安装的内容；等价清单也可用 `node install.mjs --dry-run` 打印（预演模式**同样受 Node 主版本硬门约束**：版本不满足即以非零退出码结束、不写任何文件）。
+等价清单同样可用 `node scripts/install.mjs --dry-run` 打印（预演模式**同样受 Node 主版本硬门约束**）。
 
 ### 方式四：从本机源码目录安装（开发者）
 
+最省事的就是直接跑安装脚本：
+
 ```bash
-mkdir -p ~/.codebuddy/skills/brainstorming ~/.codebuddy/skills/design-diagrams
-cp /code/codebuddy-brainstorming/SKILL.md \
-   /code/codebuddy-brainstorming/architecture-doc-template.md \
-   /code/codebuddy-brainstorming/module-doc-template.md \
-   /code/codebuddy-brainstorming/interface-contract-template.md \
-   /code/codebuddy-brainstorming/design-doc-reviewer-prompt.md \
-   ~/.codebuddy/skills/brainstorming/
-cp -R /code/codebuddy-brainstorming/design-diagrams/. ~/.codebuddy/skills/design-diagrams/
+node /code/codebuddy-brainstorming/scripts/install.mjs
 ```
+
+等价的手工拷贝同「方式三」，把 `/tmp/codebuddy-brainstorming` 换成
+`/code/codebuddy-brainstorming` 即可。整条链**不需要 `node_modules`**。
 
 ## 验证安装
 
 ```bash
 ls ~/.codebuddy/skills/brainstorming/
-# 期望输出：SKILL.md  architecture-doc-template.md  module-doc-template.md  interface-contract-template.md  design-doc-reviewer-prompt.md
+# 期望：SKILL.md  design-doc-reviewer-prompt.md  scripts  templates
 
-ls ~/.codebuddy/skills/design-diagrams/
-# 期望输出应含：SKILL.md  bin  renderers  schemas  assets  test  …（整目录都在，不只是 SKILL.md）
+ls ~/.codebuddy/skills/brainstorming/scripts/diagram-engine/bin/
+# 期望：render.mjs  render-driver.mjs      ← 唯一入口 + 内部驱动
 
 head -4 ~/.codebuddy/skills/brainstorming/SKILL.md
 # 期望输出：
@@ -115,41 +161,39 @@ head -4 ~/.codebuddy/skills/brainstorming/SKILL.md
 # description: ...
 # ---
 
-head -4 ~/.codebuddy/skills/design-diagrams/SKILL.md
-# 期望输出：
-# ---
-# name: design-diagrams
-# description: ...
-# ---
-
-# 出图能力自检（需 Node ≥ 18；跑技能自带的测试子集，退出码 0 = 清单内全过）
-node ~/.codebuddy/skills/design-diagrams/test/run-valid.mjs
+# 出图能力自检（需 Node ≥ 18；退出码 0 = 全部检查通过）
+node ~/.codebuddy/skills/brainstorming/scripts/diagram-engine/bin/render.mjs doctor
 ```
 
-安装是否完整，看**两个技能目录都在**、且（按「方式一」安装时）`install.mjs` 打印的自动自检通过——即 `自检：渲染 architecture 样例 SVG … 通过`。`run-valid.mjs` 是**仓库内**的回归入口：它同样能在安装副本里跑，但会**跳过**少数需要仓库上下文（技能包之外的文件）的用例——例如 `install.test.mjs` 需要仓库根的 `install.mjs`，安装副本里没有这个文件——这些用例在副本里显示为 `skipped` 而不是 `failed`，属**预期**，不代表安装有问题。用「方式一」安装时，`install.mjs` 已自动做过一次渲染自检。
+安装是否完整，看 **`doctor` 是否以退出码 0 结束**（用「方式一」安装时 `install.mjs`
+已自动跑过一次，并把「11 项检查全部 ok」打在安装输出里）。
+
+**仓库自测面不进安装**——它判的是源码树而不是安装副本：
+
+```bash
+node tests/render.smoke.test.mjs                 # 五类图各渲染一次，校验三件套（5 个用例）
+node scripts/diagram-engine/test/run-valid.mjs   # 上游回归集（显式白名单，见 UPSTREAM.md）
+```
 
 安装后需要**新开一个 CodeBuddy 会话**，技能才会被加载。
 
 ## 更新
 
 ```bash
-# 方式一（一键安装）安装的：重跑一次，两个技能一起覆盖并重新自检
-node install.mjs
+# 方式一（一键安装）：重跑一次即可——目标先被备份为 brainstorming.bak-<时间戳>，再覆盖并自检
+node scripts/install.mjs
 
-# 方式二（git clone）安装的：pull 之后 design-diagrams 的同级副本要重新拷
-# （同样必须写 `design-diagrams/.`：目标目录已存在时，少了 `/.'` 只会把源目录
-#   嵌套进目标里，design-diagrams 本身并没有被更新）
+# 方式二（git clone）：pull 之后重跑安装脚本；或按「方式三」手工覆盖
 cd ~/.codebuddy/skills/brainstorming && git pull
-cp -R ~/.codebuddy/skills/brainstorming/design-diagrams/. ~/.codebuddy/skills/design-diagrams/
 ```
-
-（方式三、方式四安装的，重新执行对应拷贝命令覆盖即可）
 
 ## 卸载
 
 ```bash
-rm -rf ~/.codebuddy/skills/brainstorming ~/.codebuddy/skills/design-diagrams
+rm -rf ~/.codebuddy/skills/brainstorming
 ```
+
+（安装时若产生过 `brainstorming.bak-<时间戳>` 备份目录，按需一并清理。）
 
 ## 使用
 
@@ -160,7 +204,7 @@ rm -rf ~/.codebuddy/skills/brainstorming ~/.codebuddy/skills/design-diagrams
 3. 收敛设计
 4. **落盘门**：询问是否写入文件——不要就直接结束
 5. **变更清单门**：给出将新建 / 修改哪些文件、各改哪几节、哪些逐字不动、新增了哪些未落地依赖、**本次将新建 / 重渲染哪些图**、有哪些待裁决差异——批准后才落盘
-6. 按模板生成文档到 `specs/design/`；落盘阶段**自动出图**（内部技能 `design-diagrams`），图以同伴 SVG 落在 `specs/design/diagrams/` 下，与文档同批写盘
+6. 按模板生成文档到 `specs/design/`；出图前先过**绘图规划 Gate**（确认要哪些图、各是什么图类型、落在哪一节），确认后由内置绘图内核把**三件套**写进 `specs/design/diagrams/`，与文档同批写盘
 7. AI 自审 → 子代理审查 → **用户审查门**：你确认内容
 
 产出文档的语言跟随对话语言（中文对话产中文文档）。模板保持固定结构，不随语言改变。路径基准为**项目根**。
@@ -173,7 +217,10 @@ specs/design/
 ├── 02-<功能模块>.md    每个功能模块一份，文件名 = 模块名
 ├── 03-<功能模块>.md
 ├── 接口契约.md         接口契约，按需产出且全项目唯一一份（文件名固定，不带数字前缀）
-└── diagrams/           同伴图文件：每张图为 <图名>.svg + 同名 .json 的 IR，文档以图片语法引用
+└── diagrams/           图：每张图一组**三件套**，同前缀、同目录，不拆散
+    ├── 01-<图名>.<图类型>.json   源 IR（判断该图是否过期用）
+    ├── 01-<图名>.<图类型>.svg    文档里显示的静态图
+    └── 01-<图名>.<图类型>.html   完整交互式页面（文档第二行链接指向它）
 ```
 
 序号**追加不重排**：新增模块排在当前最大序号之后，即使逻辑上应靠前也不插入重排——否则会重命名既有文件、打断文档间引用。
@@ -221,7 +268,16 @@ specs/design/
 
 **流程对齐规则**：架构总纲第 10 节登记的**每一条功能流程**（包括只在单个模块内完成的）都与各参与模块第 5 节**同名出现**；只有纯模块内部的**实现级流程**留在模块文档，不登记到架构总纲。
 
-**图（diagram）**：架构总纲**第 6.3 节模块依赖关系**、**第 10 节每条全局功能流程**、模块文档**第 5 节每条端到端业务流程**，都**必须**配一张随文档落盘的 SVG 图——登记了却没有图的判定为缺陷。图类型按描述对象的性质选（跨模块调用顺序 → 时序图；泳道责任与审批分支 → 工作流图；状态流转与重试 → 生命周期图；数据来源处理去向与敏感边界 → 数据流图；整体结构 → 架构图），不按作者偏好挑；**同一流程名在架构总纲与模块文档共用同一张图文件**（两处图类型必须一致）。图由 `brainstorming` 在落盘阶段**自动**调用内部技能 `design-diagrams` 生成，**用户不写 IR、不需要知道 schema 存在**；文档以 `![<说明>](diagrams/<图名>.svg)` 引用，**正文不得内联 `<svg>` 标签**。**类关系三节（架构 8.2 / 8.3、模块 2.2）仍用文字或 mermaid**——本次不做类图（上游 `archify` 无类图能力），这是**预期结果，不是缺陷**。出图需要 **Node ≥ 18**：环境不满足时跳过出图、留占位说明，不阻塞文档落盘。
+**图（diagram）**：架构总纲**第 6.3 节模块依赖关系**、**第 10 节每条全局功能流程**、模块文档**第 5 节每条端到端业务流程**，都**必须**配图——登记了却没有图判定为缺陷。出图走**绘图规划 Gate**：先确认「要哪些图、各是什么图类型、落在哪一节」，你确认后由内置绘图内核（`scripts/diagram-engine/`，**不是独立技能**）一次产出**三件套**。图类型按描述对象的性质选（跨模块调用顺序 → 时序图；泳道责任与审批分支 → 工作流图；状态流转与重试 → 生命周期图；数据来源处理去向与敏感边界 → 数据流图；整体结构 → 架构图），不按作者偏好挑；**单图主节点 ≤ 12**，更复杂的内容必须拆成多张图。**用户不写 IR、不需要知道 schema 存在**。
+
+落点与引用都是硬规则：三件套落在 `<项目根>/specs/design/diagrams/`（与文档同根，不允许放项目根 `diagrams/` 或其他位置），文件名 `<文档序号>-<图名>.<图类型>.<ext>`（如 `03-task-flow.workflow.svg`）；文档固定写**两行**：
+
+```markdown
+![任务下发流程](diagrams/03-task-flow.workflow.svg)
+> [打开交互式版本](diagrams/03-task-flow.workflow.html)
+```
+
+相对路径相对文档自身目录，不允许绝对路径或 `../` 跳转；**正文不得内联 `<svg>` 标签**。同一流程名跨文档**共用同一组三件套**，序号取归属文档（跨模块流程归架构总纲 `01-`）。**类关系三节（架构 8.2 / 8.3、模块 2.2）仍用文字或 mermaid**——不做类图（上游 `archify` 无此能力），这是**预期结果，不是缺陷**。出图需要 **Node ≥ 18**：环境不满足时跳过出图、留占位说明，不阻塞文档落盘。
 
 出现分歧时以谁为准（避免两边互相"必须一致"却判不出改哪边）：
 
@@ -240,14 +296,29 @@ specs/design/
 
 ```
 .
-├── SKILL.md                          技能本体（英文，对齐上游）
-├── architecture-doc-template.md      架构设计文档模板（中文骨架，12 节）
-├── module-doc-template.md            功能模块设计文档模板（中文骨架，7 节）
-├── interface-contract-template.md    接口契约设计文档模板（中文骨架，`## 总则` + `## 1.`–`## 10.`，共 11 个二级标题）
-├── design-doc-reviewer-prompt.md     子代理审查提示词（英文）
-├── design-diagrams/                  出图技能（内部，搬运自 archify 上游；含渲染器 / schema / 测试集，见其 UPSTREAM.md）
-├── install.mjs                       一键安装两个技能的入口脚本（Node ≥ 18）
-├── sync-upstream.sh                  与 superpowers 上游对比 SKILL.md 的辅助脚本（不覆盖 archify）
+├── skill/                            CodeBuddy 加载入口
+│   ├── SKILL.md                      技能本体（英文，对齐上游 superpowers）
+│   └── design-doc-reviewer-prompt.md 子代理审查提示词（英文）
+├── templates/                        全部 Markdown 模板（中文骨架）
+│   ├── architecture-doc-template.md      架构总纲模板（12 节）
+│   ├── module-doc-template.md            功能模块模板（7 节）
+│   └── interface-contract-template.md    接口契约模板（`## 总则` + `## 1.`–`## 10.`，共 11 个二级标题）
+├── scripts/                          可执行脚本与绘图内核
+│   ├── install.mjs                   一键安装（单一技能，Node ≥ 18 硬门 + 备份 + doctor 自检）
+│   ├── sync-upstream.sh              与 superpowers 上游对比 skill/SKILL.md 的辅助脚本
+│   └── diagram-engine/               裁剪后的绘图内核（搬运自 archify，非独立技能）
+│       ├── bin/render.mjs            唯一入口：render / validate / doctor，一次产出三件套
+│       ├── bin/render-driver.mjs     内部驱动（上游 archify.mjs 裁子命令后改名）
+│       ├── renderers/ schemas/ assets/ svg/ lib/ brand-marks/
+│       ├── scripts/                  check-render-output.mjs（运行期）+ 两个生成器（维护期）
+│       ├── test/                     上游回归集（留内核内，位置耦合见 UPSTREAM.md 第 3 节）
+│       └── UPSTREAM.md LICENSE THIRD_PARTY_NOTICES.md package.json skill-release.json
+├── tests/                            本技能自己的测试面
+│   ├── fixtures/                     五类图各一份样例 IR
+│   ├── render.smoke.test.mjs         冒烟测试：渲染五类图，校验三件套
+│   └── README.md
+├── specs/                            已发布规格基线（design-doc-guardrails / design-doc-templates / diagram-engine）
+├── changes/                          spec-superflow 变更工作区（gitignore）
 ├── README.md
 └── LICENSE
 ```
@@ -256,25 +327,25 @@ specs/design/
 
 | 文件 | 语言 | 原因 |
 |------|------|------|
-| `SKILL.md` | 英文 | 这是给 AI 读的行为约束，保持与上游逐句可比，便于同步 |
-| `design-doc-reviewer-prompt.md` | 英文 | 同上 |
-| `architecture-doc-template.md` | 中文骨架 | 新文件，与上游无关；中文用户产出文档开箱即用 |
-| `module-doc-template.md` | 中文骨架 | 同上 |
-| `interface-contract-template.md` | 中文骨架 | 同上 |
-| `design-diagrams/SKILL.md` | 中文 | 新写的内部技能说明书，不是上游文件 |
-| `design-diagrams/` 其余 | 与上游一致（英文为主） | 上游 archify 逐字节搬运，不翻译，便于按 commit 比对 |
+| `skill/SKILL.md` | 英文 | 这是给 AI 读的行为约束，保持与上游逐句可比，便于同步 |
+| `skill/design-doc-reviewer-prompt.md` | 英文 | 同上 |
+| `templates/architecture-doc-template.md` | 中文骨架 | 新文件，与上游无关；中文用户产出文档开箱即用 |
+| `templates/module-doc-template.md` | 中文骨架 | 同上 |
+| `templates/interface-contract-template.md` | 中文骨架 | 同上 |
+| `scripts/diagram-engine/` 内含文档 | 与上游一致（英文为主） | 上游 archify 逐字节搬运，不翻译，便于按 commit 比对 |
+| `scripts/diagram-engine/UPSTREAM.md`、`tests/README.md` | 中文 | 本仓库新增的说明文件 |
 | 产出的设计文档 | 跟随对话语言 | 人读的文档 |
 
 ## 同步上游
 
-本仓库有两个上游，分别对应两个技能：
+本仓库有**两个上游**：技能文本来自 `superpowers`，绘图内核来自 `archify`。
 
-| 技能 | 上游仓库 | 基准坐标 | 同步方式 |
+| 对象 | 上游仓库 | 基准坐标 | 同步方式 |
 |------|---------|---------|---------|
-| `brainstorming`（`SKILL.md` 等） | [superpowers](https://github.com/obra/superpowers) | `v6.4.1`（commit `5bf4e78`） | `./sync-upstream.sh` 看 diff 后重放改动清单 |
-| `design-diagrams` | [archify](https://github.com/tt-a1i/archify) | commit `5289f6867f048a7450ec5718f58459613a84cf41`（技能包版本 `2.17.0-dev.1`） | **无脚本**（`sync-upstream.sh` 不覆盖它），按 commit 手工比对 + 跑技能内测试判回归 |
+| `skill/SKILL.md` 等技能文本 | [superpowers](https://github.com/obra/superpowers) | `v6.4.1`（commit `5bf4e78`） | `./scripts/sync-upstream.sh` 看 diff 后重放改动清单 |
+| `scripts/diagram-engine/` | [archify](https://github.com/tt-a1i/archify) | commit `5289f6867f048a7450ec5718f58459613a84cf41`（技能包 `2.17.0-dev.1`） | **无脚本**，按 commit 手工比对 + 跑 `test/run-valid.mjs` 判回归（见 `UPSTREAM.md`） |
 
-`./sync-upstream.sh` **只覆盖 `superpowers`**，它比对的是 `brainstorming/SKILL.md`，与 `design-diagrams/` 无关。
+`./scripts/sync-upstream.sh` **只覆盖 `superpowers`**：它比对的是 `skill/SKILL.md`，与绘图内核无关。
 
 ### 上游一：superpowers（`brainstorming`）
 
@@ -362,31 +433,40 @@ rm -rf /tmp/sp
 39. 改写 `## Three Paths` 的**引入句**与 **Spike／Bounded** 两支（逐项照做，缺一项就会把 `spec` 措辞重新引回）：**①引入句**——上游 `"this looks bounded, so I'll present a short design here rather than write a **spec**"` 里的 `spec` 改为 `**design doc**`；**②Spike 支尾句**——删掉上游 Spike 支的整句 `No design doc, no spec file.`（该句在 `/tmp/sp-641.md` 里跨行写作 `No design` 换行 `doc, no spec file.`，位于 `…as cheaply as correctness allows.` 与 `Report findings as a recommendation; …` 之间），本地只保留 `… Report findings as a recommendation; anything you built stays labeled throwaway.`；**③Bounded 支的判定基准**——由上游 `a well-scoped change to code that already exists in this repo` 改为 `a well-scoped change whose flow is already written down in specs/design/ and can be read`；**④Bounded 支的示例**——由 `a new flag, a small endpoint, a one-file fix` 改为 `a field added to a class, a step inserted into an existing flow, one cross-module interface adjusted`；**⑤Bounded 支的理由段**——由 `Understanding the kind of app is not enough — bounded means the flow you are changing is already here to read. If there is no existing flow to change, the task is not bounded.` 改为 `Bounded is measured against **this repository's design document set, not against whether code exists** — a repository holding only design documents is this skill's normal case, so "there is no code yet" never by itself makes a task architectural. What matters is whether the flow you are changing is already on paper. If it is, …`；**⑥Bounded 支的尾句**——由 `No spec file, no implementation plan document.` 改为 `No document is written at this step; the Persist Gate comes after approval and decides whether anything is persisted at all.`（改写的理由：本仓库常态是只有设计文档、没有代码，按上游"代码已存在"的判据会把一切任务都判成 architectural）。
 40. 改写 `## Three Paths` 的 **Architectural** 支（含新增子项，逐项照做）：**①分类器**——在上游 `new projects, new subsystems,` 与 `changes that restructure how components fit together or alter interfaces others depend on` 之间补入 `**designing a module the architecture lists as 未设计**,`；**②尾部**——由上游 `Follow the full process: questions, approaches, sectioned design, written spec, then the writing-plans skill.` 改为 `Follow the full process: questions, approaches, sectioned design, then the Persist Gate.`（`written spec` 与 `writing-plans` 两处都必须替换，不得残留）；**③新增子项**——在该支下新增 `**The approaches step is scoped to what is still open.**`：在已确认的架构内设计某个模块（即通常的增量场景）时，模块划分、依赖与跨模块接口都已冻结，因此只就该模块**仍然未决的取舍**提 2-3 个方案（内部怎么切、检查或失败路径落在哪、哪个协作者承担什么），或声明无此类选择而跳过该步；**绝不**把已确认的架构当作仍未决定来重新打开。
 
-### 上游二：archify（`design-diagrams`）
+**（裁剪重写）本次变更对绘图相关条目的覆盖**
 
-`design-diagrams/` 是 [archify](https://github.com/tt-a1i/archify) 出图技能包的**逐字节搬运副本**（本仓库只新增了 `SKILL.md`、`test/run-valid.mjs`、`UPSTREAM.md`，以及 Node 侧 SVG 直出与图名派生等自写模块），详见 `design-diagrams/UPSTREAM.md`。
+以下四条**覆盖**第 27–29 条对 `SKILL.md` 绘图内容的描述——那三条记录的是上一版形态（内部技能 + SVG/IR 两件 + 按图名命名的自由落点），本次已按「裁剪绘图内核 + 绘图规划 Gate + 三件套 + 序号命名」整体重写该节。登记后请按这四条重放。
+
+41. （重写）`## Diagrams in the Design Documents` 整节重写：①新增**绘图规划 Gate**——需求收敛后、生成 IR 前，先呈交「要哪些图／各是什么图类型／落在哪一节」的清单并取得确认；未确认即生成 IR 或渲染判为缺陷，确认结论须与变更清单逐图核对。②调用方式改为直接调内核唯一入口 `node scripts/diagram-engine/bin/render.mjs render <type> <ir.json> <outdir>`，**不再是 Skill 工具调用内部技能**；另两个子命令为 `validate`（只校验、不写产物）与 `doctor`（环境与内核完整性自检）。③产物由「SVG + IR」扩为**三件套** `.json`／`.svg`／`.html`（同一 outdir、同前缀）。④落点硬规则：文档落 `<项目根>/specs/design/`，三件套落其下 `diagrams/` 子目录；不允许放到项目根 `diagrams/` 或其他位置，不允许拆散存放。⑤命名硬规则 `<文档序号>-<图名>.<图类型>.<ext>`，序号取**归属文档**（跨模块流程归架构总纲 `01-`）；保留上一版的图名字符归一与「冲突追加 `-2`／`-3` 并报双方」。⑥md 引用改为**固定两行**（图片行指 `.svg` + 紧随一行链接指同名 `.html`），相对路径相对文档目录、禁止绝对路径与 `../`；正文不得内联 `<svg>` 标签。⑦保留校验硬门（不过不产出、不覆盖既有同名）与两轮降级、Node < 18 降级条款原文。
+42. （重写）「五类图选型」由一段列表扩为**类型路由表 + 逐类规范**：路由表给出五类的用途与结构数组；每类各一节，写用途、结构数组、`meta` 字段要点与该类型的布局契约（架构：单一左右主轴、6–12 个主组件、组件类型与变体枚举、legend 键序；工作流：泳道=责任或阶段、`col` `0..5`、新图用 `schema_version: 2`、`semanticChecks`、retry 与异常回路走主廊道之外；时序：参与者按对话角色排序、消息决定纵向顺序、`meta.column_fit` 的 `fixed`／`spread`、不使用 Automatic Port Spread；数据流：stage=转换或保管、row 分离并行流；生命周期：主相位 `col 0..4`、事件与终态列 `0..2` 且列 `N` 对齐主列 `N+2`、可恢复失败需真实回迁转移）。另加「Shared IR structure and `meta` fields」一节，说明必填字段、`additionalProperties: false`，以及 `title`／`subtitle`／`locale`／`animation`／`visual_preset`／`quality_profile`／`views`／`legend`／`output`／`viewBox` 各字段的取值与默认。
+43. （新增）「Shared authoring constraints」一节：**单图主节点 ≤ 12**（超出必须拆图）；`meta.quality_profile` 默认 `showcase`（9 项产物检查全过、0 composition error、0 warning）；`visual_preset`／`legend`／`subtitle` 默认省略；产品名与标识符保留原文；**品牌徽标只支持内置 canonical ID，URL 字符串与 `{url,sha256}` 一律拒绝且不联网**（本内核已摘除抓取能力）；关系标签是语义数据，删除有意义的标签不算几何修复；Automatic Port Spread 的适用范围与例外；showcase 节奏（非零段 ≥ 8px、内部段 ≥ 16px、无关共线重叠 ≥ 8px 判失败、穿越无关不透明节点恒为硬失败）；间距公式（`clear gap > label mask width + 8px`，`≈ 6.5px × ASCII units + 13px`，CJK 记两个单位）；**五步修复顺序**，以及「每次只施加一个被诊断出的几何控制、按 `code`／`subject`／`evidence`／`supportedFixes` 消费诊断」。
+44. （新增）`## Self-Review` 由 14 项增至 **15 项**：新增「Diagram triples」——核对三件套齐备、同前缀、同目录且只在 `specs/design/diagrams/`；两行引用成对；图与本节文字不矛盾；同名流程跨文档引用**同一组三件套**与同一类型且用归属文档的序号；主节点不超 12；命名两段俱全；以及**绘图规划 Gate 的确认计划与变更清单逐项对齐**。（第 27–29 条所记的 Rule 7／Diagrams 节／Change List Gate 的 `Diagrams` 栏仍然存在，但其正文以第 41–43 条为准。）
+
+### 上游二：archify（绘图内核）
+
+`scripts/diagram-engine/` 是 [archify](https://github.com/tt-a1i/archify) 出图技能包的**裁剪副本**：本次按「只保留 5 类图渲染能力」删掉了 10 个子命令、`--repo-root` 溯源能力、`examples/` 等目录，把入口 `archify.mjs` 裁成内部驱动 `render-driver.mjs`（2139 → 562 行）、把 `design-diagrams.mjs` 改造为唯一入口 `render.mjs`。逐项改动与被删清单见 `scripts/diagram-engine/UPSTREAM.md` 第 1 节。
 
 **上游基准**：`tt-a1i/archify` @ commit `5289f6867f048a7450ec5718f58459613a84cf41`（技能包版本 `2.17.0-dev.1`；`skill-release.json` 的 `channel` 是 `development`，该仓库**无稳定 tag**，因此基准按 commit 固定，不按 tag 或 `latest`）。
 
-**许可证归属**：archify 本体为 MIT（版权方与全文见 `design-diagrams/LICENSE`）；内联字体 **JetBrains Mono** 依 SIL Open Font License 1.1 授权，完整授权文本随包存放在 `design-diagrams/assets/JetBrainsMono-OFL.txt`；第三方商标与图标归属见 `design-diagrams/THIRD_PARTY_NOTICES.md`。
+**许可证归属**：archify 本体为 MIT（版权方与全文见 `scripts/diagram-engine/LICENSE`）；内联字体 **JetBrains Mono** 依 SIL Open Font License 1.1 授权，完整授权文本随包存放在 `scripts/diagram-engine/assets/JetBrainsMono-OFL.txt`；第三方商标与图标归属见 `scripts/diagram-engine/THIRD_PARTY_NOTICES.md`。
 
-**怎么判回归**：技能内自带上游测试集，验证入口：
+**怎么判回归**：
 
 ```bash
-node design-diagrams/test/run-valid.mjs
+node scripts/diagram-engine/test/run-valid.mjs
 ```
 
-它只跑**在裁剪后结构里成立的那个子集**（退出码 `0` = 全过）。哪些上游检查项被排除、为什么排除，逐条登记在 `design-diagrams/UPSTREAM.md`——同步上游时按基准 commit 逐字节比对，再跑这个入口确认没有真回归。
+它只跑**在裁剪后成立的那个子集**（当前为上游 7 + 本地 3 = 10 个文件，退出码 `0` = 全过）。哪些上游检查项被排除、为什么排除（三类成因），逐条登记在 `scripts/diagram-engine/UPSTREAM.md` 第 3 节。
 
-**注意：`./sync-upstream.sh` 只覆盖 `superpowers`，不覆盖 `archify`**——它比对的是 `brainstorming/SKILL.md`，与 `design-diagrams/` 无关；同步 archify 需按上面的基准 commit 手工比对。
+**注意：`./scripts/sync-upstream.sh` 只覆盖 `superpowers`，不覆盖 archify**——它比对的是 `skill/SKILL.md`，与绘图内核无关；同步 archify 需按上面的基准 commit 手工比对。
 
 ## 后续变更
 
-以下一项已登记为待启动的独立变更。变更目录在 `changes/` 下（停在 DP-0 未确认）；由于 `changes/` 被 `.gitignore` 忽略，另在此登记一行，以免换机或清理工作树后丢失。
+以下两项登记为待启动的独立变更。变更目录在 `changes/` 下；由于 `changes/` 被 `.gitignore` 忽略，另在此登记，以免换机或清理工作树后丢失。
 
 | 变更 | 要解决的问题 | 细节所在 |
 |------|-------------|---------|
-| `backfill-run-valid-cases` | `design-diagrams` 组 B 的七个上游测试文件在 `SKILL.md` 落盘后**仍全部失败**（成因已从「`SKILL.md` 未创建」变为「已落盘但内容是内部技能入口形态、与上游 archify 原版断言不符」）。其中 `automatic-port-spread`（14/15）与 `sequence-column-fit`（5/6）的**运行时用例本来是通过的**，只因同一文件里还有一条读 `SKILL.md` 的文档断言而被整文件排除。要把 `run-valid.mjs` 的排除粒度从**文件级**改为**用例级**，才能把已通过的运行时用例纳入回归清单。 | `design-diagrams/UPSTREAM.md` 第 6 节「未决点」 |
+| `backfill-run-valid-cases` | 把 `run-valid.mjs` 的排除粒度从**文件级**改为**用例级**，才能把「同一文件内部分用例已通过」的运行时用例纳入回归清单。注意：裁剪后该变更原有的核心前提（读 `design-diagrams/SKILL.md` 的文档断言）**已不存在**，且失效用例文件已删除，需与新口径一并重估或直接关闭。 | `scripts/diagram-engine/UPSTREAM.md` 第 3、6 节 |
 
 该项是在 `add-interface-contract-template` 变更的归档验证中被实测确认的，当时按该变更的范围边界未处理。
 
@@ -395,10 +475,11 @@ node design-diagrams/test/run-valid.mjs
 本技能改编自 [superpowers](https://github.com/obra/superpowers) 的 `brainstorming` 技能
 （MIT License, Copyright (c) 2025 Jesse Vincent）。
 
-出图技能 `design-diagrams` 搬运自 [archify](https://github.com/tt-a1i/archify)
-（MIT License, Copyright (c) 2026 tt-a1i (Archify) 与 Copyright (c) 2025 Cocoon AI）；
+出图内核（`scripts/diagram-engine/`）搬运自 [archify](https://github.com/tt-a1i/archify)
+（MIT License, Copyright (c) 2026 tt-a1i (Archify) 与 Copyright (c) 2025 Cocoon AI），
+本次按「只保留 5 类图渲染能力」做过裁剪；
 内联字体 JetBrains Mono 依 SIL Open Font License 1.1 授权，完整授权文本见
-`design-diagrams/assets/JetBrainsMono-OFL.txt`；第三方商标与图标归属见
-`design-diagrams/THIRD_PARTY_NOTICES.md`。
+`scripts/diagram-engine/assets/JetBrainsMono-OFL.txt`；第三方商标与图标归属见
+`scripts/diagram-engine/THIRD_PARTY_NOTICES.md`。
 
-以 MIT License 发布，详见 [LICENSE](LICENSE)（`design-diagrams/LICENSE` 为其独立副本）。
+以 MIT License 发布，详见 [LICENSE](LICENSE)（`scripts/diagram-engine/LICENSE` 为其独立副本）。
