@@ -171,7 +171,8 @@ node ~/.codebuddy/skills/brainstorming/scripts/diagram-engine/bin/render.mjs doc
 **仓库自测面不进安装**——它判的是源码树而不是安装副本：
 
 ```bash
-node tests/render.smoke.test.mjs                 # 五类图各渲染一次，校验三件套（5 个用例）
+node --test tests/*.test.mjs                     # 全部：冒烟 5 + 契约 31 = 32 个用例，零失败
+node tests/render.smoke.test.mjs                 # 只跑冒烟（独立脚本）
 node scripts/diagram-engine/test/run-valid.mjs   # 上游回归集（显式白名单，见 UPSTREAM.md）
 ```
 
@@ -313,9 +314,12 @@ specs/design/
 │       ├── scripts/                  check-render-output.mjs（运行期）+ 两个生成器（维护期）
 │       ├── test/                     上游回归集（留内核内，位置耦合见 UPSTREAM.md 第 3 节）
 │       └── UPSTREAM.md LICENSE THIRD_PARTY_NOTICES.md package.json skill-release.json
-├── tests/                            本技能自己的测试面
+├── tests/                            本技能自己的测试面（不进安装）
 │   ├── fixtures/                     五类图各一份样例 IR
-│   ├── render.smoke.test.mjs         冒烟测试：渲染五类图，校验三件套
+│   ├── render.smoke.test.mjs         冒烟：渲染五类图，校验三件套
+│   ├── render.entry.test.mjs         入口契约：透传 / 参数校验 / 不留半成品 / 原子提交 / 两轮降级
+│   ├── install.test.mjs              安装脚本四道约束 + 实装形态 + 装后 doctor
+│   ├── doc-consistency.test.mjs      文档一致性：SKILL.md 约定、模板配图章节、旧技能名残留
 │   └── README.md
 ├── specs/                            已发布规格基线（design-doc-guardrails / design-doc-templates / diagram-engine）
 ├── changes/                          spec-superflow 变更工作区（gitignore）
@@ -456,7 +460,7 @@ rm -rf /tmp/sp
 node scripts/diagram-engine/test/run-valid.mjs
 ```
 
-它只跑**在裁剪后成立的那个子集**（当前为上游 7 + 本地 3 = 10 个文件，退出码 `0` = 全过）。哪些上游检查项被排除、为什么排除（三类成因），逐条登记在 `scripts/diagram-engine/UPSTREAM.md` 第 3 节。
+它只跑**在裁剪后成立的那个子集**（当前为上游 7 + 本地 6 = 13 个文件，退出码 `0` = 全过；本地 6 个含驱动 CLI 面、环境自检与品牌边界三组新增用例）。哪些上游检查项被排除、为什么排除（三类成因），逐条登记在 `scripts/diagram-engine/UPSTREAM.md` 第 3 节。
 
 **注意：`./scripts/sync-upstream.sh` 只覆盖 `superpowers`，不覆盖 archify**——它比对的是 `skill/SKILL.md`，与绘图内核无关；同步 archify 需按上面的基准 commit 手工比对。
 

@@ -105,7 +105,7 @@
 | 时点 | 清单 | 结果 |
 |---|---|---|
 | 裁剪前（基准 commit 的整包） | 上游全绿 **78** + 本地新增 **6** = 84 | **RESULT: PASS** |
-| 裁剪后（本内核） | 上游全绿 **7** + 本地新增 **3** = 10 | **RESULT: PASS** |
+| 裁剪后（本内核） | 上游全绿 **7** + 本地新增 **6** = 13 | **RESULT: PASS** |
 
 裁剪前 78 个上游文件全绿这一结论是**实测**得到的（用 `git archive HEAD design-diagrams`
 抽出原始内核，在 /tmp 下跑该入口）。
@@ -125,7 +125,7 @@ visual-check／guide／brands／examples／demo）、`--repo-root` 溯源能力�
 
 **这 111 个文件已删除**（连同只服务它们的 `helpers/`、`fixtures/`，以及 `golden.mjs`、
 `webm-artifact.smoke.mjs`、`site-language-integration.mjs` 三个非测试运行器）——它们测的是本次
-按设计删掉的能力，留下只是死重量。`test/` 现在**只剩**实测全绿的 10 个文件 + `run-valid.mjs`
+按设计删掉的能力，留下只是死重量。`test/` 现在**只剩**实测全绿的 13 个文件 + `run-valid.mjs`
 + `svg-css-extract.golden.json` 一个数据文件；`run-valid.mjs` 末尾的 drift 提示因此不再有内容。
 将来需要这些用例时，从第 1 节的基准 commit 重新取；`UPSTREAM_VALID` 一次只收「在本内核里实测
 退出码为 0」的文件。

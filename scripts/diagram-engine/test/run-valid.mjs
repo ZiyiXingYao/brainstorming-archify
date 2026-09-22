@@ -144,6 +144,12 @@ export const LOCAL_TESTS = [
   'svg-theme-vars.test.mjs',
   // 图名派生（保留字母数字与 CJK、折叠去首尾、空结果回落、冲突报双方）
   'derive-name.test.mjs',
+  // 驱动 CLI 面：三个保留子命令可用；十一个已砍子命令与 --repo-root 逐个被拒
+  'cli-surface.test.mjs',
+  // 环境自检：正常退出码 0；运行期必需文件缺失时非零退出并点名
+  'doctor.test.mjs',
+  // 品牌：内置 canonical ID 可解析；URL 与摘要固定对象失败关闭且不联网
+  'brand-marks.test.mjs',
 ];
 
 /** 上游全绿清单 + 本地新增清单 = 本入口实际执行的文件。 */
