@@ -15,6 +15,9 @@
  *   ⑥ brand-marks 源码不得残留联网抓取实现；
  *   ⑦ 图名固定为英文 slug：SKILL / 规格 / 模板都要求英文图名，不得残留「保留 CJK」
  *      的旧口径与中文图名示例。
+ *   ⑧ 接口契约文件名一致为 `00-接口契约.md`：`skill/`、`templates/` 两个活目录内必须引用
+ *      规定名，且不得出现无前缀路径 `specs/design/接口契约.md` 与「不带数字前缀」表述
+ *      （`specs/` 基线由 delta 合并收口，不纳入断言——纳入会让测试结果依赖合并时点）。
  *
  * 只用 Node 内置模块，不依赖 node_modules。
  */
@@ -160,6 +163,40 @@ test('旧技能名只允许留在维护文档的历史条目里', () => {
   assert.equal(hits('README.md'), 0, 'README 不应再出现旧技能名——历史条目已移入 MAINTAINING.md');
   const kept = hits('MAINTAINING.md');
   assert.ok(kept <= 3, `MAINTAINING.md 中旧技能名应只剩历史条目（≤3），实际 ${kept} 处`);
+});
+
+test('接口契约文件名一致为 00-接口契约.md（旧形态不得回流）', () => {
+  const OFFICIAL = '00-接口契约.md';
+  const STALE_PATH = /specs\/design\/接口契约\.md/;
+  const STALE_WORDING = '不带数字前缀';
+  const readDir = (dir) => {
+    const out = [];
+    const walk = (rel) => {
+      const abs = path.join(ROOT, rel);
+      if (fs.statSync(abs).isDirectory()) {
+        for (const child of fs.readdirSync(abs)) walk(path.join(rel, child));
+      } else {
+        out.push([rel, fs.readFileSync(abs, 'utf8')]);
+      }
+    };
+    walk(dir);
+    return out;
+  };
+
+  // 只守活文件：specs/ 是已发布基线，由 delta 合并收口，纳入断言会让测试结果依赖合并时点。
+  // 先把全部问题收集齐再断言，使失败信息一次列出所有待改文件（而不是在第一个问题上就中止）。
+  const problems = [];
+  for (const dir of ['skill', 'templates']) {
+    const entries = readDir(dir);
+    if (!entries.some(([, text]) => text.includes(OFFICIAL))) {
+      problems.push(`${dir}/：未引用规定名 ${OFFICIAL}`);
+    }
+    for (const [rel, text] of entries) {
+      if (STALE_PATH.test(text)) problems.push(`${rel}：仍含无前缀路径 specs/design/接口契约.md`);
+      else if (text.includes(STALE_WORDING)) problems.push(`${rel}：仍含「${STALE_WORDING}」表述`);
+    }
+  }
+  assert.deepEqual(problems, [], `接口契约文件名不一致：\n  - ${problems.join('\n  - ')}`);
 });
 
 test('审查提示词含三件套判据', () => {
