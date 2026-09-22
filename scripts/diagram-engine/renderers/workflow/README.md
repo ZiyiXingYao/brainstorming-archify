@@ -53,7 +53,8 @@ reinterpreted as v2.
 Omit `meta.viewBox` for the common v2 case so the compiler can use intrinsic
 measured bounds. In v1, the omitted width remains fixed at 720 and height is
 derived from lane count. A complete worked example lives at
-`tests/fixtures/sample-workflow.json`; its `schema_version` selects
+`<repo root>/tests/fixtures/sample-workflow.json` (repository test surface, **not**
+part of an installed skill); its `schema_version` selects
 the applicable contract.
 
 The schema lives at:

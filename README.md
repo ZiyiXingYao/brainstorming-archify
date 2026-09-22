@@ -172,7 +172,7 @@ node ~/.codebuddy/skills/brainstorming/scripts/diagram-engine/bin/render.mjs doc
 **仓库自测面不进安装**——它判的是源码树而不是安装副本：
 
 ```bash
-node --test tests/*.test.mjs                     # 一条命令覆盖全部：41 个用例，0 失败
+node --test tests/*.test.mjs                     # 一条命令覆盖全部：43 个用例，0 失败
 node tests/render.smoke.test.mjs                 # 只跑冒烟（独立脚本）
 ```
 

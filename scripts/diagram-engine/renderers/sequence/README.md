@@ -36,7 +36,8 @@ Sequence JSON files must set:
 The timeline scales with the viewBox height: a taller `meta.viewBox` buys more
 message room, a shorter one shrinks the readable band instead of clipping. A
 complete worked example lives at
-`tests/fixtures/sample-sequence.json`.
+`<repo root>/tests/fixtures/sample-sequence.json` — that directory is the
+repository's test surface and is **not** part of an installed skill.
 
 The schema lives at:
 

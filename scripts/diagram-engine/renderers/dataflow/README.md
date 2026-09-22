@@ -33,7 +33,8 @@ Data-flow JSON files must set:
 ```
 
 A complete worked example lives at
-`tests/fixtures/sample-dataflow.json`.
+`<repo root>/tests/fixtures/sample-dataflow.json` — that directory is the
+repository's test surface and is **not** part of an installed skill.
 
 The schema lives at:
 

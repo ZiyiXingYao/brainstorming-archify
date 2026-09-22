@@ -37,7 +37,8 @@ to the top phase band; `terminal` maps to the bottom outcome band; every other
 lane id (up to 4 lanes total) shares the single middle event band. The three
 band headers render from your lane labels — the middle band joins the labels of
 all event lanes with ` + `. A complete worked example lives at
-`tests/fixtures/sample-lifecycle.json`.
+`<repo root>/tests/fixtures/sample-lifecycle.json` — that directory is the
+repository's test surface and is **not** part of an installed skill.
 
 The schema lives at:
 

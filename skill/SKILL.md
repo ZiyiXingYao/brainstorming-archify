@@ -532,10 +532,13 @@ the plan is confirmed, **author the IR and run `validate` on it** — validation
 writes nothing, so this is not a write; it only tells you which diagrams pass.
 Build the change list from that result (naming every diagram, and marking any that
 fails as a placeholder), and present it. **Only after the Change List Gate
-approves do you render the triples and write or merge the documents**, together —
-so there is exactly one ordering, and no diagram artifact is written before the
-gate. The change list is authoritative, and any difference between the plan and
-the list goes back to planning.
+approves do you render the triples and write or merge the documents**, together.
+To be precise about what the gate protects: **no `.svg`, no `.html` and no document
+is written before it**. The IR (`<…>.json`) *is* written before it, at the triple's
+own path, because `validate` has to read a file from disk — the IR is your input,
+and it is the one artifact allowed across that line. The change list is
+authoritative, and any difference between the plan and the list goes back to
+planning.
 
 **Who writes the IR.** You generate the typed JSON IR yourself, from what the
 section **already contains**. The facts in the IR are limited to that section:
@@ -543,14 +546,23 @@ do not introduce a component, participant, state or relationship the section
 does not have. Your human partner keeps talking about the design in natural
 language — they do not write IR and do not need to know a schema exists.
 
-**How to call it.** One command per diagram. The paths below are relative to the
-**skill root** — the directory that holds `scripts/diagram-engine/`. In this source
-repository that is the repository root (this skill's own files sit in `skill/`,
-which is why the command is not run from there); once installed, `SKILL.md` is
-flattened next to `scripts/`, so the skill root is the installed skill directory.
+**How to call it.** The kernel lives in the **skill root** — the directory that
+holds `scripts/diagram-engine/`. In this source repository that is the repository
+root (this skill's own files sit in `skill/`, which is why the command is not run
+from there); once installed, `SKILL.md` is flattened next to `scripts/`, so the
+skill root is the installed skill directory.
+
+Two different roots are in play here, and conflating them is the usual mistake:
+
+- **Where the kernel is** — the skill root. The skill and the project under design
+  are normally **different trees**, so invoke the kernel by **absolute path**. A
+  bare `scripts/diagram-engine/…` only resolves if you happen to be standing in
+  the skill root, which is not where the project lives.
+- **Where the artifacts go** — the project root, i.e. `<outdir>` is
+  `specs/design/diagrams`.
 
 ```bash
-node scripts/diagram-engine/bin/render.mjs render <type> <ir.json> <outdir>
+node <skill-root>/scripts/diagram-engine/bin/render.mjs render <type> <ir.json> specs/design/diagrams
 ```
 
 **Name the IR file with the final diagram name first.** The triple inherits the
@@ -568,9 +580,13 @@ without writing anything when validation fails.
 Its two sibling subcommands:
 
 ```bash
-node scripts/diagram-engine/bin/render.mjs validate <type> <ir.json> [--json] [--layout-json] [--quality standard|showcase]
-node scripts/diagram-engine/bin/render.mjs doctor
+node <skill-root>/scripts/diagram-engine/bin/render.mjs validate <type> <ir.json> [--json] [--layout-json] [--quality standard|showcase]
+node <skill-root>/scripts/diagram-engine/bin/render.mjs doctor
 ```
+
+`--layout-json` is supported for **architecture and workflow only** — on the other
+three types it exits non-zero saying so, rather than emitting partial layout, so do
+not build a repair loop around it for sequence / dataflow / lifecycle.
 
 `validate` checks and writes nothing; a showcase pass prints
 `9 artifact checks; composition showcase: 0 errors, 0 warnings`. `doctor`
@@ -654,10 +670,14 @@ diagnostic, and the current and historical counts — and put the two options,
 **keep the placeholder and persist** and **keep fixing**, back to your human
 partner; **do not choose for them**. If round 2 does drop, continue, and from
 then on compare each round with the previous one, stopping when two consecutive
-rounds fail to drop. When a diagram stops this way and your human partner
-chooses **keep the placeholder and persist**, list that diagram in the
-`Diagrams` column of the change list, marked `未通过校验`, together with the
-reason (the unresolved diagnostics and the error count).
+rounds fail to drop. When a diagram stops this way, **stop the persist** and report it back — which
+diagram, which diagnostics, and the round-by-round counts. Because the render
+happens after the Change List Gate, a stop here means the approved list is no
+longer what you would write: the way forward is a **revised change list** — put
+that diagram in the `Diagrams` column marked `未通过校验` with its reason,
+re-present the list, and persist nothing until it is approved again. (A
+`未通过校验` mark that predates any render comes from the pre-gate `validate`
+instead; both use the same mark.)
 
 **Scope of that ledger — read this before iterating.** The two-round ledger is
 kept by `render`, not by `validate`. Running `validate` repeatedly never produces
@@ -785,11 +805,14 @@ phase band (columns `0..4`); `terminal` is the outcome band; every other lane
 shares the single middle event band, whose header joins its lane labels with ` + `.
 A recoverable failure needs a **real transition back to an active state** — a
 card or guided view saying "retry" is not topology. There is **no grid layout
-block** in this type: a state's place comes from its own `step` / `lane` / `col`,
-and its size from `width` / `height` / `yOffset` (see
-`schemas/lifecycle.schema.json`). When a label has no room, widen or shift the
-state with those — `gapX` / `gapY` belong to the architecture grid and do not
-exist here.
+block** in this type: a state's **place** comes from its own `lane` / `col`, plus
+`yOffset` to shift it within its band; its **size** comes from `width` / `height`
+(see `schemas/lifecycle.schema.json`). `step` is **not** geometry — it is the
+optional ordered-phase **label** (e.g. `01`, `02`), so changing it moves nothing.
+When a label has no room, widen the state with `width` or separate same-band
+states with `col` / `yOffset` — `gapX` / `gapY` belong to the architecture grid and
+do not exist here. Widening a state also shortens the transitions on either side,
+and a transition below 32px is its own failure, so re-validate after widening.
 
 Legend keys: `start`, `active`, `waiting`, `decision`, `success`, `failure`,
 `neutral`, `external`.
@@ -823,6 +846,17 @@ Legend keys: `start`, `active`, `waiting`, `decision`, `success`, `failure`,
   accepts differs per type — read the `route` property in
   `schemas/<diagram type>.schema.json` rather than guessing, because a wrong
   value fails schema validation. Reach for it in repair-order step ④.
+- **Desktop readability is a hard check, not a taste rule.** The viewer's desktop
+  reader gives a diagram 930px of width (a 960px reader minus 30px of chrome) and
+  scales the whole viewBox by `min(1, 930 / meta.viewBox[0])`. So the **smallest
+  text you author must be at least `6 × max(1, meta.viewBox[0] / 930)` px** — ≥ 6px
+  for any viewBox up to 930 wide, rising above that. When
+  `composition/desktop-readability` fails, the usual fix is to **narrow the
+  viewBox**, not to enlarge every font.
+- **A semantic label is data — never delete one to fix geometry.** That holds even
+  where a bundled renderer README suggests keeping transition labels out of the
+  SVG: that advice describes a denser default for standalone use, and this rule
+  wins here. Move the label, widen its node, or reroute it — do not drop it.
 - Showcase route rhythm: every non-zero segment ≥ 8px and every interior segment
   ≥ 16px; unrelated collinear overlap of ≥ 8px fails showcase. An edge crossing
   an unrelated opaque node is a hard failure regardless of profile.
@@ -1056,7 +1090,7 @@ Check each item and fix in place:
     - **Catch-all section:** outward interfaces outside the seven families go in section 8, never forced into sections 1–7 and never omitted; when the section is empty its heading stays, carrying `不适用：<reason>`.
     - **No diagrams:** the interface contract carries no SVG diagrams and needs no `diagrams/` directory — do not report a defect for its having none.
 14. **Shared understanding:** Per **Establish Shared Understanding**, was a shared understanding your human partner could assess and correct in place *before* any feature or approach was proposed, and updated once they corrected it? Entering feature or approach discussion without it is a defect.
-15. **Diagram triples:** For every diagram the change list carries, is the whole **triple** present under `specs/design/diagrams/` with one common prefix — `<document number>-<diagram name>.<diagram type>` — and all three extensions `.json`, `.svg`, `.html`, never split across directories and never outside `specs/design/diagrams/`? Does the document use the fixed two-line reference (the image line plus the `> [打开交互式版本](…)` line), with no `<svg>` tag anywhere in the body? Do the figures agree with the text of their own section — same components, participants and states, no contradiction — and does a same-named flow in the architecture and a module document reference the **same** three files with the same type, under the owning document's number? Is every diagram within the 12-primary-node limit, and does every name carry both its document-number prefix and its type segment? Is the confirmed **Diagram Planning Gate** plan accounted for one-to-one in the change list?
+15. **Diagram triples:** For every diagram the change list carries, is the whole **triple** present under `specs/design/diagrams/` with one common prefix — `<document number>-<diagram name>.<diagram type>` — and all three extensions `.json`, `.svg`, `.html`, never split across directories and never outside `specs/design/diagrams/`? Does the document use the fixed two-line reference (the image line plus the `> [打开交互式版本](…)` line), with no `<svg>` tag anywhere in the body? Do the figures agree with the text of their own section — same components, participants and states, no contradiction — and does a same-named flow in the architecture and a module document reference the **same** three files with the same type, under the owning document's number? Is every diagram within the 12-primary-node limit, and does every name carry both its document-number prefix and its type segment? Is the confirmed **Diagram Planning Gate** plan accounted for one-to-one in the change list? **A diagram kept as a `未通过校验` placeholder is compliant when it has no triple and its section carries the fixed placeholder line instead of the two-line reference** — count it as accounted for; a missing triple with no placeholder note is what makes a defect.
 
 ## Subagent Review
 

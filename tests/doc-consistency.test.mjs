@@ -191,6 +191,37 @@ test('出图时序只有一种说法（校验在门前、渲染在门后）', ()
   }
 });
 
+test('上轮引入的两处错误不得回退：lifecycle 字段语义与门前写盘口径', () => {
+  const skill = read(SKILL);
+  // lifecycle：step 是有序阶段标签、yOffset 是位置——不要再写成「位置来自 step / 尺寸来自 yOffset」
+  assert.doesNotMatch(skill, /place comes from its own `step`/, '不应把 step 写成位置控件');
+  assert.match(skill, /`step` is \*\*not\*\* geometry/, '应点明 step 与几何无关');
+  assert.match(skill, /state's \*\*place\*\* comes from its own `lane` \/ `col`/, '位置控件应为 lane / col');
+  assert.match(skill, /its \*\*size\*\* comes from `width` \/ `height`/, '尺寸控件应为 width / height');
+  // 门前写盘：IR 是唯一例外，不得再写「门前不写任何图工件」
+  assert.doesNotMatch(skill, /no diagram artifact is written before the gate/, '不应残留旧口径');
+  assert.match(
+    skill,
+    /no `\.svg`, no `\.html` and no document\s+is written before it/,
+    '应把门保护的写盘范围写准（只豁免 IR）',
+  );
+});
+
+test('占位形态与序号口径只有一种说法', () => {
+  for (const rel of [ARCH_TEMPLATE, MODULE_TEMPLATE]) {
+    const template = read(rel);
+    assert.match(template, /占位：<图名> 未通过校验/, `${rel} 应定义固定占位行`);
+    assert.match(template, /未按占位形态写明原因/, `${rel} 的「缺图判缺陷」应豁免占位情形`);
+    assert.doesNotMatch(template, /本文档即架构总纲，序号为 `01`/, `${rel} 不应残留错误序号口径`);
+  }
+  assert.match(
+    read(ARCH_TEMPLATE),
+    /即使按规定登记在本文档第 10 节，也用该模块的序号/,
+    '序号应取归属文档（单模块功能流程用该模块的序号）',
+  );
+  assert.match(read('skill/design-doc-reviewer-prompt.md'), /豁免|exempt/, '审查提示词应豁免占位图');
+});
+
 /* ---------------------------------------------------------------------------
  * 内核侧：文档不得再把已删命令写成现行能力；源码不得残留联网抓取
  *
