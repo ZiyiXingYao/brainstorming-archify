@@ -1,18 +1,21 @@
 /**
- * Brand marks — built-in catalogue resolution only.
+ * Brand marks — bundled catalogue resolution only.
  *
- * This build has **no capture capability**: a `brand` value must resolve to a
- * bundled canonical ID (directly, or via a known-brand domain name). URL
- * strings and pinned `{ url, sha256 }` objects are rejected with a diagnostic
- * instead of being fetched. The upstream fetch machinery (DNS resolution,
- * pinned-socket HTTP, favicon discovery, image sniffing) was removed together
- * with the `--repo-root` code-provenance capability, so no network request is
- * reachable from this module.
+ * This build has **no capture capability and never makes a network request**.
+ * A `brand` value must resolve to a bundled canonical ID (its id, title, or an
+ * alias). An HTTP(S) URL — including one whose host belongs to a known brand —
+ * and a pinned `{ url, sha256 }` object are both rejected with a
+ * `brand/unsupported-url` diagnostic.
+ *
+ * The upstream fetch machinery (DNS resolution, pinned-socket HTTP, favicon
+ * discovery, image sniffing) was removed together with the `--repo-root`
+ * code-provenance capability, so nothing here can reach the network.
  */
 
 import { BRAND_MARKS } from './generated-brand-marks.mjs';
 import { throwDiagnosticError } from './diagnostics.mjs';
-import { esc, textUnits } from './utils.mjs';
+import { minimumNodeTextWidth } from './text-fit.mjs';
+import { esc } from './utils.mjs';
 
 const COLLECTIONS = Object.freeze({
   architecture: 'components',
@@ -22,9 +25,10 @@ const COLLECTIONS = Object.freeze({
   lifecycle: 'states',
 });
 const MARK_BY_LOOKUP = new Map();
-const MARK_BY_DOMAIN = new Map();
 const RESOLVED_BY_NODE = new WeakMap();
 const RESOLVED_MARK = Symbol('archify.brandMark');
+/** 品牌徽标在节点顶栏占据的横向宽度：徽标 16px + 内缩 3px + 与标签间的间距。 */
+const BRAND_RAIL_WIDTH = 48;
 
 function lookupForms(value) {
   const raw = String(value ?? '').trim().toLocaleLowerCase('en-US');
@@ -40,29 +44,17 @@ for (const mark of BRAND_MARKS) {
       if (!MARK_BY_LOOKUP.has(form)) MARK_BY_LOOKUP.set(form, mark);
     }
   }
-  for (const domain of mark.domains) MARK_BY_DOMAIN.set(domain, mark);
 }
 
-function asUrl(value) {
+function isHttpUrl(value) {
   try {
-    const url = new URL(String(value));
-    return ['https:', 'http:'].includes(url.protocol) ? url : null;
+    return ['https:', 'http:'].includes(new URL(String(value)).protocol);
   } catch {
-    return null;
+    return false;
   }
 }
 
-function domainMark(hostname) {
-  const host = hostname.toLocaleLowerCase('en-US').replace(/\.$/, '');
-  const candidates = [...MARK_BY_DOMAIN.entries()]
-    .filter(([domain]) => host === domain || host.endsWith(`.${domain}`))
-    .sort(([left], [right]) => right.length - left.length);
-  return candidates[0]?.[1] || null;
-}
-
 export function findBrandMark(value) {
-  const url = asUrl(value);
-  if (url) return domainMark(url.hostname);
   for (const form of lookupForms(value)) {
     const mark = MARK_BY_LOOKUP.get(form);
     if (mark) return mark;
@@ -70,20 +62,16 @@ export function findBrandMark(value) {
   return null;
 }
 
-export function listBrandMarks(query = '') {
-  const needle = String(query).trim().toLocaleLowerCase('en-US');
-  return BRAND_MARKS.filter((mark) => {
-    if (!needle) return true;
-    return [mark.id, mark.title, mark.category, ...mark.aliases, ...mark.domains]
-      .some((value) => String(value).toLocaleLowerCase('en-US').includes(needle));
-  }).map(({ path, ...mark }) => mark);
-}
-
 function suggestions(value) {
-  const needle = lookupForms(value)[0] || '';
+  const needle = lookupForms(value)[0];
+  // 纯空白值会退化出空 needle，此时任何包含判断都恒真，候选列表只能是字母序垃圾。
+  if (!needle) return [];
   return BRAND_MARKS.map((mark) => ({
     id: mark.id,
-    score: lookupForms(mark.id).some((form) => form.includes(needle) || needle.includes(form)) ? 0 : 1,
+    // 反向包含（输入里含某个 ID 片段）只在片段够长时才算命中：否则单字符 ID
+    // （目录里存在 `x`）会在任何含该字母的输入上冒充「相近 ID」。
+    score: lookupForms(mark.id).some((form) => form.includes(needle)
+      || (needle.length >= 3 && needle.includes(form))) ? 0 : 1,
   })).sort((left, right) => left.score - right.score || left.id.localeCompare(right.id))
     .slice(0, 5)
     .map((entry) => entry.id);
@@ -95,10 +83,12 @@ export async function prepareDiagramBrandMarks(diagramType, diagram) {
   const unknown = [];
   for (const [index, node] of nodes.entries()) {
     if (!node.brand) continue;
+    const subject = `/${collection}/${index}/brand`;
     if (typeof node.brand === 'object') {
-      // This diagram-engine build has no brand-capture capability. Only the
-      // bundled catalogue is supported, and no network request is ever made.
-      unknown.push(`/${collection}/${index}/brand is a pinned URL object; this build supports built-in brand IDs only`);
+      unknown.push({
+        code: 'brand/unsupported-url',
+        message: `${subject} is a pinned URL object; this build supports built-in brand IDs only`,
+      });
       continue;
     }
     const preset = findBrandMark(node.brand);
@@ -108,24 +98,34 @@ export async function prepareDiagramBrandMarks(diagramType, diagram) {
       RESOLVED_BY_NODE.set(node, resolved);
       continue;
     }
-    const url = asUrl(node.brand);
-    if (url) {
-      unknown.push(`/${collection}/${index}/brand ${JSON.stringify(node.brand)} is a URL; this build supports built-in brand IDs only`);
+    if (isHttpUrl(node.brand)) {
+      unknown.push({
+        code: 'brand/unsupported-url',
+        message: `${subject} ${JSON.stringify(node.brand)} is a URL; this build supports built-in brand IDs only`,
+      });
       continue;
     }
-    unknown.push(`/${collection}/${index}/brand ${JSON.stringify(node.brand)} is not a built-in brand; closest IDs: ${suggestions(node.brand).join(', ')}`);
+    unknown.push({
+      code: 'brand/unknown',
+      message: `${subject} ${JSON.stringify(node.brand)} is not a built-in brand; closest IDs: ${suggestions(node.brand).join(', ')}`,
+    });
   }
   if (unknown.length) {
-    throwDiagnosticError(`Brand mark validation failed:\n- ${unknown.join('\n- ')}`, unknown.map((message) => ({
-      code: message.includes('URL') ? 'brand/unsupported-url' : 'brand/unknown',
-      severity: 'error',
-      message,
-      subject: { diagramType, collection },
-      evidence: {},
-      supportedFixes: message.includes('URL')
-        ? ['author a built-in brand ID instead; this build never captures a site URL']
-        : ['choose a built-in brand ID from renderers/shared/generated-brand-marks.mjs'],
-    })));
+    // code 与修法来自收集时的显式分类，不再对人工可读消息做 includes 嗅探——
+    // 后者会被作者写的品牌值（例如 "myURL"）误触发，也会随文案调整静默漂移。
+    throwDiagnosticError(
+      `Brand mark validation failed:\n- ${unknown.map((entry) => entry.message).join('\n- ')}`,
+      unknown.map((entry) => ({
+        code: entry.code,
+        severity: 'error',
+        message: entry.message,
+        subject: { diagramType, collection },
+        evidence: {},
+        supportedFixes: entry.code === 'brand/unsupported-url'
+          ? ['author a built-in brand ID instead; this build never captures a site URL']
+          : ['choose a built-in brand ID from renderers/shared/generated-brand-marks.mjs'],
+      })),
+    );
   }
 }
 
@@ -144,13 +144,13 @@ export function brandMetadataFor(node) {
 }
 
 export function brandLabelFitWidth(node, width) {
-  return brandMarkFor(node) ? Math.max(1, width - 48) : width;
+  return brandMarkFor(node) ? Math.max(1, width - BRAND_RAIL_WIDTH) : width;
 }
 
 export function brandTopRailProblem(node, width, minimumFontSize, subject = 'Node') {
   if (!brandMarkFor(node)) return null;
-  const available = width - 48;
-  const required = textUnits(node.label) * minimumFontSize * 0.6;
+  const available = width - BRAND_RAIL_WIDTH;
+  const required = minimumNodeTextWidth(node.label, minimumFontSize);
   if (available >= required) return null;
   return `${subject} "${node.id}" brand top rail leaves ${Math.max(0, available)}px for its label, but `
     + `"${node.label}" needs ~${Math.ceil(required)}px at the ${minimumFontSize}px legible minimum — widen the node or shorten the label.`;
@@ -166,6 +166,13 @@ function markAttrs(mark) {
   ].filter(Boolean).join(' ');
 }
 
+/**
+ * 渲染品牌徽标。
+ *
+ * `kind` 由 `prepareDiagramBrandMarks` 写入，本构建下**恒为 `preset`**：`remote` 与
+ * 末尾兜底两个分支当前没有生产者，保留为扩展点（例如将来由调用方注入一份已验证的
+ * 图形），所以这里也不会发起任何网络请求——`remote` 用的是内联 `data:` URL。
+ */
 export function renderBrandMark(node, { x, y, size = 16 } = {}) {
   const mark = brandMarkFor(node);
   if (!mark) return '';

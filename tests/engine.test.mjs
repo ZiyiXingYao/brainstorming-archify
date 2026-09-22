@@ -71,7 +71,14 @@ test('内核回归集全部通过，且确实跑了（不是空跑）', () => {
   const [, cRan, cPassed, cFailed, cSkipped] = cases.map(Number);
   assert.equal(cFailed, 0, '失败用例数应为 0');
   assert.equal(cSkipped, 0, '不应有用例被跳过');
-  assert.equal(cRan, cPassed, '跑到的用例应全部通过');
+  // 只要求「没有失败」，不强制 tests === pass：`tests` 计数包含跳过项，而强制相等会在
+  // 将来任何「容忍 / 不计入判定」机制重新出现时，与内核入口自己的退出码口径打架
+  // （那种机制下内核判绿、这一行反而判红）。这里改为断言三项计数自洽。
+  assert.equal(
+    cPassed + cSkipped,
+    cRan,
+    `用例计数应自洽：${cPassed} 通过 + ${cSkipped} 跳过 ≠ ${cRan}`,
+  );
   assert.ok(cRan >= 200, `用例数不应少于 200（当前 ${cRan}）——若确实要减，请同批调低本下限`);
 });
 
@@ -79,6 +86,6 @@ test('被砍掉的能力在内核回归集里有守卫（不是只有 happy path
   const { output } = engineSuite();
   // 这三个文件分别守 CLI 面、环境自检与品牌边界；缺任一说明覆盖被削弱。
   for (const name of ['cli-surface.test.mjs', 'doctor.test.mjs', 'brand-marks.test.mjs']) {
-    assert.match(output, new RegExp(`✓\\s+${name.replace('.', '\\.')}`), `清单应包含并跑通 ${name}`);
+    assert.match(output, new RegExp(`✓\\s+${name.replace(/\./g, '\\.')}`), `清单应包含并跑通 ${name}`);
   }
 });

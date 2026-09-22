@@ -20,7 +20,6 @@ import test from 'node:test';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DRIVER = path.join(HERE, '..', 'bin', 'render-driver.mjs');
-const DRIVER_SRC = path.join(HERE, '..', 'bin', 'render-driver.mjs');
 
 /** 本次裁剪按设计砍掉的十一个子命令。 */
 const REMOVED_SUBCOMMANDS = [
@@ -100,7 +99,7 @@ test('doctor 不接受未知选项', () => {
 });
 
 test('驱动源码里不再有代码溯源能力（--repo-root / 证据模块）', () => {
-  const source = fs.readFileSync(DRIVER_SRC, 'utf8');
+  const source = fs.readFileSync(DRIVER, 'utf8');
   assert.doesNotMatch(source, /extractRepoRootArgs/, '不应残留 --repo-root 解析函数');
   assert.doesNotMatch(source, /ARCHIFY_REPO_ROOT/, '不应残留溯源环境变量');
   assert.doesNotMatch(source, /verifyRepositoryEvidence/, '不应残留证据校验调用');
@@ -108,7 +107,7 @@ test('驱动源码里不再有代码溯源能力（--repo-root / 证据模块）
 });
 
 test('驱动源码里不再有已砍子命令的实现体', () => {
-  const source = fs.readFileSync(DRIVER_SRC, 'utf8');
+  const source = fs.readFileSync(DRIVER, 'utf8');
   for (const command of REMOVED_SUBCOMMANDS) {
     const fn = `function command${
       command.split('-').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join('')

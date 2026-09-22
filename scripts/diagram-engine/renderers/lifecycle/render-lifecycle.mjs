@@ -42,8 +42,7 @@ const stateTextFit = {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const { diagram: lifecycle, template, outPath } = await loadDiagramWithBrandMarks({
   rendererDir: __dirname,
-  diagramType: 'lifecycle',
-  defaultExample: 'agent-run.lifecycle.json'
+  diagramType: 'lifecycle'
 });
 
 const viewBox = lifecycle.meta?.viewBox || [980, 660];

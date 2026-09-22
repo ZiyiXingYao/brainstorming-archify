@@ -140,7 +140,7 @@ export function buildStopReceipt({ type, input, target, decision, unresolved }) 
   return {
     schemaVersion: 1,
     ok: false,
-    command: 'svg',
+    command: 'render',
     stage: 'validate',
     type,
     input,
@@ -166,7 +166,7 @@ export function buildStopReceipt({ type, input, target, decision, unresolved }) 
  */
 export function formatDecisionSummary({ type, target, input, decision, unresolved }) {
   const lines = [];
-  lines.push(`design-diagrams: stopped auto-fixing (${decision.reason}).`);
+  lines.push(`render: stopped auto-fixing (${decision.reason}).`);
   lines.push(`  diagram: ${type} -> ${target}`);
   lines.push(`  ir: ${input}`);
   lines.push(

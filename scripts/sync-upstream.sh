@@ -30,8 +30,15 @@ while [[ $# -gt 0 ]]; do
 done
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-# 本脚本位于 <仓库根>/scripts/，技能文档位于 <仓库根>/skill/SKILL.md。
-LOCAL="$SCRIPT_DIR/../skill/SKILL.md"
+# 仓库源码布局：脚本在 <仓库根>/scripts/，技能文档在 <仓库根>/skill/SKILL.md。
+# 安装后布局：脚本在 <技能根>/scripts/，SKILL.md 被**平铺**在 <技能根>/SKILL.md。
+# 本脚本已排除出安装清单（见 install.mjs 的 SKIP_REL_PREFIXES）；这里仍保留一次回退
+# 查找，以免有人在已安装副本里直接运行时拿到一个误导性的 not found。
+if [[ -f "$SCRIPT_DIR/../skill/SKILL.md" ]]; then
+  LOCAL="$SCRIPT_DIR/../skill/SKILL.md"
+else
+  LOCAL="$SCRIPT_DIR/../SKILL.md"
+fi
 
 if [[ ! -f "$LOCAL" ]]; then
   echo "ERROR: $LOCAL not found" >&2

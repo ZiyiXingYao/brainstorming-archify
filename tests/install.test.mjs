@@ -15,7 +15,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import test from 'node:test';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -79,7 +79,7 @@ test('--dry-run：列出清单但不落盘', () => {
   }
 });
 
-test('实装形态：skill/ 平铺到根，templates/ 与 scripts/ 整目录', () => {
+test('实装形态：skill/ 平铺到根，templates/ 与 scripts/ 整目录，并跑过自检', () => {
   const parent = tmpDir('install-real-');
   const target = path.join(parent, 'brainstorming');
   try {
@@ -94,25 +94,22 @@ test('实装形态：skill/ 平铺到根，templates/ 与 scripts/ 整目录', (
     assert.ok(fs.existsSync(path.join(target, 'templates', 'module-doc-template.md')));
     assert.ok(fs.existsSync(path.join(target, 'templates', 'interface-contract-template.md')));
     assert.ok(fs.existsSync(path.join(target, 'scripts', 'install.mjs')));
-    assert.ok(fs.existsSync(path.join(target, 'scripts', 'sync-upstream.sh')));
+    // sync-upstream.sh 是仓库维护工具（会 clone 上游仓库比对 SKILL.md），不该出现在用户技能目录
+    assert.ok(
+      !fs.existsSync(path.join(target, 'scripts', 'sync-upstream.sh')),
+      'sync-upstream.sh 不应进安装',
+    );
     // 内核入口
     assert.ok(fs.existsSync(path.join(target, 'scripts', 'diagram-engine', 'bin', 'render.mjs')));
     assert.ok(fs.existsSync(path.join(target, 'scripts', 'diagram-engine', 'bin', 'render-driver.mjs')));
     // 仓库自测面不进安装
     assert.ok(!fs.existsSync(path.join(target, 'tests')), 'tests/ 不应进安装');
     assert.ok(!fs.existsSync(path.join(target, 'scripts', 'diagram-engine', 'test')), '内核回归集不应进安装');
-  } finally {
-    fs.rmSync(parent, { recursive: true, force: true });
-  }
-});
 
-test('安装后自检：输出 doctor 通过', () => {
-  const parent = tmpDir('install-selfcheck-');
-  const target = path.join(parent, 'brainstorming');
-  try {
-    const result = runInstall(['--target', target]);
-    assert.equal(result.status, 0);
-    assert.match(result.stdout, /自检：diagram-engine doctor 通过/);
+    // 装后自检必须真的跑了检查项（只匹配固定文案的话，自检判定退化时用例仍会绿）
+    const selfCheck = /自检：diagram-engine doctor 通过（(\d+) 项检查全部 ok）/.exec(result.stdout);
+    assert.ok(selfCheck, `应输出带检查项数的自检结论\n${result.stdout}`);
+    assert.ok(Number(selfCheck[1]) > 0, '自检应至少报告一项检查通过');
   } finally {
     fs.rmSync(parent, { recursive: true, force: true });
   }
@@ -136,6 +133,22 @@ test('目标已存在：先整体备份，既有内容完整保留在备份里',
     assert.equal(fs.readFileSync(backedUp, 'utf8'), 'OLD-CONTENT');
     // 新装内容应就位
     assert.ok(fs.existsSync(path.join(target, 'SKILL.md')));
+  } finally {
+    fs.rmSync(parent, { recursive: true, force: true });
+  }
+});
+
+test('备份目标已存在时拒绝覆盖，不静默吞掉既有备份', async () => {
+  const { backupExisting } = await import(pathToFileURL(INSTALL).href);
+  const parent = tmpDir('install-backup-clash-');
+  const target = path.join(parent, 'brainstorming');
+  try {
+    fs.mkdirSync(target, { recursive: true });
+    const stamp = '20260101-000000';
+    assert.equal(backupExisting(target, stamp), `${target}.bak-${stamp}`);
+    // 备份目录已被占用：再次以同一 stamp 备份必须报错，而不是覆盖既有备份
+    fs.mkdirSync(target, { recursive: true });
+    assert.throws(() => backupExisting(target, stamp), /备份目标已存在/);
   } finally {
     fs.rmSync(parent, { recursive: true, force: true });
   }

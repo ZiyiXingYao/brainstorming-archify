@@ -7,18 +7,35 @@
  * 规格要求两个场景：环境满足时退出码 0；**运行期必需文件缺失时非零退出并指出缺失路径**。
  * 后者靠临时改名一个必需文件来构造，并在 finally 里恢复——这是唯一能真正走到该分支的办法。
  *
+ * **为什么改在副本上做**：仓库的标准跑法是 `node --test tests/*.test.mjs`，node:test 会按
+ * 文件并行起子进程，其中 `tests/engine.test.mjs` 会唤起 `run-valid.mjs` 从而**并发**执行
+ * 本文件，而 `tests/render.entry.test.mjs` 正在断言这些文件在场时的输出。在源码树上改名，
+ * 两个用例集的窗口一重叠就随机假红。所以先把内核整棵复制到临时目录，只改副本。
+ *
  * 只用 Node 内置模块，不依赖 node_modules。
  */
 
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(HERE, '..');
+const SOURCE_ROOT = path.resolve(HERE, '..');
+
+const SANDBOX = fs.mkdtempSync(path.join(os.tmpdir(), 'doctor-test-'));
+const ROOT = path.join(SANDBOX, 'diagram-engine');
+fs.cpSync(SOURCE_ROOT, ROOT, {
+  recursive: true,
+  filter: (src) => path.basename(src) !== 'node_modules',
+});
+process.on('exit', () => {
+  try { fs.rmSync(SANDBOX, { recursive: true, force: true }); } catch { /* best effort */ }
+});
+
 const DRIVER = path.join(ROOT, 'bin', 'render-driver.mjs');
 
 function runDoctor() {
@@ -26,7 +43,7 @@ function runDoctor() {
 }
 
 /**
- * 临时把某个运行期必需文件改名，跑一次 doctor，再恢复。
+ * 在**副本**上临时把某个运行期必需文件改名，跑一次 doctor，再恢复。
  *
  * @param {string} relative 相对内核根的文件路径
  * @returns {{status: number|null, output: string}}

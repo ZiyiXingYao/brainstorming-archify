@@ -112,7 +112,7 @@
 
 ### 裁剪后为何只剩 7 个上游文件
 
-本次裁剪按设计删掉了 10 个子命令（compare／deliver／preview／migrate／inspect／check／
+本次裁剪按设计删掉了 11 个子命令（compare／deliver／preview／migrate／inspect／check／
 visual-check／guide／brands／examples／demo）、`--repo-root` 溯源能力与 `examples/` 目录，
 并把入口 `bin/archify.mjs` 改名为 `bin/render-driver.mjs`。其余上游用例因此**按设计不再
 适用**，失败原因只有三类（逐文件实测）：

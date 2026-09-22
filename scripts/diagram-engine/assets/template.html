@@ -7466,10 +7466,11 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
     /* Repository evidence is NOT produced by this build: the renderer no longer
        verifies a GitHub revision, source blobs or line ranges, and always emits
-       a null payload. The shape is kept because this panel still consumes a
-       caller-injected verified payload; when it is absent the passport's
-       evidence area simply stays hidden. When present it stays outside the SVG,
-       so every canonical visual export is free of repository paths. */
+       a null payload. The shape is retained because this panel still renders an
+       injected verified payload and there is no in-repo producer left — when the
+       payload is absent the evidence area simply stays hidden. When present it
+       stays outside the SVG, so every canonical visual export is free of
+       repository paths. */
     Archify.sourceEvidence = (function () {
       var element = document.getElementById('archify-source-evidence-data');
       var payload = null;

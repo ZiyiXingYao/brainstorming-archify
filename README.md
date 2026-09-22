@@ -91,13 +91,14 @@ node scripts/install.mjs
 ├── templates/                     ← 三份模板整目录复制
 └── scripts/
     ├── install.mjs
-    ├── sync-upstream.sh
     └── diagram-engine/            ← 裁剪后的绘图内核（唯一入口 bin/render.mjs）
 ```
 
 仓库根的 `tests/` **不进安装**——它是仓库自测面；内核自带的上游回归集
 `scripts/diagram-engine/test/` 也**不进安装**（约 2.2 MB，运行时零用途，成因见
-`scripts/diagram-engine/UPSTREAM.md` 第 3 节）。
+`scripts/diagram-engine/UPSTREAM.md` 第 3 节）；`scripts/sync-upstream.sh` 同样
+**不进安装**——它是仓库维护工具（会 clone 上游仓库比对 `skill/SKILL.md`），安装后的
+布局里没有它的对应物。
 
 ### 方式二：git clone
 
@@ -171,7 +172,7 @@ node ~/.codebuddy/skills/brainstorming/scripts/diagram-engine/bin/render.mjs doc
 **仓库自测面不进安装**——它判的是源码树而不是安装副本：
 
 ```bash
-node --test tests/*.test.mjs                     # 一条命令覆盖全部：35 个用例，0 失败
+node --test tests/*.test.mjs                     # 一条命令覆盖全部：40 个用例，0 失败
 node tests/render.smoke.test.mjs                 # 只跑冒烟（独立脚本）
 ```
 

@@ -55,7 +55,6 @@ const cliArgs = process.argv.filter((arg) => arg !== '--layout-json');
 const { diagram: arch, template, outPath } = await loadDiagramWithBrandMarks({
   rendererDir: __dirname,
   diagramType: 'architecture',
-  defaultExample: 'web-app.architecture.json',
   argv: cliArgs,
 });
 

@@ -75,7 +75,13 @@ const SKIP_DIRS = new Set(['node_modules', '.git']);
  * 安装时跳过的相对路径前缀：内核自带的上游回归集是**仓库自测面**，不属于技能运行时
  * （约 2.2 MB / 130 个文件）。它对出图与 doctor 自检都无用途，装进用户技能目录只是负担。
  */
-const SKIP_REL_PREFIXES = Object.freeze([path.join('scripts', 'diagram-engine', 'test')]);
+const SKIP_REL_PREFIXES = Object.freeze([
+  // 内核回归集是仓库自测面，不进安装。
+  path.join('scripts', 'diagram-engine', 'test'),
+  // 仓库维护工具（从上游 clone 后比对 SKILL.md）。安装后的布局里它没有对应物，
+  // 且它会 clone 外部仓库，不该出现在用户技能目录。
+  path.join('scripts', 'sync-upstream.sh'),
+]);
 
 // ---------------------------------------------------------------------------
 // 版本判定
@@ -158,6 +164,16 @@ export function buildManifest(repoRoot = REPO_ROOT) {
     }
   }
 
+  // 两份来源（平铺的 skill/ 与整目录的 templates/、scripts/）写进同一个目标根，
+  // 路径撞车会让后写者静默覆盖先写者。备份与版本门都刻意避免覆盖，这里同样失败关闭。
+  const seen = new Set();
+  for (const entry of entries) {
+    if (seen.has(entry.rel)) {
+      throw new Error(`安装清单出现重复目标路径，拒绝静默覆盖：${entry.rel}`);
+    }
+    seen.add(entry.rel);
+  }
+
   return entries;
 }
 
@@ -169,13 +185,14 @@ export function usage() {
   return `用法：
   node scripts/install.mjs                安装 brainstorming 技能到默认目标
   node scripts/install.mjs --dry-run      只列出将写入的文件与目标路径，不修改文件系统
-  node scripts/install.mjs --target <dir> 指定安装根目录（默认：${DEFAULT_TARGET_ROOT}）
+  node scripts/install.mjs --target <dir> 指定技能安装目录（默认：${DEFAULT_TARGET}）
   node scripts/install.mjs --help         显示本用法
 
 行为：
   - 启动先检查 Node 主版本，低于 ${REQUIRED_NODE_MAJOR} 时非零退出且不写入任何文件；
-  - 安装到 <目标根>/${SKILL_NAME}/：skill/ 内文件平铺到该根，templates/ 与 scripts/ 整目录复制；
-  - 目标技能目录已存在时，先整体备份为 ${SKILL_NAME}.bak-<时间戳>；
+  - 安装到 <目标目录> 本身的根：skill/ 内文件平铺到该目录，templates/ 与 scripts/ 整目录复制。
+    '--target' 传的是**技能目录**，不是它的上级——脚本不会自动追加 ${SKILL_NAME}/ 子目录；
+  - 目标已存在时，先把它整体备份为 <目标目录名>.bak-<时间戳>，再写入；
   - 安装后对已安装副本执行 bin/render.mjs doctor 自检（该链路不依赖 node_modules）。
 
 环境变量：
@@ -367,7 +384,10 @@ export function run(argv = process.argv.slice(2), options = {}) {
     if (backup) stdout(`目标已存在，已备份为：${backup}\n`);
 
     const written = installFiles(manifest, target);
-    stdout(`已写入 ${written === manifest.length ? summaryLine(manifest) : `${written} 个文件`}。\n`);
+    if (written !== manifest.length) {
+      throw new Error(`写入数量与清单不符（清单 ${manifest.length}，实际 ${written}）`);
+    }
+    stdout(`已写入 ${summaryLine(manifest)}。\n`);
 
     const selfCheck = runSelfCheck({ installedSkillDir: target });
     const okLines = (selfCheck.stdout.match(/^\[ok\]/gm) ?? []).length;

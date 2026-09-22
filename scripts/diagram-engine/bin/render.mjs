@@ -310,16 +310,26 @@ function assertRegularOrAbsent(target) {
 function commitArtifacts(entries) {
   for (const entry of entries) assertRegularOrAbsent(entry.target);
 
+  // 内容已一致的条目无需提交。源 IR 常与 `<basename>.json` 是同一路径，而渲染不改
+  // IR 字节，所以那一件通常是 no-op。跳过它，避免「先备份、再 rename」这两步之间
+  // 的崩溃窗口——否则源 IR 会一度只剩 `.render-backup-<pid>`，而该名字不以
+  // `.render-` 开头，残留检测覆盖不到。
+  const pending = entries.filter(
+    (entry) => !fs.existsSync(entry.target)
+      || !fs.readFileSync(entry.target).equals(fs.readFileSync(entry.candidate)),
+  );
+  if (!pending.length) return;
+
   const backups = [];
   const committed = [];
   try {
-    for (const entry of entries) {
+    for (const entry of pending) {
       if (!fs.existsSync(entry.target)) continue;
       const backup = `${entry.target}.render-backup-${process.pid}`;
       fs.renameSync(entry.target, backup);
       backups.push({ target: entry.target, backup });
     }
-    for (const entry of entries) {
+    for (const entry of pending) {
       fs.renameSync(entry.candidate, entry.target);
       committed.push(entry);
     }
@@ -412,13 +422,10 @@ function commandRender(args) {
     console.error(`输入 IR 不可读或是目录：${input}`);
     return 1;
   }
-  // 自保：三件套目标不得互相冲突；静态图与交互页不得覆盖输入 IR。
-  // 允许 `<basename>.json` 与输入 IR 为同一文件——此时该件已在目标位置，
-  // 写入的是同一份字节（IR 逐字节落盘），不构成覆盖风险。
-  if (outSvg === outJson || outSvg === outHtml || outJson === outHtml) {
-    console.error(`三件套输出路径互相冲突（应同前缀、扩展名不同）：${outDir}`);
-    return 2;
-  }
+  // 自保：静态图与交互页不得覆盖输入 IR。
+  // 三件套之间不设冲突判断——三者由同一 basename 加不同扩展名派生，恒不相等，
+  // 那类判断永远不会执行（属死代码）。允许 `<basename>.json` 与输入 IR 为同一文件：
+  // 此时该件已在目标位置、写入的是同一份字节（IR 逐字节落盘），不构成覆盖风险。
   if (outSvg === input || outHtml === input) {
     console.error(`输出路径不得覆盖输入 IR：${input}`);
     return 2;
@@ -542,6 +549,14 @@ export function main(argv = process.argv.slice(2)) {
     case 'doctor': {
       // 透传给内部驱动：保持输出与退出码原样。
       const result = spawnSync(process.execPath, [DRIVER, command, ...args], { stdio: 'inherit' });
+      if (result.error) {
+        // 驱动根本没起来（文件缺失 / 不可执行 / 被杀）时 status 是 null，
+        // `if (result.status)` 会把这种失败读成成功。与 commandRender 里
+        // `validate.status !== 0` 的 fail-closed 口径保持一致。
+        console.error(`无法启动内部驱动 ${DRIVER}：${result.error.message}`);
+        process.exitCode = 1;
+        return;
+      }
       if (result.status) process.exitCode = result.status;
       return;
     }

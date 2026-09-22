@@ -49,7 +49,9 @@ test('三份模板齐备（接口契约模板不可少）', () => {
 test('SKILL.md 含绘图规划 Gate 与三件套', () => {
   const skill = read(SKILL);
   assert.match(skill, /Diagram Planning Gate/, '应含绘图规划 Gate');
-  assert.match(skill, /\.json.*\.svg.*\.html/s, '应说明三件套');
+  // 不加 `s` 标志：加了会让 `.` 跨行、`.*` 吞全文，只要三者在文件任意位置按序出现即通过，
+  // 断言就形同虚设。三件套必须写在同一处（同一行）。
+  assert.match(skill, /\.json.*\.svg.*\.html/, '应说明三件套');
   assert.match(skill, /render\.mjs/, '应给出唯一入口');
 });
 
@@ -161,7 +163,7 @@ test('状态取值只在架构模板第 7 节定义一次', () => {
   assert.match(arch, /章节级\*\*标记/, '应澄清 不适用 是章节级标记、不是状态取值');
 });
 
-test('其余三份文件引用第 7 节而不是复述取值', () => {
+test('其余三份文件都引用第 7 节', () => {
   for (const rel of POINTER_FILES) {
     assert.match(read(rel), /section 7|第 7 节/, `${rel} 应指向架构模板第 7 节的权威块`);
   }
@@ -197,7 +199,9 @@ const REMOVED_COMMANDS = Object.freeze([
 test('内核非测试文档不再把已删命令写成现行能力', () => {
   const offenders = [];
   const walk = (dir) => {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    // 锚定 ROOT：`read(rel)` 以 ROOT 为基准，遍历也必须一致，否则 cwd 不是仓库根
+    // （IDE / 子目录里跑 `node --test`）时这里直接 ENOENT。
+    for (const entry of fs.readdirSync(path.join(ROOT, dir), { withFileTypes: true })) {
       const rel = path.join(dir, entry.name);
       if (entry.isDirectory()) {
         if (entry.name === 'node_modules' || entry.name === 'test') continue;
@@ -218,7 +222,10 @@ test('内核非测试文档不再把已删命令写成现行能力', () => {
 test('brand-marks 源码不再含联网抓取实现', () => {
   const source = read('scripts/diagram-engine/renderers/shared/brand-marks.mjs');
   const banned = [
-    /node:http/, /node:https/, /node:dns/, /node:net/, /createHash/,
+    /node:http/, /node:https/, /node:dns/, /node:net/, /node:crypto/, /createHash/,
+    // 全局 `fetch()` 与 `XMLHttpRequest` 都不需要 import——只查模块导入会被整条绕过，
+    // 而用全局 fetch 写抓取恰恰是最可能出现的那种回归。
+    /\bfetch\s*\(/, /XMLHttpRequest/,
     /checkedFetch/, /captureRemoteBrand/, /captureBrandReference/,
     /readLimited/, /iconCandidates/, /isPrivateBrandAddress/, /mapConcurrent/,
     /ARCHIFY_BRAND_ALLOW_PRIVATE/, /ARCHIFY_BRAND_CAPTURE_TIMEOUT_MS/,

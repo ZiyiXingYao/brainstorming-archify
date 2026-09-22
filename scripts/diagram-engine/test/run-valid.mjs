@@ -6,14 +6,13 @@
  * 背景
  * ----
  * `design-diagrams/test/` 是从上游 archify 仓库（见 ../UPSTREAM.md）整包逐字节
- * 搬来的测试集，但技能包被搬入本仓库时是「裁剪结构」：
- *   - 仓库根的 `scripts/`（构建 / CI / 发布 / 站点工具）与 `viewer/` 未搬入；
- *   - 上游三份 `README*.md` 与官网 / docs 站未搬入；
- *   - `benchmarks/` 未搬入；
- *   - 未安装 `node_modules`（上游 devDependencies：ajv / parse5 / saxes / simple-icons）。
- * 因此上游 115 个测试文件里有 37 个在本仓库**结构上不可能通过**——它们不是在
- * 断言本技能的运行时行为，而是在检查上游仓库自身的构建产物、发布门禁、站点、
- * 仓库根元数据。这 37 个文件与原因逐条记在 ../UPSTREAM.md。
+ * 搬来的测试集，但技能包被搬入本仓库时是「裁剪结构」：上游仓库根的构建 / CI /
+ * 发布 / 站点工具、`viewer/`、`benchmarks/` 与三份 `README*.md` 都未搬入。
+ *
+ * **裁剪后的实况口径**（不要再用裁剪前的统计）：上游基准下这份清单原有 78 个文件
+ * 全绿；本次裁剪删除了十一个子命令、`--repo-root` 溯源能力、`examples/` 目录与
+ * `bin/archify.mjs` 这个入口名之后，失效用例只剩三类成因（见下方 UPSTREAM_VALID
+ * 的注释），共 111 个文件已按成因删除，原因逐条记在 ../UPSTREAM.md「裁剪后的实测结论」。
  *
  * 本入口做什么
  * ------------
@@ -49,20 +48,9 @@
  * 忘了登记也不会静默：运行末尾会扫描本目录下所有 `*.test.mjs`，把「既不在上游
  * 清单、也不在本地清单」的文件列为 drift 提示（只提示，不改变退出码）。
  *
- * 负载敏感文件的处置（只此一处，不得扩用）
- * --------------------------------------
- * 清单里 `update-notifier.test.mjs`（**上游搬运件，一个字节都不能改**）含若干并发 /
- * 时序用例——实测至少三条会在负载下假红（「空 precheck 快照不能发起第二次并发网络
- * 请求」「重叠检查读取 last-good 候选」「last-good 通知在刷新提交后仍可确认」）。
- * 实测抖动率：空闲约 1/20、加 4 个 CPU burner 后约 1/2。它让本入口的退出码非确定，
- * 而 README 把退出码当作安装完整性判据，用户看到假红会以为装坏了。
- *
- * 处置（只对这个文件）：最多尝试 3 次，任一次通过即判通过；若三次全失败、但失败用例
- * **全部落在**上面点名的那几条时序敏感用例上，则判为已知假红、**不计入判定**（输出打
- * `⚠` 并列出被忽略的用例）；只要出现**任何一条**其它用例的失败，即判真失败。
- *
- * 代价（会被掩盖什么）：点到名的那几条时序敏感用例的**确定性**失败也会被当成假红放过
- * ——这是换取退出码确定的代价。其它用例的失败（含确定性回归）一律照报，不掩盖。
+ * 曾有一段「负载敏感文件宽容」机制，只服务 `update-notifier.test.mjs`。该文件已随本次
+ * 裁剪删除，机制随之移除：现在每个清单内文件只跑一次，失败就是失败——不再有
+ * 「已知假红不计入判定」这条会掩盖确定性回归的通道。
  * ============================================================================
  */
 
@@ -77,29 +65,12 @@ const SELF = path.basename(fileURLToPath(import.meta.url));
 const RUN_CWD = path.resolve(HERE, '..', '..');
 
 /**
- * 已知时序敏感的上游文件——**只登记 `update-notifier.test.mjs`，不得扩用**（见文件头
- * 「负载敏感文件的处置」）。`attempts` = 最多尝试次数；`tests` = 在负载下会假红、因此
- * 不单独计入判定的用例名（取自 TAP 的 `not ok N - <name>`）。
- */
-const TIMING_SENSITIVE = {
-  'update-notifier.test.mjs': {
-    attempts: 3,
-    tests: [
-      'an empty precheck snapshot cannot start a second concurrent network request',
-      'an overlapping check reads the last-good candidate while another process refreshes it',
-      'a last-good notice remains acknowledgeable after the refresh commits a new candidate',
-    ],
-  },
-};
-
-
-/**
  * 本内核裁剪后**实测仍然全绿**的上游用例。
  *
  * 上游基准（commit 5289f686…，技能包 2.17.0-dev.1）下这份清单原有 **78** 个文件，
  * 全部实测通过（已核）。
  *
- * 本次裁剪按设计删除了：10 个子命令（compare / deliver / preview / migrate /
+ * 本次裁剪按设计删除了：11 个子命令（compare / deliver / preview / migrate /
  * inspect / check / visual-check / guide / brands / examples / demo）、`--repo-root`
  * 代码溯源能力、`examples/` 目录、以及 `bin/archify.mjs` 这个入口名（改为内部驱动
  * `bin/render-driver.mjs`）。其余上游用例因此**按设计不再适用**——它们的失败原因只有
@@ -112,7 +83,7 @@ const TIMING_SENSITIVE = {
  *
  * **这 111 个文件已按上述三类成因删除**（连同只服务它们的 `helpers/`、`fixtures/`，以及
  * `golden.mjs`、`webm-artifact.smoke.mjs`、`site-language-integration.mjs` 三个非测试运行器）。
- * 本目录现在只剩「实测全绿」的 10 个文件 + 本入口 + `svg-css-extract.golden.json` 一个数据文件，
+ * 本目录现在只剩「实测全绿」的 13 个文件 + 本入口 + `svg-css-extract.golden.json` 一个数据文件，
  * 末尾不再有 drift 提示。将来需要这些用例时，从 `../UPSTREAM.md` 第 1 节的基准 commit 重新取。
  * **改动裁剪范围后必须重跑重测**：本清单是「实测全绿」的记录，不是愿望清单。
  */
@@ -129,13 +100,10 @@ export const UPSTREAM_VALID = [
 /**
  * 本仓库自己新增能力的用例登记处。
  *
- * 另有三个本地用例**暂未登记**，原因写在这里而不是留在失败列表里：
- *   - `svg-export.test.mjs`、`svg-degrade.test.mjs`：被测对象是旧入口
- *     `bin/design-diagrams.mjs svg <type> <ir> <out.svg>`，该入口已按本次要求改造为
- *     `bin/render.mjs render <type> <ir> <outdir>`（一次产出三件套）；两者需随新 CLI 重写。
- *     新入口的端到端覆盖已由仓库根 `tests/render.smoke.test.mjs` 承担。
- *   - `install.test.mjs`：被测对象 `install.mjs` 正在按本次要求改写为「单技能安装 +
- *     备份 + doctor 自检」，需随其重写。
+ * 曾随上游搬入的 `svg-export.test.mjs`、`svg-degrade.test.mjs` 与内核侧 `install.test.mjs`
+ * 已随本次裁剪删除（旧入口改名、`install.mjs` 重写为单技能安装）。端到端覆盖改由仓库根
+ * `tests/` 承担：`tests/render.smoke.test.mjs` 覆盖三件套产出、`tests/render.entry.test.mjs`
+ * 覆盖唯一入口契约、`tests/install.test.mjs` 覆盖安装器。
  */
 export const LOCAL_TESTS = [
   // Node 侧 CSS 抽取器（静态复刻 viewer/export.js 的规则抽取）
@@ -195,54 +163,27 @@ function runOne(file) {
       fail: 0,
       tests: 0,
       skipped: 0,
-      tolerated: 0,
-      attempts: 0,
       note: '',
+      failedTests: [],
       detail: `清单指向的文件不存在：${absolute}`,
     };
   }
-  const policy = TIMING_SENSITIVE[file];
-  const maxAttempts = policy ? policy.attempts : 1;
-  let result;
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    const raw = spawnSync(process.execPath, ['--test', '--test-reporter=tap', absolute], {
-      cwd: RUN_CWD,
-      encoding: 'utf8',
-      maxBuffer: 64 * 1024 * 1024,
-    });
-    const stdout = raw.stdout ?? '';
-    const stderr = raw.stderr ?? '';
-    const counts = parseTapCounts(stdout);
-    const ok = raw.status === 0;
-    result = {
-      file,
-      ok,
-      ...counts,
-      tolerated: 0,
-      attempts: attempt,
-      note: '',
-      failedTests: ok ? [] : failingTestNames(stdout),
-      detail: ok ? '' : firstFailure(`${stdout}\n${stderr}`),
-    };
-    if (ok) break;
-  }
-  // 已知时序敏感文件：三次全失败、但失败用例全在下述点名名单内 → 判为已知假红，不改变退出码。
-  if (!result.ok && policy) {
-    const confined =
-      result.failedTests.length > 0 && result.failedTests.every((name) => policy.tests.includes(name));
-    if (confined) {
-      result.ok = true;
-      result.tolerated = result.fail;
-      result.fail = 0;
-      result.note = `已知时序敏感用例在负载下假红，不计入判定（尝试 ${result.attempts} 次）：${result.failedTests.join('；')}`;
-    }
-  }
-  if (!result.note && result.attempts > 1) {
-    result.note = result.ok
-      ? `经 ${result.attempts} 次尝试通过（首跑/前次为时序假红）`
-      : `已尝试 ${result.attempts} 次仍失败`;
-  }
-  return result;
+  const raw = spawnSync(process.execPath, ['--test', '--test-reporter=tap', absolute], {
+    cwd: RUN_CWD,
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  const stdout = raw.stdout ?? '';
+  const stderr = raw.stderr ?? '';
+  const ok = raw.status === 0;
+  return {
+    file,
+    ok,
+    ...parseTapCounts(stdout),
+    note: '',
+    failedTests: ok ? [] : failingTestNames(stdout),
+    detail: ok ? '' : firstFailure(`${stdout}\n${stderr}`),
+  };
 }
 
 function drift() {
@@ -266,10 +207,8 @@ function main() {
 
   for (const r of results) {
     if (r.ok) {
-      const mark = r.tolerated ? '⚠' : '✓';
-      const tolerated = r.tolerated ? ` tolerated=${r.tolerated}` : '';
       console.log(
-        `  ${mark} ${r.file} (pass=${r.pass}${r.skipped ? ` skipped=${r.skipped}` : ''}${tolerated})`,
+        `  ✓ ${r.file} (pass=${r.pass}${r.skipped ? ` skipped=${r.skipped}` : ''})`,
       );
       if (r.note) console.log(`      ↻ ${r.note}`);
     } else {
@@ -286,20 +225,16 @@ function main() {
       pass: acc.pass + r.pass,
       fail: acc.fail + r.fail,
       skipped: acc.skipped + r.skipped,
-      tolerated: acc.tolerated + (r.tolerated ?? 0),
     }),
-    { tests: 0, pass: 0, fail: 0, skipped: 0, tolerated: 0 },
+    { tests: 0, pass: 0, fail: 0, skipped: 0 },
   );
 
   console.log('');
   console.log(
     `文件：${results.length} 个已跑，${results.length - failed.length} 通过，${failed.length} 失败`,
   );
-  const toleratedNote = totals.tolerated
-    ? `（另有 ${totals.tolerated} 条已知时序敏感用例未计入判定）`
-    : '';
   console.log(
-    `用例：${totals.tests} 个已跑，${totals.pass} 通过，${totals.fail} 失败，${totals.skipped} 跳过${toleratedNote}`,
+    `用例：${totals.tests} 个已跑，${totals.pass} 通过，${totals.fail} 失败，${totals.skipped} 跳过`,
   );
   if (failed.length > 0) {
     console.log('');

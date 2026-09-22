@@ -12,12 +12,16 @@ installRendererDiagnosticBoundary();
 
 const outputPathGuards = new Map();
 
-// Common CLI head: node render-<type>.mjs [input.json] [output.html]
+// Common CLI head: node render-<type>.mjs <input.json> [output.html]
 // Keep this synchronous because callers also use it to establish the guarded
 // output path before testing a last-moment filesystem alias change.
-export function loadDiagram({ rendererDir, diagramType, defaultExample, argv = process.argv }) {
+export function loadDiagram({ rendererDir, diagramType, argv = process.argv }) {
   const skillRoot = path.resolve(rendererDir, '../..');
-  const inputPath = path.resolve(argv[2] || path.join(skillRoot, 'examples', defaultExample));
+  // 输入是显式必填：内核不再自带 `examples/`（已随裁剪删除），没有可回落的样例。
+  if (!argv[2]) {
+    throw new Error('renderer requires an input IR path: node render-<type>.mjs <input.json> [output.html]');
+  }
+  const inputPath = path.resolve(argv[2]);
   const diagram = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
   validateSchema(diagramType, diagram);
   validateGuidedViews(diagramType, diagram);
@@ -36,9 +40,9 @@ export function loadDiagram({ rendererDir, diagramType, defaultExample, argv = p
   return { diagram, template, outPath };
 }
 
-// Brand URL capture is the only asynchronous authoring step. Typed renderers
-// opt into it through this wrapper without changing loadDiagram's long-lived
-// synchronous safety contract.
+// Brand resolution is synchronous and offline; typed renderers opt into it
+// through this wrapper without changing loadDiagram's long-lived synchronous
+// safety contract.
 export async function loadDiagramWithBrandMarks(options) {
   const loaded = loadDiagram(options);
   await prepareDiagramBrandMarks(options.diagramType, loaded.diagram);

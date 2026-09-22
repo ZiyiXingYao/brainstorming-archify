@@ -7,8 +7,7 @@ import { compileWorkflow } from './workflow-compiler.mjs';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const { diagram: workflow, template, outPath } = await loadDiagramWithBrandMarks({
   rendererDir: __dirname,
-  diagramType: 'workflow',
-  defaultExample: 'agent-tool-call.workflow.json'
+  diagramType: 'workflow'
 });
 
 const compiled = compileWorkflow({

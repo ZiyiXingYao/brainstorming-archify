@@ -99,12 +99,15 @@ local to the current page.
 
 Every semantic node collection (`components`, `nodes`, `participants`, and
 `states`) also accepts one optional `brand`: a canonical built-in brand ID, as
-listed in `renderers/shared/generated-brand-marks.mjs`, or a known-brand domain
-name that resolves to one of those IDs. This build has **no brand-capture
-capability and never makes a network request**: a URL string, or the
-digest-pinned `{ "url", "sha256" }` object the upstream CLI could produce, is
-rejected with a `brand/unsupported-url` diagnostic. Omitted `brand` preserves
-the prior output.
+listed in `renderers/shared/generated-brand-marks.mjs`, written as its id, its
+title, or an alias (for example `github`). This build has **no brand-capture
+capability and never makes a network request**: any HTTP(S) URL — even one whose
+host belongs to a known brand — is rejected by the renderer with a
+`brand/unsupported-url` diagnostic, and a bare domain (`github.com`) is not a
+brand ID either and fails as `brand/unknown`. The schema therefore declares
+`brand` as a bounded plain string and no longer blesses the upstream
+digest-pinned `{ "url", "sha256" }` object form. Omitted `brand` preserves the
+prior output.
 
 ## schema_version policy
 
@@ -138,7 +141,7 @@ The five diagram schemas reference `common.schema.json#/$defs/...`:
 - `componentType` — `frontend`, `backend`, `database`, `cloud`, `security`,
   `messagebus`, `external`
 - `locale` — the bounded renderer locale, `en` or `zh-CN`
-- `brandMark` — one optional built-in brand ID or explicit HTTP(S) site URL
+- `brandMark` — one optional bounded brand ID string (an id, title or alias); URLs are rejected by the renderer
 - `variant` — `default`, `emphasis`, `security`, `dashed` (sequence messages
   extend this list locally with `return`)
 - `legendMode` and `legendEntry` — the shared strict mode and label/visibility

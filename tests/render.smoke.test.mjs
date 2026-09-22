@@ -65,6 +65,8 @@ function checkCase([type, fixture]) {
     const result = spawnSync(process.execPath, [RENDER, 'render', type, input, outDir], {
       encoding: 'utf8',
       maxBuffer: 64 * 1024 * 1024,
+      // 不设 timeout 时，一旦渲染卡死本文件会无限挂起，CI 只能整体超时而非给出可读失败。
+      timeout: 120_000,
     });
     assert.equal(
       result.status,
@@ -85,6 +87,13 @@ function checkCase([type, fixture]) {
       assert.ok(size > 0, `${type}: 产物 ${base}.${ext} 是空文件`);
       bytes[ext] = size;
     }
+
+    // 契约：`.json` 是源 IR **逐字节**落盘（见 bin/render.mjs 头部注释）。只查存在与非空
+    // 的话，IR 被重编码 / 丢字段也不会有任何测试发现。
+    assert.ok(
+      fs.readFileSync(targets.json).equals(fs.readFileSync(input)),
+      `${type}: ${base}.json 应与输入 IR 逐字节一致`,
+    );
 
     const svg = fs.readFileSync(targets.svg, 'utf8');
     assert.ok(svg.includes('<svg'), `${type}: ${base}.svg 不含 <svg 根元素`);
@@ -118,7 +127,7 @@ for (const testCase of CASES) {
 
 console.log('');
 if (failures === 0) {
-  console.log(`RESULT: PASS（5/5）`);
+  console.log(`RESULT: PASS（${CASES.length}/${CASES.length}）`);
 } else {
   console.error(`RESULT: FAIL（${failures}/${CASES.length} 失败）`);
 }
