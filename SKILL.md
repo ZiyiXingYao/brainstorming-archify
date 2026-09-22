@@ -104,7 +104,9 @@ artifact, never the approval.
 | "It's bounded and the design is obvious — I'll start while they read it" | The gate is the approval, not the design's length. Present, then stop until you hear yes. |
 | "I understand this kind of app, so it's bounded" | Bounded measures the repo, not your familiarity. A new project has no existing flow — it is architectural. |
 | "They just asked casually, so I'll write the doc anyway" | The Persist Gate: ask first. No consent, no file. |
-| "I'll write the doc in whatever shape feels right" | Design documents MUST follow `architecture-doc-template.md` or `module-doc-template.md`, in section and in order. |
+| "I'll write the doc in whatever shape feels right" | Design documents MUST follow `architecture-doc-template.md`, `module-doc-template.md`, or `interface-contract-template.md`, in section and in order. |
+| "No interface came up in this discussion, so no interface contract is needed" | Whether the interface contract is produced is a mechanical test, not a topic judgment: any one of the seven interface families — MySQL, Redis, MQ, HTTP, gRPC, dynamic-library API, TCP — being present means the document MUST be produced. A skip justified by "we did not touch interfaces" is a defect. |
+| "The interface contract can be `0-接口契约.md` so it sorts with the others" | The interface contract's path and file name are fixed at `specs/design/接口契约.md`, with no numeric prefix — the prefix belongs to the architecture document and the module documents. An alias such as `0-接口契约.md` or `contract.md` is a defect. |
 | "This is a module discussion, but I'll tidy up the architecture doc while I'm in there" | Untouched sections stay word-for-word. Only entries actually affected by this discussion may change. |
 | "I know the module list well enough, I'll just write the doc" | Reading `specs/design/` first is a hard prerequisite. Writing without reading silently erases other discussions' work. |
 | "Field tables look like spec mode, so I'll describe them in prose instead" | Field tables, function tables, call chains, and interface matrices are design description, not acceptance criteria. They are required, not forbidden. |
@@ -242,7 +244,7 @@ is the whole process.
 - Once you believe you understand what you're building, present the design
 - Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
 - Ask after each section whether it looks right so far
-- Cover the ground the templates will require: functional points; module division and its rationale; core classes with their relationships and calls; the file tree; cross-module interfaces; and the global flows. The templates decide the exact section list — inventing a section name the templates do not have is a defect.
+- Cover the ground the templates will require: functional points; module division and its rationale; core classes with their relationships and calls; the file tree; cross-module interfaces; the global flows; and, for any project that produces the interface contract, the outward interfaces and data contracts across the seven families — MySQL tables; Redis keys and structures; MQ channels; HTTP interfaces; gRPC interfaces; dynamic-library APIs; TCP interfaces — plus the catch-all for other outward interfaces. The templates decide the exact section list — inventing a section name the templates do not have is a defect.
 - Be ready to go back and clarify if something doesn't make sense
 
 **Design for isolation and clarity:**
@@ -529,6 +531,13 @@ created or modified, present a change list and wait for an explicit yes.
 The change list states:
 
 - **New files** — path, and which template each follows
+- **Interface-contract determination** — the mechanical verdict for
+  `specs/design/接口契约.md`: either it is produced because at least one of the
+  seven interface families (MySQL, Redis, MQ, HTTP, gRPC, dynamic-library API,
+  TCP) is present — name the families that hit — or it is not produced because
+  none is present, in which case the ground for **every one of the seven** is
+  written out family by family. This field is never omitted. "This discussion
+  did not touch interfaces" is never a valid ground for skipping the document.
 - **Modified files** — path, and for each one exactly which sections or
   entries change, and why. **Separate two kinds of modification**, because
   they carry different authorisation: entries this discussion reworked, and
@@ -595,9 +604,9 @@ reading time.
 
 ## Writing the Design Document
 
-1. **Read both templates first** — `architecture-doc-template.md` and
-   `module-doc-template.md` in this skill's directory. This step is
-   mandatory.
+1. **Read all three templates first** — `architecture-doc-template.md`,
+   `module-doc-template.md`, and `interface-contract-template.md` in this
+   skill's directory. This step is mandatory.
 2. **Read the existing output set** — per the Incremental Persist
    Protocol, Rule 1. Then decide the write set: what is new, what is
    merged, and which entries change in each document.
@@ -610,6 +619,11 @@ reading time.
    relative to the project root, not to the current working directory.
    Create `specs/design/` first if it does not exist.
    - `01-架构设计.md` is fixed for the architecture document
+   - The interface contract document is `specs/design/接口契约.md` — that
+     file name is fixed and carries **no numeric prefix**, because the prefix
+     belongs to the architecture document and the module documents. Do not
+     produce `0-接口契约.md` or `contract.md`, and never fold its content into
+     `01-架构设计.md` or a module document.
    - Module documents are named after the functional module and numbered
      after the current maximum. **Append, never renumber** — inserting a
      new module in the middle would rename existing files and break the
@@ -620,6 +634,27 @@ reading time.
 6. **Self-review** (below)
 7. **Subagent review** (below)
 8. **Ask your human partner to review** the documents
+
+**The three managed document types.** The skill manages three kinds of design
+document, and each is written against its own template with every section kept
+in that template's order — no section added, removed, or reordered:
+
+- **Architecture overview** — `architecture-doc-template.md`, written to
+  `specs/design/01-架构设计.md`.
+- **Module document** — `module-doc-template.md`, written to
+  `specs/design/<NN>-<module name>.md`.
+- **Interface contract** — `interface-contract-template.md`, written to
+  `specs/design/接口契约.md` (fixed name, no numeric prefix).
+
+**When the interface contract is produced — a mechanical test, not a topic
+judgment.** If the project has **any one** of the seven interface families —
+**MySQL, Redis, MQ, HTTP, gRPC, dynamic-library API, TCP** — the interface
+contract MUST be produced. If **none** of the seven is present it MUST NOT be
+produced, and the change list records, **family by family**, the ground on which
+each one is judged absent. Skipping it for a reason such as "this discussion did
+not touch interfaces" is never valid. The interface contract carries **no
+diagrams** — it is not a diagram-bearing document, and its lack of SVG diagrams
+is never a defect.
 
 ## Document Format Requirements
 
@@ -652,7 +687,7 @@ reading time.
 
 Check each item and fix in place:
 
-1. **Template compliance per document:** Has each document been checked against its own template — architecture against `architecture-doc-template.md`, each module against `module-doc-template.md`? Every section present, in order, no extra sections?
+1. **Template compliance per document:** Has each document been checked against its own template — architecture against `architecture-doc-template.md`, each module against `module-doc-template.md`, the interface contract against `interface-contract-template.md`? Every section present, in order, no extra sections?
 2. **Placeholder scan:** Any `TBD`, `TODO`, unfilled `<...>`, or empty sections?
 3. **Internal consistency:** Do any sections contradict each other? Does the recommended approach match the comparison's conclusion?
 4. **Ambiguity check:** Can any sentence be read two ways? Pick one reading and make it explicit.
@@ -664,6 +699,13 @@ Check each item and fix in place:
 10. **Coverage completeness:** Does every functional point in the architecture's section 5 have at least one section 10 flow serving it, and does every section 10 flow name at least one functional point — the two sets covering each other in both directions, with no functional point left claimed by no module? **(module)** Does every class in the class list have a detailed-design entry with both a field table and a function table — or an explicit `不适用` with a reason where one of them genuinely does not apply? Does every cross-module call named in a function table appear in the dependency contract? **(architecture)** Does the file tree reach module folders and core files only, with every **core** class's `定义文件` locatable in it? A non-core class's source file need not appear and its absence is not a defect — the module documents' class lists are the authority for the complete class inventory.
 11. **Read-before-write:** Was `specs/design/` actually read before anything was written, and does the write set match what the approved change list described? If the change list was never approved, stop and report that — it is a process failure, not a wording issue.
 12. **Write-set completeness — the *affected* set, not the *planned* set:** This is the **second** run of the sweep that built the change list — the first ran before anything was written, and this one verifies the result. Items 7 and 11 check that what you declared untouched is untouched, and that you wrote what you said you would. Neither catches a stale statement you never noticed. So re-read every section that mentions anything this discussion touched — a module-list class count, a module's 设计状态 and its `（待创建）` marker, interface-matrix statuses, §8.1's provisional-registration prose, flow names and their 服务功能点 — and confirm that each statement which has gone false is either in the write set or explicitly recorded as still true. Then **state the sweep's result**: which sections you re-read, and either the entries you added or `no additional stale statements found`. A change list that names only the entries you meant to edit, while a count or a status that this discussion invalidated sits unchanged, is a defect.
+13. **Interface-contract compliance:** If `specs/design/接口契约.md` is in the write set, check it against `interface-contract-template.md`:
+    - **Three-part families:** each of sections 1–7 carries all three parts in order — `x.1` 清单表 (the list table), `x.2` 逐项契约 (the per-item contract), `x.3` 该类规则 (the family's rules). A missing part with no `不适用：<reason>` declaration is a defect.
+    - **Traceable columns:** every `x.1` 清单表 carries the traceable column set its family prescribes — the list below **governs**, so a family that needs only one side is complete with that one side alone (dynamic-library API 「调用方」; TCP 「对端」) and is not missing an owner column — and the set is never flattened to a single 「写入方」-style label that does not fit the family: MySQL 「数据维护方 + 本服务侧的读写权限」; Redis 「写入方 + 读取方」; MQ 「方向（完整链路两端）+ 分片键」; HTTP / gRPC 「提供方 + 调用方」; dynamic-library API 「调用方」; TCP 「对端」. A missing column, or a blank cell in any row, is a defect.
+    - **Field-table minimum:** every `x.2` field table gives at least a name, a type-or-length, and a meaning. The table is authoritative; a raw snippet (a DDL, proto, header, or frame) is only corroborating evidence — when the two disagree, the table wins and the snippet is corrected to match it.
+    - **总则 completeness:** the 总则 section carries all three parts — the authority-source declaration, the scope-and-shape statement (which MUST include `in-process cross-module interfaces are not written in this document`), and the code-side artifact mapping table.
+    - **Catch-all section:** outward interfaces outside the seven families go in section 8, never forced into sections 1–7 and never omitted; when the section is empty its heading stays, carrying `不适用：<reason>`.
+    - **No diagrams:** the interface contract carries no SVG diagrams and needs no `diagrams/` directory — do not report a defect for its having none.
 
 ## Subagent Review
 
@@ -671,8 +713,8 @@ After self-review passes, dispatch a review subagent using
 `design-doc-reviewer-prompt.md` in this skill's directory. Pass it:
 
 - the path to every document in the write set
-- the path to both templates — `architecture-doc-template.md` and
-  `module-doc-template.md`
+- the path to all three templates — `architecture-doc-template.md`,
+  `module-doc-template.md`, and `interface-contract-template.md`
 - the approved change list itself: which files are new, which are modified
   and in which sections, what was declared untouched, every new
   dependency, any pending conflict, and whether it was announced as an
@@ -680,9 +722,10 @@ After self-review passes, dispatch a review subagent using
   untouched part — the merge-integrity check depends on knowing what the
   approved scope actually was.
 
-One subagent reviews both document types. Route each document to its
-template: `01-架构设计.md` follows the architecture template, every other
-document follows the module template.
+One subagent reviews all three document types. Route each document to its
+template: `01-架构设计.md` follows the architecture template,
+`specs/design/接口契约.md` follows the interface-contract template, and every
+other document follows the module template.
 
 When the write set exceeds five documents, split the review: review
 `01-架构设计.md` first, then dispatch the module documents in batches,

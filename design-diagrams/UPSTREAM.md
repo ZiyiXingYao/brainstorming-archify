@@ -123,28 +123,36 @@ node design-diagrams/test/run-valid.mjs
 既不拥有上游仓库根的这些工具，也没有对应的 `docs/`、`viewer/`、`benchmarks/`。**改
 `design-diagrams/` 里的技能行为不可能让它们转绿，它们变红也不代表技能坏了。**
 
-### 组 B：依赖尚未创建的 `design-diagrams/SKILL.md`（7 个）
+### 组 B：断言上游 `design-diagrams/SKILL.md` 的内容，而本仓库该文件是另一形态（7 个）
 
-每个文件都在模块顶层 `readFileSync('…/design-diagrams/SKILL.md')`，文件不存在则直接
-`ENOENT` 抛出、整文件 0 通过。`design-diagrams/SKILL.md` 属于后续波次，本次**有意不建**。
+每个文件都在模块顶层 `readFileSync('…/design-diagrams/SKILL.md')`，随后对其**内容**做断言
+（描述文案、字面路径引用、分节结构等）。`design-diagrams/SKILL.md` 已在上一变更的波次三
+落盘——上一版把成因写成「该文件尚未创建、本变更不创建它」，该前提**已过期**——但该文件是
+本仓库为「内部出图技能」重写的入口文档，不是上游 archify 的 SKILL.md，因此这些内容断言
+仍不成立。2026-09-22 **单文件逐个实测**（`cd design-diagrams && node --test test/<文件>`，
+串行、每次只跑一个文件）结论如下，**7 个文件仍全部失败**，失败成因已由「文件不存在
+（`ENOENT`）」变为「内容不符（文档断言失败）」：
 
-| 测试文件 | 实测报错（实锤） |
+| 测试文件 | 实测结论（2026-09-22，单文件跑 `node --test test/<文件>`） |
 |---|---|
-| `skill-metadata.test.mjs` | `ENOENT … open '…/design-diagrams/SKILL.md'` |
-| `adaptive-reader-layout.test.mjs` | `ENOENT … open '…/design-diagrams/SKILL.md'` |
-| `authoring-safety-contract.test.mjs` | `ENOENT … open '…/design-diagrams/SKILL.md'` |
-| `delivery-contract.test.mjs` | `ENOENT … open '…/design-diagrams/SKILL.md'` |
-| `preview-contract.test.mjs` | `ENOENT … open '…/design-diagrams/SKILL.md'` |
-| `automatic-port-spread.test.mjs` | 14 个运行时用例通过；第 15 个（文档断言）`ENOENT … SKILL.md` |
-| `sequence-column-fit.test.mjs` | 5 个运行时用例通过；第 6 个（文档断言）`ENOENT … SKILL.md` |
+| `skill-metadata.test.mjs` | **仍失败**：6 个用例 0 通过 / 6 失败。首条 `AssertionError: description must retain the data-flow trigger`（断言 SKILL.md 描述文案）；其余为对 SKILL.md 文案与字面路径引用的 `match` 断言失败 |
+| `adaptive-reader-layout.test.mjs` | **仍失败**：6 个用例 5 通过 / 1 失败。用例 5 `reader remeasures real content and reduces width before allowing desktop page overflow` 对 SKILL.md 文案 `match` 断言失败 |
+| `authoring-safety-contract.test.mjs` | **仍失败**：4 个用例 1 通过 / 3 失败。用例 1 / 3 / 4 对 SKILL.md 文案 `match` 断言失败（报错字段即 `error: 'SKILL.md'`） |
+| `delivery-contract.test.mjs` | **仍失败**：5 个用例 4 通过 / 1 失败。用例 2 `skill keeps deterministic delivery, automated browser evidence, and perceptual review distinct` 对 SKILL.md 文案 `match` 断言失败 |
+| `preview-contract.test.mjs` | **仍失败**：1 个用例 0 通过 / 1 失败。当前阻断点在模块顶层读 `…/README_EN.md` 处 `ENOENT`（SKILL.md 之后的下一个依赖；该文件同时读 SKILL.md、`references/delivery-contract.md` 与仓库根三份 README） |
+| `automatic-port-spread.test.mjs` | **仍失败**：15 个用例 14 通过 / 1 失败。用例 15（文档断言）对 SKILL.md 文案 `match` 失败，期望文案含 `Automatic Port Spread is a default renderer behavior` |
+| `sequence-column-fit.test.mjs` | **仍失败**：6 个用例 5 通过 / 1 失败。用例 6（文档断言）对 SKILL.md 文案 `match` 失败，期望文案含 `do not shorten semantic labels before trying spread` |
 
-**为什么不成立**：这些文件把「技能入口文档怎么描述行为」和「运行时真的这么行为」混在
-一起。技能入口是 `design-diagrams/SKILL.md`，而它是下一波才落盘的产物。
+**为什么不成立**：这些断言写的是**上游 archify 的技能入口文档**（英文 authoring-router
+的文案与分节）。本仓库的 `design-diagrams/SKILL.md` 是给「内部出图技能」重写的入口
+（中文、由 `brainstorming` 调用），二者内容约定完全不同。改技能出图行为不会让它们转绿；
+它们变红也不代表出图能力坏了。
 
 > ⚠️ **有真实覆盖被这条排除吃掉**：`automatic-port-spread`（14 个）与
-> `sequence-column-fit`（5 个）的运行时用例**已经通过**，却因为同一文件里还有一个读
-> `SKILL.md` 的文档断言而整文件被排除。等 `SKILL.md` 落盘后，这两个文件**应当**能整体
-> 转绿并加入清单——这是最值得优先回填的两个文件。
+> `sequence-column-fit`（5 个）的运行时用例**已经通过**，却因为同一文件里还有一个断言
+> 上游 SKILL.md 文案的文档用例而整文件被排除。上一版预期「SKILL.md 落盘后这两个文件
+> 应当整体转绿」**已被上述实测证伪**：SKILL.md 已落盘，这两个文件**仍失败**（各 1 个
+> 文档断言），因此**本次不回填**验证入口清单（见第 6 节）。
 
 ### 组 C：依赖未搬入的官网 / docs 站与仓库根 `examples/`（4 个）
 
@@ -248,14 +256,17 @@ devDependencies，这 6 个文件会变成候选回填项；在当前硬约束�
 ### 5.2 哪些红灯「上游本就会失败」，不能当回归
 
 判据：**红灯文件落在第 4 节 A–F 任一组，且报错仍是同一类缺失**（缺仓库根
-`scripts/`、`viewer/`、`docs/`、仓库根 `examples/`、`.gitattributes`、`node_modules`、
-`SKILL.md` 或上游 README）——这就是裁剪造成的，**与你的改动无关，不当回归**。
+`scripts/`、`viewer/`、`docs/`、仓库根 `examples/`、`.gitattributes`、`node_modules`
+或上游 README）——这就是裁剪造成的，**与你的改动无关，不当回归**。组 B 另算：它们不是
+缺 `design-diagrams/SKILL.md`（该文件已落盘），而是断言其**内容**为上游原版而不成立，
+报错形态是文档断言失败（见第 4 节组 B）。
 
 反过来，下面几种红灯**必须查**：
 
 - 红的是 `run-valid.mjs` 清单里的 78 个文件之一 → **真回归**，入口会直接报 exit 非 0。
-- 第 4 节文件里出现了**新的错误类型**：例如组 B 的文件本来只是 `ENOENT … SKILL.md`，
-  现在却报运行时断言失败 → 很可能是新回归，要查。
+- 第 4 节文件里出现了**新的错误类型**：例如组 A/C/D/E/F 的文件本来只是「缺件」类报错
+  （`ENOENT …` / `Cannot find module …`），现在却报运行时断言失败 → 很可能是新回归，要查。
+  （组 B 是例外：它们对 SKILL.md 内容做断言，本就是文档断言失败，不是缺件。）
 - 上游新增的测试文件（会出现在 `run-valid.mjs` 的 drift 提示里）：先归属——属于 A–F 组
   就更新第 4 节；不属于则必须逐文件实测，**全绿才加入清单**，有真实失败要查。
 - 你这次改动恰好动了组 B/C/D/F 里「部分通过」文件所覆盖的能力（端口自动扩展、列宽
@@ -269,7 +280,10 @@ devDependencies，这 6 个文件会变成候选回填项；在当前硬约束�
    范围内：`architecture-delta` 28、`automatic-port-spread` 14、`route-share-card` 7、
    `share-card-export` 7、`reach-share-card` 5、`sequence-column-fit` 5、`start-page` 3、
    `generate-validators` 1。上游文件一个字都不能改（硬约束），所以**不能**靠删断言把它们
-   救回来；回填办法与建议见第 6 节。
+   救回来；回填办法与建议见第 6 节。**注意**：组 B 的 `automatic-port-spread`（14 个）与
+   `sequence-column-fit`（5 个）当初被记为「等 `SKILL.md` 落盘即可整体转绿」的缺口，
+   `SKILL.md` 现已落盘但这两个文件**仍各有 1 个文档断言失败**（成因见第 4 节组 B），
+   缺口并未因落盘而关闭。
 2. **`update-notifier.test.mjs` 时序敏感，且不止一条用例**：该文件里至少三条并发 /
    时序用例在负载下会假红——
    `an empty precheck snapshot cannot start a second concurrent network request`
@@ -309,9 +323,14 @@ devDependencies，这 6 个文件会变成候选回填项；在当前硬约束�
 
 1. **是否回填「部分通过」文件的运行时用例**（5.3.1 的 70 个用例）：上游文件不可改，只能
    整文件排除或改用 `--test-name-pattern` 精确选取（后者对上游改名脆弱）。当前决定是
-   **整文件排除 + 本文档登记缺口**；其中组 B 的两个文件
-   （`automatic-port-spread`、`sequence-column-fit`）在 `SKILL.md` 落盘后应当能整体转绿，
-   建议那时优先回填进 `UPSTREAM_VALID`。
+   **整文件排除 + 本文档登记缺口**。
+   - **后续项（本次不回填 `design-diagrams/test/run-valid.mjs` 通过清单）**：上一版预期
+     组 B 的 `automatic-port-spread`、`sequence-column-fit` 在 `SKILL.md` 落盘后能整体
+     转绿。`SKILL.md` 已于上一变更波次三落盘，但 2026-09-22 单文件实测显示这两个文件
+     **仍各失败 1 个文档断言**（其余 14 / 5 个运行时用例通过），**无一文件整体转绿**。
+     故本次**不回填** `UPSTREAM_VALID`——不是遗漏，而是预期所依赖的前提（SKILL.md 落盘
+     即转绿）已被实测证伪。将来若把本仓库 `SKILL.md` 与上游文案对齐，或决定改写这两个
+     断言所检查的能力，再重新评估回填。
 2. **是否允许安装 devDependencies 以回填组 F 的 6 个文件**：当前硬约束是「不得安装
    `node_modules`」，所以组 F 结构性必红。若以后放宽，需重新评估（会引入 `node_modules`
    与 `package-lock.json` 的同步负担）。
