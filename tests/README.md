@@ -15,7 +15,7 @@ tests/
 ├── render.smoke.test.mjs         冒烟：渲染五类图，校验三件套（独立脚本，原生 assert）
 ├── render.entry.test.mjs         入口契约：透传子命令 / 参数校验 / 失败不留半成品 / 原子提交 / 两轮降级
 ├── install.test.mjs              安装脚本：版本硬门 / 备份与备份冲突守卫 / 平铺与整目录规则 / 装后 doctor / 用法错误
-├── doc-consistency.test.mjs      文档一致性：SKILL.md 关键约定、模板配图章节、改名残留、状态取值单一权威、内核文档无已删命令
+├── doc-consistency.test.mjs      文档一致性：SKILL.md 关键约定、模板配图章节、改名残留、接口契约文件名一致、状态取值单一权威、内核文档无已删命令
 ├── engine.test.mjs               把内核回归集接进本入口：唤起 scripts/diagram-engine/test/run-valid.mjs 并断言全过
 └── README.md                     本文件
 ```
@@ -25,7 +25,7 @@ tests/
 ```bash
 # 全部：一条命令覆盖「仓库测试 + 绘图内核回归集」
 node --test tests/*.test.mjs
-# → 48 个用例，0 失败（含 engine.test.mjs 唤起的内核 13 文件 / 241 用例）
+# → 49 个用例，0 失败（含 engine.test.mjs 唤起的内核 13 文件 / 241 用例）
 
 # 只跑冒烟（独立脚本）
 node tests/render.smoke.test.mjs
@@ -73,7 +73,13 @@ node tests/render.smoke.test.mjs
 且不含 `design-diagrams` 与 `--repo-root`；
 两份配图模板含三件套与两行引用，接口契约模板保持「不配图」口径；
 `skill/` 与 `templates/` 无旧技能名残留；旧技能名只允许留在 `MAINTAINING.md` 的历史条目里；
-审查提示词含三件套判据。
+审查提示词含三件套判据；**接口契约文件名一致为 `00-接口契约.md`**。
+
+其中「接口契约文件名」这条只守 `skill/`、`templates/` **两个活目录**：要求它们引用规定名
+`00-接口契约.md`，且不出现无前缀路径 `specs/design/接口契约.md` 与「不带数字前缀」表述。
+**为什么不扫 `specs/` 基线**：基线是已发布产物，由变更的 delta 经 `spec-merger` 在收口前合并；
+纳入断言会让测试结果依赖「合并是否已经发生」——同一个断言在合并前后结论不同，属坏的测试设计，
+也会让「先跑红再转绿」在实现波次内无法收口。基线的一致性以合并的发布回执为证。
 
 其中「改名残留」这条的扫描面是**分级**的：`skill/`、`templates/` 扫 `design-diagrams` 与
 `codebuddy-brainstorming` **两代**历史名，`scripts/` 只扫后一代，另在三个目录内一律禁掉改名前的落盘目录
