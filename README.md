@@ -371,6 +371,17 @@ node design-diagrams/test/run-valid.mjs
 
 **注意：`./sync-upstream.sh` 只覆盖 `superpowers`，不覆盖 `archify`**——它比对的是 `brainstorming/SKILL.md`，与 `design-diagrams/` 无关；同步 archify 需按上面的基准 commit 手工比对。
 
+## 后续变更
+
+以下两项已登记为待启动的独立变更。变更目录在 `changes/` 下（均停在 DP-0 未确认）；由于 `changes/` 被 `.gitignore` 忽略，另在此登记一行，以免换机或清理工作树后丢失。
+
+| 变更 | 要解决的问题 | 细节所在 |
+|------|-------------|---------|
+| `upgrade-superpowers-baseline` | 本仓库的 `superpowers` 基准停在 `v6.3.0`（`b36e082`），上游已是 `v6.4.1`（`5bf4e78`）。实测 `skills/brainstorming/SKILL.md` 由 250 行增至 285 行、diff 66 行、新增一节 `## Establish Shared Understanding`。需把《需要重放的改动清单》逐条重新施加到 `v6.4.1`，并为新增那一节判定是否需要新增（或删除）一条偏离，再跑 `./sync-upstream.sh --ref v6.4.1` 复验。**只改版本号不算同步。** | `## 同步上游 > 上游一：superpowers`（含「上游现状」与复验方式） |
+| `backfill-run-valid-cases` | `design-diagrams` 组 B 的七个上游测试文件在 `SKILL.md` 落盘后**仍全部失败**（成因已从「`SKILL.md` 未创建」变为「已落盘但内容是内部技能入口形态、与上游 archify 原版断言不符」）。其中 `automatic-port-spread`（14/15）与 `sequence-column-fit`（5/6）的**运行时用例本来是通过的**，只因同一文件里还有一条读 `SKILL.md` 的文档断言而被整文件排除。要把 `run-valid.mjs` 的排除粒度从**文件级**改为**用例级**，才能把已通过的运行时用例纳入回归清单。 | `design-diagrams/UPSTREAM.md` 第 6 节「未决点」 |
+
+两项都是在 `add-interface-contract-template` 变更的归档验证中被实测确认的，当时按该变更的范围边界未处理。
+
 ## 来源与许可
 
 本技能改编自 [superpowers](https://github.com/obra/superpowers) 的 `brainstorming` 技能
