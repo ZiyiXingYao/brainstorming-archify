@@ -501,16 +501,18 @@ node scripts/diagram-engine/test/run-valid.mjs
 （接口矩阵状态枚举缺一档、模块模板三条规则在纯内部流程上无解）——它们每次落盘都逼代理在无人可问时
 自行拍板。其余登记项复跑逐条核对：**六条全部登记在案、描述与实测相符，无遗漏无错述。**
 
-**以下为尚未处理的发现**，多数是技能设计层面的既有问题（非本次引入），登记以免丢失：
+**这六条已全部修掉**（本轮，超出本变更原契约范围，规格 delta 已同批更新）：
 
-| 待修 | 问题 | 严重度 |
-|---|---|---|
-| `interface-matrix-status-gaps` | 接口矩阵的状态枚举缺「调用方未设计、提供方已设计」这一档（现有三档都不适用）；架构**首轮**落盘时所有调用方都未设计，签名没有合法的被授权方 | Critical |
-| `module-flow-alignment-unsolvable` | 模块模板 §1.2「对应流程」、§5「每条流程须写服务功能点」与架构 §10「只登记功能流程、不登记实现级流程」三条联立，在「纯模块内部流程」上必然违反其一 | Critical |
-| `handoff-contract-undefined` | 技能说产物「交给下游流程消费」，但交接契约未定义（交接什么、以什么形态），接口契约在其中扮演什么角色也没说 | Important |
-| `repair-order-label-width` | 修复顺序 ①–⑤ 未覆盖实测最常见的失败「节点标签宽于节点」 | Important |
-| `matrix-column-authority` | 矩阵「详见」列的权威方向（调用方文档 vs 提供方文档）与「引用必须可解析」冲突：调用方未设计时只能指向标着「（待创建）」的文档 | Important |
-| `process-flow-diagram-gate-node` | `## Process Flow` 的流程图里没有绘图规划 Gate 节点（正文有、图里没有） | Minor |
+| 原发现 | 修法 |
+|---|---|
+| `interface-matrix-status-gaps`（Critical） | 矩阵状态列由三档扩为**四档**：新增 `待调用方`（提供方已设计、调用方未落盘，合法终态，不是「缺口无人认领」）；并明确架构总纲**首轮**所有模块未设计时由总纲前向登记、状态一律 `待提供`，不属对某模块的越权设计 |
+| `module-flow-alignment-unsolvable`（Critical） | 「对应流程」列**只列功能流程**（即同样登记在架构总纲的那批）；纯模块内部实现级流程 MUST NOT 占用该列，只写在第 5 节并标明父流程；功能点与流程的双向覆盖核对口径限定为**功能流程** |
+| `matrix-column-authority`（Important） | `详见` 列明确指向**调用方**模块文档第 4 节；调用方未落盘时写 `待调用方落盘`，**不得**指向一个尚不存在的路径（引用必须可解析） |
+| `repair-order-label-width`（Important） | 修复顺序插入新的第 ⑤ 档「节点标签宽于节点」（缩短文案或加宽该节点），原标签避让顺延为第 ⑥ 档 |
+| `handoff-contract-undefined`（Important） | 新增 `## Handoff to a Downstream Process`：交接物是**整个 `specs/design/` 目录**（文档集 + `diagrams/` 三件套，因引用均为相对路径而自包含）；本技能**从不**调用下游流程，是否交接由人类决定；接口契约是该集合的一部分而非前置条件 |
+| `process-flow-diagram-gate-node`（Minor） | `## Process Flow` 流程图补上绘图规划 Gate 节点，并新增「生成 IR 与渲染三件套」节点置于变更清单门**之后**，以保住「不在变更清单之外写图」这条不变式 |
+
+规则改动已同步进 delta 规格（`changes/<change>/specs/design-doc-templates/spec.md`：改写「模块流程的功能点标注与同名对齐」、新增「跨模块接口矩阵的位置与权威方向」），收口 `sync` 后基线不会滞后。
 
 实测**验证成功、无需改动**的三条核心机制：同一流程跨文档共用同一组三件套（`01`/`02`/`03`
 三处引用同一组文件，改名后只重渲染一次三处同时更新）、三件套 + 固定两行引用、增量只改受影响条目。

@@ -205,6 +205,8 @@ digraph brainstorming {
     "Persist Gate: write the doc?" [shape=diamond];
     "Stop here (no file)" [shape=doublecircle];
     "Read templates; read specs/design" [shape=box];
+    "Diagram Planning Gate: user confirms the plan?" [shape=diamond];
+    "Generate IR; render the diagram triples" [shape=box];
     "Change List gate: user approves?" [shape=diamond];
     "Write or merge docs" [shape=box];
     "Self-review (fix inline)" [shape=box];
@@ -226,9 +228,12 @@ digraph brainstorming {
     "User approves design?" -> "Persist Gate: write the doc?" [label="yes"];
     "Persist Gate: write the doc?" -> "Stop here (no file)" [label="no"];
     "Persist Gate: write the doc?" -> "Read templates; read specs/design" [label="yes"];
-    "Read templates; read specs/design" -> "Change List gate: user approves?";
-    "Change List gate: user approves?" -> "Write or merge docs" [label="yes"];
+    "Read templates; read specs/design" -> "Diagram Planning Gate: user confirms the plan?";
+    "Diagram Planning Gate: user confirms the plan?" -> "Change List gate: user approves?" [label="yes"];
+    "Diagram Planning Gate: user confirms the plan?" -> "Read templates; read specs/design" [label="no, revise the plan"];
+    "Change List gate: user approves?" -> "Generate IR; render the diagram triples" [label="yes"];
     "Change List gate: user approves?" -> "Read templates; read specs/design" [label="no, revise the list"];
+    "Generate IR; render the diagram triples" -> "Write or merge docs";
     "Write or merge docs" -> "Self-review (fix inline)";
     "Self-review (fix inline)" -> "Subagent review";
     "Subagent review" -> "User reviews doc?";
@@ -767,10 +772,28 @@ Legend keys: `start`, `active`, `waiting`, `decision`, `success`, `failure`,
 - **Repair order.** ① fix missing or invalid `meta.quality_profile` and schema
   errors; ② node overlap or out-of-range placement; ③ edge-through-node and
   endpoint-direction errors; ④ crossings, ambiguous corridors, border runs and
-  route rhythm; ⑤ label-to-node, then label-to-label, then label-to-route
-  clearance. Run `validate` after every edit, apply **one** diagnosed geometry
-  control at a time, and consume `diagnostics[]` by its stable `code`, exact
-  `subject`, measured `evidence` and `supportedFixes`.
+  route rhythm; ⑤ a node label wider than its own node box (the renderer says
+  `Label "…" is wider than node "…"`) — shorten the wording or widen that node,
+  whose width is the one geometry control you are allowed to author here;
+  ⑥ label-to-node, then label-to-label, then label-to-route clearance. Run
+  `validate` after every edit, apply **one** diagnosed geometry control at a
+  time, and consume `diagnostics[]` by its stable `code`, exact `subject`,
+  measured `evidence` and `supportedFixes`.
+
+## Handoff to a Downstream Process
+
+This skill ends at the persisted document set under `specs/design/`:
+`01-架构设计.md`, one document per designed module, `接口契约.md` when its
+mechanical trigger fires, and the diagram triples under
+`specs/design/diagrams/`. Because every document references its diagrams by a
+path relative to itself, that one directory is self-contained — **it** is the
+thing that gets handed over, not an individual file.
+
+**This skill never invokes a downstream process.** Whether anything is handed
+over, and to what, is your human partner's decision; when they ask, name the
+artifact set above and stop there. The interface contract is part of that set
+rather than a precondition for it: it exists because the mechanical trigger
+fired, and handing the set over does not require re-deriving it.
 
 ## Change List Gate
 
