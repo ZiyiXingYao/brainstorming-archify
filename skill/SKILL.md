@@ -242,10 +242,16 @@ digraph brainstorming {
 }
 ```
 
-**On the persist stage:** bounded and architectural share the same gates
-but not the same output. A bounded change merges into the affected module
-document — or writes nothing at all when the project has no document set
-yet. An architectural change produces or extends the full set.
+**On the persist stage:** every path that answers *yes* at the Persist Gate then
+runs the same three decisions in order — the **Diagram Planning Gate** (when this
+persist will produce diagrams), the **Change List Gate**, and the **User Review
+Gate**. The per-path steps in the Checklist above cover the **design stage only**
+and deliberately do not enumerate these persist-stage gates, so "the Bounded path
+ends at the Persist Gate" is not a statement that a bounded change skips them.
+What differs between bounded and architectural is the **output scope**, not the
+gates: a bounded change merges into the affected module document — or writes
+nothing at all when the project has no document set yet — while an architectural
+change produces or extends the full set.
 
 **Terminal states are path-bound.** Spike: the terminal state is a
 reported recommendation. Bounded and Architectural: the terminal state
@@ -422,14 +428,17 @@ already lives in the caller's code, so the provider's later signature is
 bound by it. **This paragraph covers only the case where that provider
 module does not exist yet** — Rule 4 is about undesigned modules. When the
 provider is already designed, do not write `待提供`: record the row and flip
-it to `已落地` or `有差异` in the same persist, per the paragraph below.
+it to `已落地`, `有差异`, or `待调用方` in the same persist, per the paragraph below.
 Register a `待提供` row in the architecture document's
 cross-module interface matrix, and surface it in the change list,
 because the human needs to know which modules are now owed a design.
 
 When a module is designed, every `待提供` row naming it as provider must
 be resolved in that same persist: flipped to `已落地` when the hard
-constraints match, or to `有差异` when they do not. Leaving such a row at
+constraints match, flipped to `有差异` when they do not, or flipped to
+`待调用方` when the **caller** module has not been designed yet. `待调用方` is a
+legitimate terminal state — its owner is that not-yet-designed caller, and the
+caller flips it to `已落地` or `有差异` when it is designed in turn. Leaving such a row at
 `待提供` after its provider has been designed means the gap has no owner.
 
 **Status lives only in the interface matrix.** A module document's
@@ -632,6 +641,14 @@ chooses **keep the placeholder and persist**, list that diagram in the
 `Diagrams` column of the change list, marked `未通过校验`, together with the
 reason (the unresolved diagnostics and the error count).
 
+**Scope of that ledger — read this before iterating.** The two-round ledger is
+kept by `render`, not by `validate`. Running `validate` repeatedly never produces
+the stop signal or the exit code 3, so if you iterate with `validate` instead of
+`render`, **you** must keep the same count yourself and stop when the error-level
+count fails to drop two rounds running. Rendering the whole triple on every repair
+round is not required — but the ledger only protects you when `render` is what
+runs.
+
 **When the environment is unsuitable.** If the environment has no Node meeting
 the required version (minimum **18**), skip the diagram, leave a placeholder in
 the document saying why, and mark that state in the change list. This degradation
@@ -678,11 +695,13 @@ Shared `meta` fields:
 One left-to-right spine with short vertical branches. Prefer **6–12 primary
 components**; group only real ownership, trust, process or deployment
 boundaries — boundaries do not replace relationships. Grid placement is preferred
-where the schema supports it: in grid mode you still state each component's
-**logical** placement (its grid `row`/`col`), you simply never plan pixel
-coordinates; free `pos` is for a bounded exception. **Node and route geometry is
-computed by the renderer, never by you** — but do not read that as "the first
-render is final": **relationship labels are the exception**. The renderer
+where the schema supports it. To use it, set `layout: { "mode": "grid", "cols": <1-12> }`
+and give every component its logical `row` (≥ 0) and `col` (≥ 0) — you still never
+plan pixel coordinates. **If you omit `layout` entirely, the schema requires an
+explicit `pos` `[x, y]` on every component** (free placement), which is the
+bounded exception; grid mode is the normal path. Either way **node and route
+geometry is computed by the renderer, never by you** — but do not read that as
+"the first render is final": **relationship labels are the exception.** The renderer
 measures and places them, and its placement only counts once it clears the node,
 the other labels and the route; expect to apply one diagnosed
 `labelAt` / `labelDx` / `labelDy` / `labelSegment` adjustment and re-run, exactly
@@ -698,7 +717,12 @@ Legend keys: `frontend`, `backend`, `database`, `cloud`, `security`,
 ### Workflow diagrams
 
 Lanes express responsibility or phase; columns `0..5` express logical
-progression. Start new workflows on `schema_version: 2` (the readable compiler);
+progression. **Every node carries a `type` from the shared component-type enum** —
+`frontend`, `backend`, `database`, `cloud`, `security`, `messagebus`, `external`
+(see `schemas/common.schema.json`) — chosen by what that node *is*, never by which
+lane it sits in; the same enum is used by architecture, workflow and dataflow nodes.
+Dataflow stages carry their own stage semantics; sequence participants and
+lifecycle states have their own mode-specific fields instead. Start new workflows on `schema_version: 2` (the readable compiler);
 keep `schema_version: 1` only when an existing source must retain its fixed
 legacy geometry — never change only `schema_version` on a document that carries
 absolute coordinates. Keep the happy path monotonic, preserve semantic edge
@@ -733,6 +757,9 @@ Legend keys: `emphasis`, `security`, `dashed`, `database`, `default`.
 
 Main phases use columns `0..4`; event and terminal bands use columns `0..2`, and
 event/terminal column `N` aligns to the same x coordinate as main column `N + 2`.
+**Lane ids are semantic, not free labels**: `main` is required and carries the
+phase band (columns `0..4`); `terminal` is the outcome band; every other lane
+shares the single middle event band, whose header joins its lane labels with ` + `.
 A recoverable failure needs a **real transition back to an active state** — a
 card or guided view saying "retry" is not topology.
 
@@ -861,11 +888,12 @@ list first.
 
 Your human partner is asked three separate times in one session. They
 guard different things, and merging them loses the protection each one
-gives — do not collapse them into a single question. (The **Diagram Planning
-Gate** described under *Diagrams in the Design Documents* is **not** a fourth
-gate at this level: it is a narrow gate inside the persist, and its confirmed
-plan is re-checked by the Change List Gate below rather than replacing it. So the
-count of session-level gates stays three.)
+gives — do not collapse them into a single question. (The Process Flow diagram shows **more than three** decision points because it
+also draws two non-session gates: the **design-approval** check at the end of the
+design stage, and the **Diagram Planning Gate** inside the persist — the latter is
+a narrow gate whose confirmed plan is re-checked by the Change List Gate below
+rather than replacing it. Only the three listed here are session-level gates, and
+they are the three the count refers to.)
 
 1. **Persist Gate** — *should anything be written at all?* Asked once the
    design has settled. A "no" ends the session with the chat conclusion as
