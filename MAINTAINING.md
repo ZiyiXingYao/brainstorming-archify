@@ -11,6 +11,7 @@
    - [上游二：archify（绘图内核）](#上游二archify绘图内核)
 2. [后续变更登记](#2-后续变更登记)
 3. [历次 dry-run 记录](#3-历次-dry-run-记录)
+4. [发布一个版本](#4-发布一个版本)
 
 ---
 
@@ -197,4 +198,37 @@ node scripts/diagram-engine/test/run-valid.mjs
 
 实测**验证成功、无需改动**的三条核心机制：同一流程跨文档共用同一组三件套（`01`/`02`/`03`
 三处引用同一组文件，改名后只重渲染一次三处同时更新）、三件套 + 固定两行引用、增量只改受影响条目。
+
+## 4. 发布一个版本
+
+版本号是 **`v` 前缀 + 三位语义化** 的注解 tag（如 `v0.1.0`）。版本号的**权威文字出处是 README 的两处**——
+顶部那一行与 `## 版本` 表里的「本仓库 / 本技能的发布版本」；不另设 `VERSION` 文件，免得两处不同步。
+（本节命令里的 `v0.1.0` 只是示例，不是版本声明。）
+
+```bash
+# 1. 改版本号：README 顶部一行 + `## 版本` 表
+# 2. 全量测试必须绿（48 用例，含内核回归集）
+node --test tests/*.test.mjs
+# 3. 提交并推送
+git push origin main
+# 4. 打注解 tag 并推送
+git tag -a v0.1.0 -m "brainstorming-archify v0.1.0"
+git push origin v0.1.0
+# 5. 建 release（说明手写中文：这是什么 / 两个来源 / 安装 / 本版包含 / 验证 / 许可）
+gh release create v0.1.0 --title "brainstorming-archify v0.1.0" --notes-file <notes.md> --latest
+```
+
+**重打已发布的 tag**（例如发版后才发现 README 还要改）——release 与 tag 必须一起删干净再重建，
+否则 tag 仍指向旧提交（`gh release edit --target` 改不动已存在的 tag）：
+
+```bash
+gh release delete v0.1.0          # 先删 release
+git tag -d v0.1.0
+git push origin --delete v0.1.0   # 再删远端 tag
+# 改完 → 提交推送 → 重新打 tag → 重新 create release（URL 不变）
+```
+
+**版本号不写进 `scripts/diagram-engine/skill-release.json`**——那里的 `2.17.0-dev.1` 是上游 archify
+技能包的版本，改它会让内核与上游对不上号。
+
 

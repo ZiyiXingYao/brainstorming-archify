@@ -1,5 +1,8 @@
 # brainstorming-archify
 
+> **当前版本**：`v0.1.0`（2026-09-22） · [Releases](https://github.com/ZiyiXingYao/brainstorming-archify/releases) ·
+> 三个版本号各是什么见[版本口径](#版本)
+
 一个可独立安装到 [CodeBuddy](https://cnb.cool/codebuddy/codebuddy-code) 的**对话式设计技能**：
 用一问一答把设计谈透，最后（经你同意）按固定模板落成一套**人类可读的实现级设计文档**——
 一份全局架构总纲 + 每个功能模块一份 + 按需产出的接口契约，并自动为其中的关键流程产出配套图。
@@ -11,6 +14,7 @@
 |---|---|
 | **它解决什么问题** | [设计与讨论落不了盘、跨模块契约对不上、图与正文各自漂移](#它解决什么问题) |
 | **两个来源** | [superpowers（流程骨架） + archify（绘图内核）](#两个来源) |
+| **版本口径** | [本仓库版本、技能文本上游、绘图内核上游三个坐标](#版本) |
 | **项目概况** | [仓库布局、依赖分层、关键机制](#项目概况) |
 | **安装 / 卸载** | [一条命令装到 `~/.codebuddy/skills/brainstorming-archify/`](#安装) |
 | **怎么用** | [七步流程、产出物、三道门](#使用) |
@@ -50,6 +54,22 @@
 同步上游的完整办法、《需要重放的改动清单》全文（46 条）、以及 archify 的裁剪明细与回归判定方式，
 都在 [MAINTAINING.md](MAINTAINING.md)；上游逐项改动与被删清单另见
 `scripts/diagram-engine/UPSTREAM.md`。
+
+## 版本
+
+仓库里有**三个互不相同的版本号**，用途不同，不要混着看：
+
+| 版本号 | 值 | 指的是什么 | 什么时候变 |
+|---|---|---|---|
+| **本仓库 / 本技能的发布版本** | **`v0.1.0`**（2026-09-22） | 这个仓库与它导出的技能的版本，由 git tag 与 [GitHub Release](https://github.com/ZiyiXingYao/brainstorming-archify/releases) 承载；本 README 顶部与本节是它的文字出处 | 每次发版 |
+| 技能文本上游基准 | `v6.4.1`（commit `5bf4e78`） | `skill/SKILL.md` 所同步的 superpowers 坐标 | 同步 superpowers 时 |
+| 绘图内核上游基准 | commit `5289f6867f048a7450ec5718f58459613a84cf41`（技能包 `2.17.0-dev.1`） | 内核搬运自 archify 的坐标 | 搬运新内核时 |
+
+**`scripts/diagram-engine/skill-release.json` 里的 `2.17.0-dev.1` 不是本仓库版本。** 那是**上游
+archify 技能包**的发布清单（含它自己的 `skillId`、更新通道与仓库地址），随内核一起逐字节搬进来、
+保留上游可追溯性；改它会让内核与上游对不上号。
+
+发版步骤见 [MAINTAINING.md](MAINTAINING.md#4-发布一个版本)。
 
 ## 项目概况
 
