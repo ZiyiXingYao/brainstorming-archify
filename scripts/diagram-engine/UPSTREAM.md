@@ -418,6 +418,15 @@ devDependencies，这 6 个文件会变成候选回填项；在当前硬约束�
      `{url, sha256}` 形式的 `brand` 一律失败关闭（不联网），只有 107 个内置 canonical ID
      可用。若将来要恢复「按站点 URL 取图标」，需要重新引入一条受控抓取路径（含私网地址
      防护与摘要固定），不在本次范围。
+   - **浏览器交互行为没有自动化验证——而且裁剪前也没有**（2026-09-22 实测）：本机无浏览器，
+     上游那批 `*-browser.test.mjs`（export / focus / finder / route-probe / semantic-lens /
+     story-* 等）在**原始内核**里就是 `pass 0 / skipped 1`——即「绿」是跳过得来的，从未真正
+     验证查看器交互。裁剪删掉它们之后，查看器的拖拽/缩放/搜索/Story/Route/Reach/Export/
+     深链接/演示模式仍然**没有自动化测试**；目前只有间接证据：`tests/render.smoke.test.mjs`
+     断言产物 HTML 含内联查看器代码，另可对产物 grep 到 `syncFromHash`／`share-card`／
+     `webm`／`present`／`reach`／`data-node-id`／`matchMedia`／`clipboard` 等标记。
+     因此「保留全部交互能力」这一条**只有静态证据，没有行为证据**；要做行为验证需要
+     引入无头浏览器，不在本次范围。
    - **`viewer/` 未搬入**：交互查看器的构建源码在上游仓库根，本内核只带其构建产物
      `assets/template.html`。将来要改查看器交互，必须回上游改源码后重新构建再搬入。
 

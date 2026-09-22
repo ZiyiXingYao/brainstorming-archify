@@ -171,10 +171,14 @@ node ~/.codebuddy/skills/brainstorming/scripts/diagram-engine/bin/render.mjs doc
 **仓库自测面不进安装**——它判的是源码树而不是安装副本：
 
 ```bash
-node --test tests/*.test.mjs                     # 全部：冒烟 5 + 契约 31 = 32 个用例，零失败
+node --test tests/*.test.mjs                     # 一条命令覆盖全部：35 个用例，0 失败
 node tests/render.smoke.test.mjs                 # 只跑冒烟（独立脚本）
-node scripts/diagram-engine/test/run-valid.mjs   # 上游回归集（显式白名单，见 UPSTREAM.md）
 ```
+
+其中 `tests/engine.test.mjs` 会在根入口里**唤起绘图内核的回归集**
+（`scripts/diagram-engine/test/run-valid.mjs`，13 文件 / 238 用例）并断言全过——
+所以「跑根目录测试」就等于「跑全部测试」，不会漏掉引擎。回归集**不搬进 `tests/`**：
+它位置耦合（用例把内核根解析为自己所在目录的上一级），搬出即系统性失效。
 
 安装后需要**新开一个 CodeBuddy 会话**，技能才会被加载。
 
@@ -320,6 +324,7 @@ specs/design/
 │   ├── render.entry.test.mjs         入口契约：透传 / 参数校验 / 不留半成品 / 原子提交 / 两轮降级
 │   ├── install.test.mjs              安装脚本四道约束 + 实装形态 + 装后 doctor
 │   ├── doc-consistency.test.mjs      文档一致性：SKILL.md 约定、模板配图章节、旧技能名残留
+│   ├── engine.test.mjs               根入口唤起绘图内核回归集，保证「跑根目录测试 = 跑全部」
 │   └── README.md
 ├── specs/                            已发布规格基线（design-doc-guardrails / design-doc-templates / diagram-engine）
 ├── changes/                          spec-superflow 变更工作区（gitignore）

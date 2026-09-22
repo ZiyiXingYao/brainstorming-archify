@@ -16,18 +16,23 @@ tests/
 ├── render.entry.test.mjs         入口契约：透传子命令 / 参数校验 / 失败不留半成品 / 原子提交 / 两轮降级
 ├── install.test.mjs              安装脚本：版本硬门 / 备份 / 平铺与整目录规则 / 装后 doctor / 用法错误
 ├── doc-consistency.test.mjs      文档一致性：SKILL.md 关键约定、模板配图章节、旧技能名残留
+├── engine.test.mjs               把内核回归集接进本入口：唤起 scripts/diagram-engine/test/run-valid.mjs 并断言全过
 └── README.md                     本文件
 ```
 
 ## 怎么跑
 
 ```bash
-# 全部（冒烟 5 个用例 + 契约测试 31 个用例 = 32 项，均零失败）
+# 全部：一条命令覆盖「仓库测试 + 绘图内核回归集」
 node --test tests/*.test.mjs
+# → 35 个用例，0 失败（含 engine.test.mjs 唤起的内核 13 文件 / 238 用例）
 
 # 只跑冒烟（独立脚本）
 node tests/render.smoke.test.mjs
 ```
+
+**目标是「跑根目录测试就等于跑全部测试」**，所以引擎回归集由 `engine.test.mjs` 在根入口里唤起——
+但它**不搬家**，因为它位置耦合（见下）。
 
 **不需要安装任何依赖**：只用 Node 内置模块与原生 `assert`。
 产物与临时目录都写在系统临时目录，用完即删，不污染仓库，也不触碰 `~/.codebuddy`。
@@ -71,14 +76,27 @@ node tests/render.smoke.test.mjs
 是上游实测合法、可过 `--quality showcase` 的完整 IR。它们同时被
 `scripts/diagram-engine/renderers/<type>/README.md` 作为 worked example 引用。
 
-## 上游回归集不在这里
+## 上游回归集不在这里（但根入口会跑到它）
 
 绘图内核自带的**上游回归集**（13 个文件，含 `run-valid.mjs` 验证入口）在
-`scripts/diagram-engine/test/`，因为它位置耦合（测试用 `new URL('../')` 把内核根解析为
-自己所在目录的上一级，搬出即系统性失效），而且它判的是**上游行为**而非本技能的行为。
+`scripts/diagram-engine/test/`。
+
+**为什么不搬过来**：那 13 个用例都用「自己所在目录的上一级」当内核根
+（`from '../renderers/…'`、`path.join(HERE, '..', …)`、`new URL('../…')` 三种写法之一），
+搬出内核即系统性失效——此前把整包搬到 `tests/upstream/` 时**实测 85 个文件全红**。
+
+**那么怎么保证不漏**：由本目录的 `engine.test.mjs` 在根入口里**唤起**它，并断言
+①退出码 0、②文件级与用例级都「跑到的全部通过、0 失败 0 跳过」、③登记数不低于下限
+（防止清单被清空后「空跑也算绿」）。所以跑 `node --test tests/*.test.mjs` 就等于跑全部。
+
+单独跑它也可以：
 
 ```bash
 node scripts/diagram-engine/test/run-valid.mjs
 ```
 
 其中的登记清单与逐条结论记录在 `scripts/diagram-engine/UPSTREAM.md`。
+
+> 一个实现细节：`engine.test.mjs` 唤起子进程时**剥掉了 `NODE_TEST_CONTEXT`**。
+> 因为 `run-valid.mjs` 见到该变量（说明自己是被 `node --test` 发现的）会做防递归跳过，
+> 否则根入口里那次唤起会变成「空跑」——正是该文件要防的静默失效。
