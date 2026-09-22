@@ -569,8 +569,9 @@ node <skill-root>/scripts/diagram-engine/bin/render.mjs render <type> <ir.json> 
 IR file's base name, so write the IR as
 `<document number>-<diagram name>.<diagram type>.json` — e.g.
 `01-module-dependency.architecture.json` → `01-module-dependency.architecture.{json,svg,html}`.
-For a document written in another language, the same rule with that language's
-diagram name: `01-模块依赖关系.architecture.json` → `01-模块依赖关系.architecture.*`.
+**The `<diagram name>` segment is always an English slug**, even when the design
+document itself is written in Chinese: translate the flow or section name into
+English first (`下单流程` → `place-order-flow`) and never put CJK in the file name.
 Getting this wrong is the one way to end up with a non-conforming file name.
 
 `render` writes the three same-prefix artifacts into `<outdir>`, runs the
@@ -611,19 +612,22 @@ Output placement is a hard rule, not a preference:
   Never the project root's `diagrams/`, never anywhere else. The triple is
   never split across directories.
 - File name: `<document number>-<diagram name>.<diagram type>.<ext>`, e.g.
-  `03-task-flow.workflow.svg` — the number matches the design document, so a
-  reader can tell at a glance which document a diagram belongs to.
+  `03-task-flow.workflow.svg` — the number matches the design document and
+  `<diagram name>` is an **English slug**, so a reader can tell at a glance which
+  document a diagram belongs to.
 - **Author the IR in that same directory.** Write the source IR at
   `<project root>/specs/design/diagrams/<document number>-<diagram name>.<diagram type>.json`
   and pass **that directory** as `<outdir>`. The triple's `.json` and the input
   IR are then the same file, which is the normal path — the renderer leaves it
   untouched when the bytes already match, so nothing is overwritten.
-- Derive `<diagram name>` from the flow name or the section's semantic name:
-  keep letters, digits and CJK characters, replace every other character with
-  `-`, collapse runs of `-` into one, strip leading and trailing `-`, and
-  lowercase the ASCII part; if the result is empty, fall back to the diagram
-  type name. When two derived names collide, append `-2`, `-3`, … and **report
-  both sides of the collision** — never rename silently.
+- Derive `<diagram name>` from the flow name or the section's semantic name,
+  **always as an English slug**: translate the name into English first when the
+  source is not English, then keep ASCII letters and digits, replace every other
+  character (spaces, punctuation, path separators, and any non-ASCII/CJK
+  character) with `-`, collapse runs of `-` into one, strip leading and trailing
+  `-`, and lowercase; if the result is empty, fall back to the diagram type name.
+  When two derived names collide, append `-2`, `-3`, … and **report both sides of
+  the collision** — never rename silently.
 
 **One flow, one file.** A flow name that appears in both the architecture
 document and a module document uses **one** diagram triple, because the two must

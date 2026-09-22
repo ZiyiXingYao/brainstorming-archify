@@ -11,7 +11,9 @@
  *   ④ 接口矩阵状态只在架构模板第 7 节定义一次，其余三份文件只引用、不复述；
  *   ⑤ 内核非测试文档不得再把已删命令（`archify brands` / `archify migrate` /
  *      `archify compare` / `archify validate` / `npm test`）写成现行能力；
- *   ⑥ brand-marks 源码不得残留联网抓取实现。
+ *   ⑥ brand-marks 源码不得残留联网抓取实现；
+ *   ⑦ 图名固定为英文 slug：SKILL / 规格 / 模板都要求英文图名，不得残留「保留 CJK」
+ *      的旧口径与中文图名示例。
  *
  * 只用 Node 内置模块，不依赖 node_modules。
  */
@@ -60,6 +62,18 @@ test('SKILL.md 含落点、命名与两行引用硬规则', () => {
   assert.match(skill, /specs\/design\/diagrams\//, '应固定落点');
   assert.match(skill, /<document number>-<diagram name>/, '应固定命名规则');
   assert.match(skill, /打开交互式版本/, '应含交互版链接行');
+});
+
+test('图名固定为英文 slug：规则与模板都不再允许中文图名', () => {
+  const skill = read(SKILL);
+  assert.match(skill, /English slug/, 'SKILL 应要求图名段为英文 slug');
+  // 旧的「保留 CJK」口径与中文图名示例不得残留，否则会诱导代理把中文写进文件名。
+  assert.doesNotMatch(skill, /letters, digits and CJK/, '不应残留保留 CJK 的旧口径');
+  assert.doesNotMatch(skill, /01-模块依赖关系/, '不应残留中文图名示例');
+  assert.match(read('specs/diagram-engine/spec.md'), /英文/, '规格应写明图名为英文');
+  for (const rel of [ARCH_TEMPLATE, MODULE_TEMPLATE]) {
+    assert.match(read(rel), /英文 slug/, `${rel} 应要求图名为英文 slug`);
+  }
 });
 
 test('SKILL.md 含绘图约束（主节点上限、showcase、修复顺序、间距公式）', () => {

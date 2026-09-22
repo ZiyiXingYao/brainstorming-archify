@@ -6,15 +6,15 @@
  *
  * 算法（design.md 决策四 / execution-contract 接口约束 3）：
  *   1. 输入来源名（流程名或章节语义名），输出可用作文件名的 slug；
- *   2. 保留字母、数字与 CJK 字符；
- *   3. 其余字符（空白、标点、路径分隔符等）替换为 `-`；
+ *   2. 图名固定为英文 slug——来源名为非英文时先译成英文，再保留 ASCII 字母与数字；
+ *   3. 其余字符（空白、标点、路径分隔符、非 ASCII／中日韩字符等）替换为 `-`；
  *   4. 连续 `-` 折叠为单个 `-`；
  *   5. 去掉首尾 `-`；
- *   6. ASCII 部分小写化（非 ASCII 原样保留）；
+ *   6. ASCII 部分小写化；
  *   7. 派生结果为空时回落到图类型名；
  *   8. 派生结果冲突时追加 `-2`、`-3`（依次递增），并把冲突双方报告出来，不静默改名。
  *
- * 覆盖六类输入：普通名、含标点、含 CJK、全非法字符（落到空）、冲突、空结果回落。
+ * 覆盖六类输入：普通名、含标点、含非 ASCII（中文）、全非法字符（落到空）、冲突、空结果回落。
  */
 
 import { test } from 'node:test';
@@ -34,10 +34,11 @@ test('② 含标点：标点、路径分隔符等替换为 `-`', () => {
   assert.equal(deriveDiagramSlug('  --Order---Flow--  ', 'workflow'), 'order-flow');
 });
 
-test('③ 含 CJK：CJK 原样保留，ASCII 部分小写化', () => {
-  assert.equal(deriveDiagramSlug('下单流程', 'lifecycle'), '下单流程');
-  assert.equal(deriveDiagramSlug('Order 下单 FLOW', 'workflow'), 'order-下单-flow');
-  assert.equal(deriveDiagramSlug('用户 2.0 登录', 'sequence'), '用户-2-0-登录');
+test('③ 含非 ASCII（中文）：一律当分隔符剥离，ASCII 部分小写化', () => {
+  // 图名固定为英文 slug：纯中文没有可保留字符，派生结果为空而回落到图类型名
+  assert.equal(deriveDiagramSlug('下单流程', 'lifecycle'), 'lifecycle');
+  assert.equal(deriveDiagramSlug('Order 下单 FLOW', 'workflow'), 'order-flow');
+  assert.equal(deriveDiagramSlug('用户 2.0 登录', 'sequence'), '2-0');
 });
 
 test('④ 全非法字符：派生结果为空时回落到图类型名', () => {
@@ -78,12 +79,13 @@ test('⑥ 冲突：批量派生把「冲突双方」都列出来', () => {
   const { entries, conflicts } = deriveDiagramNames([
     { source: 'Order Flow', type: 'workflow' },
     { source: 'order/flow', type: 'workflow' },
+    // 非英文来源名回落到图类型名，作为英文 slug 参与冲突解决
     { source: '无关名', type: 'sequence' },
   ]);
 
   assert.deepEqual(
     entries.map((entry) => entry.name),
-    ['order-flow', 'order-flow-2', '无关名'],
+    ['order-flow', 'order-flow-2', 'sequence'],
   );
 
   assert.equal(conflicts.length, 1);
