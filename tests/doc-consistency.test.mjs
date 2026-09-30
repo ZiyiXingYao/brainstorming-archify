@@ -18,6 +18,8 @@
  *   ⑧ 接口契约文件名一致为 `00-接口契约.md`：`skill/`、`templates/` 两个活目录内必须引用
  *      规定名，且不得出现无前缀路径 `specs/design/接口契约.md` 与「不带数字前缀」表述
  *      （`specs/` 基线由 delta 合并收口，不纳入断言——纳入会让测试结果依赖合并时点）。
+ *   ⑨ 接口契约新口径：Redis `2.1` 清单表含「数据类型」列、总则含「命名规范」与三条命名格式、
+ *      七类逐项契约均标「示例（强制）」且旧的「可选附证」口径零命中；技能自审与审查提示词同步。
  *
  * 只用 Node 内置模块，不依赖 node_modules。
  */
@@ -134,6 +136,43 @@ test('两份配图模板含三件套与两行引用', () => {
 test('接口契约模板保持“不配图”口径', () => {
   const template = read('templates/interface-contract-template.md');
   assert.match(template, /不配图|不需要\s*`?diagrams\/`?/, '应保留不配图口径');
+});
+
+test('接口契约补齐数据类型、命名规范与七类强制示例', () => {
+  const template = read('templates/interface-contract-template.md');
+  const skill = read(SKILL);
+  const prompt = read('skill/design-doc-reviewer-prompt.md');
+  const problems = [];
+
+  // ① Redis 2.1 清单表在「用途」之后含「数据类型」列。
+  if (!/\|\s*编号\s*\|\s*名称（key 模式）\s*\|\s*用途\s*\|\s*数据类型\s*\|/.test(template)) {
+    problems.push('模板 Redis 2.1 表头缺「数据类型」列（应位于「用途」之后）');
+  }
+  if (!/数据类型/.test(template)) problems.push('模板不含「数据类型」');
+
+  // ② 总则含「命名规范」块与三条命名格式。
+  if (!/命名规范/.test(template)) problems.push('模板总则缺「命名规范」');
+  for (const pattern of [
+    '<系统>:<域>:<实体>:<用途>:{实体标识}',
+    '<系统>.<域>.<实体>.<用途>.{实体标识}',
+    '/<系统>/<域>/<实体>/<用途>',
+  ]) {
+    if (!template.includes(pattern)) problems.push(`模板缺命名格式 ${pattern}`);
+  }
+
+  // ③ 七类逐项契约均标「示例（强制）」，且旧的「可选附证」口径零命中。
+  const mandatory = (template.match(/示例（强制）/g) ?? []).length;
+  if (mandatory !== 7) problems.push(`模板标「示例（强制）」的节数应为 7（七类各一），实际 ${mandatory}`);
+  if (template.includes('附证片段（可选）')) problems.push('模板仍含「附证片段（可选）」旧口径');
+  if (/不因缺少附证/.test(template)) problems.push('模板仍含「不因缺少附证」旧口径');
+
+  // ④ 技能自审与审查提示词同步同一判据。
+  for (const [name, text] of [['SKILL.md', skill], ['审查提示词', prompt]]) {
+    if (!/数据类型/.test(text)) problems.push(`${name} 缺数据类型列判据`);
+    if (!/命名规范|naming standard/.test(text)) problems.push(`${name} 缺命名规范判据`);
+  }
+
+  assert.deepEqual(problems, [], `接口契约新口径不齐全：\n  - ${problems.join('\n  - ')}`);
 });
 
 test('活文件无改名残留（两代历史名与旧落盘目录）', () => {
