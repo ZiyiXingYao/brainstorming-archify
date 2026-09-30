@@ -20,6 +20,10 @@
  *      （`specs/` 基线由 delta 合并收口，不纳入断言——纳入会让测试结果依赖合并时点）。
  *   ⑨ 接口契约新口径：Redis `2.1` 清单表含「数据类型」列、总则含「命名规范」与三条命名格式、
  *      七类逐项契约均标「示例（强制）」且旧的「可选附证」口径零命中；技能自审与审查提示词同步。
+ *   ⑩ 跨模块矩阵与占位扫描新判据：架构模板 §7 与模块模板 §4 要求函数名逐字一致（含驼峰/下划线风格）、
+ *      架构模板 §7 要求同一写集内双方已落盘时不得停留 `待提供`；技能自审第 2 项与审查提示词把占位扫描
+ *      限定为需作者填写的正文占位符（排除行内反引号字面规范、`不适用：<原因>` 原文、模板「使用说明」块），
+ *      接口契约模板「使用说明」块声明整块不随产物落盘。
  *
  * 只用 Node 内置模块，不依赖 node_modules。
  */
@@ -173,6 +177,33 @@ test('接口契约补齐数据类型、命名规范与七类强制示例', () =>
   }
 
   assert.deepEqual(problems, [], `接口契约新口径不齐全：\n  - ${problems.join('\n  - ')}`);
+});
+
+test('跨模块矩阵签名与占位扫描的新判据齐备', () => {
+  const arch = read(ARCH_TEMPLATE);
+  const mod = read(MODULE_TEMPLATE);
+  const contract = read('templates/interface-contract-template.md');
+  const skill = read(SKILL);
+  const prompt = read('skill/design-doc-reviewer-prompt.md');
+  const problems = [];
+
+  // F4：函数名逐字一致（含命名风格）。模板侧用「驼峰」这一显式风格词锁住。
+  if (!/驼峰/.test(arch)) problems.push('架构模板 §7 缺「函数名逐字相等（含驼峰/下划线风格）」口径');
+  if (!/驼峰/.test(mod)) problems.push('模块模板 §4 缺「函数名逐字相等（含驼峰/下划线风格）」口径');
+  if (!/verbatim/i.test(skill)) problems.push('SKILL.md 自审缺「函数名逐字一致」判据');
+  if (!/verbatim/i.test(prompt)) problems.push('审查提示词缺「函数名逐字一致」判据');
+
+  // F9：同一写集内双方都已落盘时不得停留 `待提供`。
+  if (!/同一写集/.test(arch)) problems.push('架构模板 §7 缺「同一写集内不得停留 `待提供`」例外');
+
+  // F2/F3/F8：占位扫描排除模板强制记法与说明块。
+  if (!/backtick/.test(skill)) problems.push('SKILL.md 自审第 2 项未排除行内反引号中的字面规范');
+  if (!/不适用：<原因>/.test(skill)) problems.push('SKILL.md 自审第 2 项未点名排除 `不适用：<原因>` 原文');
+  if (!/使用说明/.test(skill)) problems.push('SKILL.md 自审第 2 项未点名排除模板「使用说明」块');
+  if (!/backtick/.test(prompt)) problems.push('审查提示词未排除行内反引号中的字面规范');
+  if (!/不随产物落盘/.test(contract)) problems.push('接口契约模板「使用说明」块未声明整块不随产物落盘');
+
+  assert.deepEqual(problems, [], `跨模块矩阵/占位扫描判据不齐：\n  - ${problems.join('\n  - ')}`);
 });
 
 test('活文件无改名残留（两代历史名与旧落盘目录）', () => {
