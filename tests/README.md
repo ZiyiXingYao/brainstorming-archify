@@ -14,7 +14,7 @@ tests/
 │   └── sample-lifecycle.json
 ├── render.smoke.test.mjs         冒烟：渲染五类图，校验三件套（独立脚本，原生 assert）
 ├── render.entry.test.mjs         入口契约：透传子命令 / 参数校验 / 失败不留半成品 / 原子提交 / 两轮降级
-├── task-state.test.mjs           讨论状态库：四态推进与前置条件 / reopen 只翻点名文件 / closed 后 task.md 作废 / 原子写 / YAML 往返 / resume 只读与 blockers
+├── task-state.test.mjs           讨论状态库：四态推进与前置条件 / reopen 只翻点名文件 / closed 后 task.md 作废 / 当前轮次 change-list 指针与切换守卫 / 原子写 / YAML 往返 / resume 只读与 blockers
 ├── install.test.mjs              安装脚本：版本硬门 / 备份与备份冲突守卫 / 平铺与整目录规则 / 命令适配器部署（bsa/resume.md 重写、保留其他命令、幂等）/ 装后 doctor / 用法错误
 ├── doc-consistency.test.mjs      文档一致性：SKILL.md 关键约定、模板配图章节、改名残留、接口契约文件名一致、接口契约数据类型与命名规范、跨模块矩阵签名与占位扫描判据、状态取值单一权威、内核文档无已删命令、架构 14 节与运行/部署视图、讨论状态库与任务拆分口径、三份模板文件头无状态行
 ├── engine.test.mjs               把内核回归集接进本入口：唤起 scripts/diagram-engine/test/run-valid.mjs 并断言全过
@@ -26,7 +26,7 @@ tests/
 ```bash
 # 全部：一条命令覆盖「仓库测试 + 绘图内核回归集」
 node --test tests/*.test.mjs
-# → 95 个用例，0 失败（含 engine.test.mjs 唤起的内核 24 文件 / 360 用例）
+# → 112 个用例，0 失败（含 engine.test.mjs 唤起的内核 24 文件 / 360 用例）
 
 # 只跑冒烟（独立脚本）
 node tests/render.smoke.test.mjs
@@ -60,13 +60,17 @@ node tests/render.smoke.test.mjs
 ### `task-state.test.mjs`（`node:test`）
 
 讨论状态库 `.brainstorming-archify/state.yaml` 的两个命令。`change-state.mjs`：`init` 建库与重复
-init 拒绝；`file` 三态登记与非法值／非法路径退出码 2；`advance` 的前置条件（→`draft` 需全 landed、
-→`confirm` 需全 confirmed、→`closed` 需 `--task-md` 指向的文件存在）缺条件退出码 1 且不改盘；同态推进
-空操作；回退必须 `--reason`；**reopen 只翻点名文件**回 `discussing`、整体回 `explore`、未点名文件不动；
-**closed 后重开时旧 task.md 不重生成无法再次收口**（mtime 不晚于重开即拒）；原子写盘（目标不可用时
-失败且不留 `.tmp` 半成品）；中文路径与含冒号/引号/反斜杠理由的 YAML 往返。`resume-state.mjs`：
-**只读**（跑完 state.yaml 一字节不变）、从子目录向上发现项目根、`--json` 输出形状与四态 `next_action`、
-blockers（无 state.yaml、登记文件已不在盘上）、closed 态指向 reopen、文本输出含 State/Next 两行。
+init 拒绝；`file` 三态登记与非法值／非法路径退出码 2；**`change-list` 当前轮次文件指针**——首轮可设、
+同文件重复设置是空操作、路径必须在 `.brainstorming-archify/change-lists/` 下、文件不存在拒绝、
+**讨论未完成（draft/confirm/closed 未重开）换文件被拒且不改盘**、reopen 后可换；`advance` 的前置条件
+（→`draft` 需全 landed、→`confirm` 需全 confirmed、→`closed` 需 `--task-md` 指向的文件存在
+**且已设当前 change-list**）缺条件退出码 1 且不改盘；同态推进空操作；回退必须 `--reason`；
+**reopen 只翻点名文件**回 `discussing`、整体回 `explore`、未点名文件不动；**closed 后重开时旧 task.md
+不重生成无法再次收口**（mtime 不晚于重开即拒）；原子写盘（目标不可用时失败且不留 `.tmp` 半成品）；
+中文路径与含冒号/引号/反斜杠理由的 YAML 往返。`resume-state.mjs`：**只读**（跑完 state.yaml 一字节
+不变）、从子目录向上发现项目根、`--json` 输出形状（含 `change_list`）与四态 `next_action`、
+blockers（无 state.yaml、登记文件已不在盘上、**当前 change-list 文件已不在盘上**）、
+closed 态指向 reopen、reopen 后指针陈旧时提示开新轮文件、文本输出含 State/Next 两行。
 
 ### `install.test.mjs`（`node:test`）
 

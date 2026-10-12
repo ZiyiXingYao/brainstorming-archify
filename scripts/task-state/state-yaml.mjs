@@ -21,6 +21,9 @@
  *         reason: "新增调度模块"
  *         files:
  *           - "specs/design/03-调度模块.md"
+ *     change_list:
+ *       path: ".brainstorming-archify/change-lists/20261012T120000Z-report-export.md"
+ *       set_at: "2026-10-12T12:00:00.000Z"
  *     log:
  *       - at: "2026-10-12T13:05:00.000Z"
  *         from: "explore"
@@ -49,6 +52,9 @@ export const LOG_CAP = 50;
 
 /** state.yaml 相对项目根的位置。 */
 export const STATE_REL = path.join('.brainstorming-archify', 'state.yaml');
+
+/** 轮次 change-list 文件的目录（相对项目根，POSIX 形式）。 */
+export const CHANGE_LIST_DIR = '.brainstorming-archify/change-lists';
 
 export class StateYamlError extends Error {
   constructor(message) {
@@ -121,6 +127,7 @@ export function parseStateYaml(text) {
     schema_version: 0,
     state: '',
     files: [],
+    change_list: { path: '', set_at: '' },
     reopens: [],
     log: [],
     task_md: { path: '', generated_at: '' },
@@ -260,19 +267,20 @@ export function parseStateYaml(text) {
       out[key] = items;
       continue;
     }
-    if (key === 'task_md') {
-      if (value !== null) fail(no, 'task_md 必须是映射');
+    if (key === 'task_md' || key === 'change_list') {
+      if (value !== null) fail(no, `${key} 必须是映射`);
       i += 1;
+      const fields = key === 'task_md' ? ['path', 'generated_at'] : ['path', 'set_at'];
       while (i < lines.length) {
         const l2 = lines[i];
         if (isSkippable(l2)) { i += 1; continue; }
         if (!/^ {2}[A-Za-z_]/.test(l2)) break;
         const e = readEntry(i + 1, l2, 2);
-        if (['path', 'generated_at'].includes(e.key)) {
+        if (fields.includes(e.key)) {
           if (e.value === null) fail(i + 1, `${e.key} 缺值`);
-          out.task_md[e.key] = unquote(e.value, i + 1);
+          out[key][e.key] = unquote(e.value, i + 1);
         } else {
-          fail(i + 1, `task_md 不认识的键：${e.key}`);
+          fail(i + 1, `${key} 不认识的键：${e.key}`);
         }
         i += 1;
       }
@@ -338,6 +346,10 @@ export function emitStateYaml(state) {
       }
     }
   }
+  const changeList = state.change_list ?? { path: '', set_at: '' };
+  L.push('change_list:');
+  L.push(`  path: ${quote(changeList.path)}`);
+  L.push(`  set_at: ${quote(changeList.set_at)}`);
   const log = (state.log ?? []).slice(-LOG_CAP);
   if (log.length === 0) {
     L.push('log: []');

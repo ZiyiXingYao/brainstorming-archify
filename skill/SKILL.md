@@ -437,11 +437,13 @@ chunk by asking what's wrong or missing. This is the working form of
 A design discussion may span days and be interrupted at any point. The
 progress lives in **`<project root>/.brainstorming-archify/state.yaml`** —
 it is the **progress anchor**: `specs/design/` answers *what was discussed*,
-this file answers *where the discussion stands*. After an interruption or
-a restart, run `resume-state.mjs` (or the `/bsa:resume` command) and
-continue from what it reports. The `.brainstorming-archify/change-lists/`
-directory stays what it was — the audit trail of what each persist was
-authorised to write, not a progress record.
+this file answers *where the discussion stands*, and the **current round's
+change-list file** (its path is in `state.yaml`'s `change_list.path`) answers
+*what this round discussed, decided and authorised*. Recovery = those two
+files read together: run `resume-state.mjs` (or the `/bsa:resume` command),
+then load the change-list file it names. The `.brainstorming-archify/change-lists/`
+directory is still a process artifact — but the **current** file is a
+first-class recovery input, not just an audit trail.
 
 **state.yaml is edited only through `change-state.mjs`.** Never write it by
 hand, and never let a subagent touch it; `resume-state.mjs` is read-only.
@@ -450,7 +452,7 @@ hand, and never let a subagent touch it; `resume-state.mjs` is read-only.
 
 | State | Meaning | Entry precondition |
 |---|---|---|
-| `explore` | Pure discussion — nothing has landed | `init`, or any `reopen` |
+| `explore` | Pure discussion — no **design document** has landed (process bookkeeping under `.brainstorming-archify/` is not a "product") | `init`, or any `reopen` |
 | `draft` | Drafts are on disk, the human is verifying | every registered file is `landed` (a `confirmed` file counts) |
 | `confirm` | Everything is confirmed — only `task.md` is left | every registered file is `confirmed` |
 | `closed` | `task.md` has been generated; the round is done | `specs/design/task.md` exists and is newer than the last reopen |
@@ -466,6 +468,7 @@ overrides discovery):
 ```
 node <skill-root>/scripts/task-state/change-state.mjs init
 node <skill-root>/scripts/task-state/change-state.mjs file <path> <discussing|landed|confirmed>
+node <skill-root>/scripts/task-state/change-state.mjs change-list <path>
 node <skill-root>/scripts/task-state/change-state.mjs advance <explore|draft|confirm|closed> [--reason "<原因>"] [--task-md specs/design/task.md]
 node <skill-root>/scripts/task-state/change-state.mjs reopen <path>... --reason "<原因>"
 node <skill-root>/scripts/task-state/change-state.mjs show [--json]
@@ -481,11 +484,19 @@ node <skill-root>/scripts/task-state/resume-state.mjs [--json]
   `discussing`, files nobody named keep their status, and the overall state
   returns to `explore`. Naming a file that is **not registered yet**
   registers it as `discussing` first — that is how a new module joins a
-  library that already exists.
+  library that already exists. **Either way, the round's first act is its
+  round file**: create
+  `.brainstorming-archify/change-lists/<UTC timestamp>-<slug>.md` with the
+  round header, then run `change-list <path>` to point `state.yaml` at it
+  (see **Where the change list itself is persisted** for the five sections).
+  Record decisions in it as the discussion converges — that is what keeps an
+  interruption from losing an `explore`-stage conclusion that has not reached
+  a design document yet.
 - **After the Change List Gate approves a persist** — in the same batch as
   the documents, mark every document that persist wrote with
-  `file <path> landed`. When every registered file is `landed`, run
-  `advance draft`.
+  `file <path> landed`, update the round file's file-modification ledger for
+  those documents, and append that persist's authorisation block to the same
+  round file. When every registered file is `landed`, run `advance draft`.
 - **At the User Review Gate** — when the human approves a document, mark it
   `file <path> confirmed`. When every registered file is `confirmed`, run
   `advance confirm`.
@@ -497,13 +508,17 @@ node <skill-root>/scripts/task-state/resume-state.mjs [--json]
   landed or were confirmed, `reopen` the affected files with the reason and
   walk the cycle again. Documents nobody asked to change are not re-reviewed.
 
-The documents themselves carry **no status line** in their header any more —
-the state library is the single authority, so a header that also said
-"草稿 / 已确认" would be a second source that can silently disagree. The
-header keeps `最近更新` / `参与` / `来源` (and `对应架构` on module documents).
-The architecture template's §6.2 `设计状态` column and the §7 interface-matrix
-statuses are **different concepts** — a module's design existence and an
-interface dependency's state — and stay where they are.
+The documents themselves carry **no per-document status or modification
+lines** in their header any more — the state library is the single authority
+for discussion progress, and the current round file's **file-modification
+ledger** is the single authority for *when each document was last touched, by
+whom, in which discussion*. A document header that also carried「状态」or
+「最近更新 / 参与 / 来源」would be a second source that can silently disagree.
+Document headers keep only the title (module documents and the interface
+contract keep their `对应架构` cross-reference line). The architecture
+template's §6.2 `设计状态` column and the §7 interface-matrix statuses are
+**different concepts** — a module's design existence and an interface
+dependency's state — and stay where they are.
 
 ## The Persist Gate
 
@@ -571,12 +586,14 @@ For `01-架构设计.md`:
   changing, module dependencies changing, a cross-module interface
   changing, a global flow's module chain changing → change **only the
   affected entries**. Everything else stays word-for-word, including its
-  original phrasing, order, and formatting. The only further edits allowed
-  are refreshing the 最近更新 line and the 主题 inside the 来源 line, on every
-  document this persist touched, using the same date. 来源's 主题 is the topic
-  of the most recent discussion that touched *that* document, so it changes
-  whenever this persist touched the document and the topic differs. If the
-  date is already today, or the topic already matches, the edit is a no-op:
+  original phrasing, order, and formatting — untouched documents are now
+  **fully** untouched, because the modification record no longer lives in
+  their headers. The only further edit allowed is updating **the
+  file-modification ledger row** (在轮次 change-list 文件里) for every document
+  this persist touched, using the same date for all of them. The row's 来源 is
+  the topic of the most recent discussion that touched *that* document, so it
+  changes whenever this persist touched the document and the topic differs. If the
+  date is already today, or the topic already matches, the update is a no-op:
   make no change, and add no declaration beyond the change list's own
   meta-line entry, which named the document either way. Never add or remove a
   meta line, and do not polish untouched sections while you are in the file.
@@ -1115,10 +1132,20 @@ fired, and handing the set over does not require re-deriving it.
 
 ## Change List Gate
 
-An approved design does not authorise writing files. Before any file is
-created or modified, present a change list and wait for an explicit yes. (The one
-exception is named in the Diagram Planning Gate: the source IR is written before
-this gate because `validate` must read it from disk — nothing else is.)
+An approved design does not authorise writing files. Before any **design
+document** is created or modified, present a change list and wait for an
+explicit yes. (The one exception is named in the Diagram Planning Gate: the
+source IR is written before this gate because `validate` must read it from
+disk — nothing else is.)
+
+**This gate governs design documents, not process bookkeeping.** The two files
+under `<project root>/.brainstorming-archify/` that record the discussion —
+`state.yaml` and **the round's change-list file** — are maintained as the
+discussion proceeds, including during `explore` and before this gate opens;
+that is what makes an interruption recoverable. Creating or appending to them
+is **not** what this gate authorises or forbids. It is their *design-document*
+content that the gate protects: the change-list file's persist-authorisation
+block is written only after the gate is approved.
 The change list states:
 
 - **New files** — path, and which template each follows
@@ -1137,8 +1164,9 @@ The change list states:
 - **Explicitly untouched** — which existing documents and sections stay
   word-for-word unchanged, so the human can see nothing is being lost.
   On a first persist, when nothing pre-exists, write `无既有文档`. Include
-  the meta lines: state which documents get 最近更新 / 来源 refreshed. Name the
-  document whether or not the refresh turns out to be a no-op, so that a no-op
+  the ledger update: state which documents get their **file-modification
+  ledger row** updated in this round's change-list file. Name the
+  document whether or not the update turns out to be a no-op, so that a no-op
   later needs no separate declaration — the entry is the declaration.
 - **Interface-matrix changes** — every row this persist adds, and whether it
   stays `待提供` or flips. When every provider involved is already designed,
@@ -1186,26 +1214,54 @@ list first.
 
 The list is not one of the managed design documents, and while this gate is open
 it is transient: re-state it in the conversation only and write nothing. **After
-this gate is approved**, in the same batch as the documents, write that one list
-to `<project root>/.brainstorming-archify/change-lists/<UTC timestamp>-<subject slug>.md`
-— for example `20260922T112442Z-order-module.md`. The UTC timestamp comes first
-so that sorting the directory by file name reproduces persist order. The subject
-slug is the semantic English short name of the **primary document** in this
-persist, under the same rule as diagram-name slugs (ASCII letters, digits and
-`-` only; no CJK): use `architecture` for a first or architecture-level persist,
-and that module's English name for a single-module persist, taking the
-lowest-numbered document when one persist covers several. **One file per
-persist** — a later persist adds its own timestamped file and never overwrites an
-earlier one. Before approval nothing is written to that directory: the source IR
-named in the Diagram Planning Gate remains the **only** write exception before
-this gate.
+this gate is approved**, in the same batch as the documents, **append** that
+persist's list to **the current round's change-list file** — the one
+`state.yaml`'s `change_list.path` points at (see **Discussion State**).
+
+**One file per discussion round, created when the round opens.** The file lives
+at `<project root>/.brainstorming-archify/change-lists/<UTC timestamp>-<subject slug>.md`
+— for example `20260922T112442Z-order-module.md`. The UTC timestamp is the
+**round's start** and the subject slug is the **round's topic**, under the same
+rule as diagram-name slugs (ASCII letters, digits and `-` only; no CJK). Because
+it is per round rather than per persist, the file is a **living record** and
+carries five sections, each a markdown heading, in this order (the `change-list`
+command checks for them when the pointer is set — a round file without them
+fails, because recovery would have nothing to read):
+
+1. **Round header** — the topic, the start timestamp, the participants, and the
+   note that `state.yaml` points here.
+2. **Discussion record** — the round's question-and-answer highlights and the
+   corrections your human partner made, appended as the round proceeds.
+3. **Key decisions** — decisions made during `explore` that are **not yet in the
+   design documents**. They are recorded here first so that an interruption
+   cannot lose them; once a decision lands in a document, annotate its entry
+   `已落入 §x` so the file never competes with the documents as an authority.
+4. **File modification ledger** — one row per managed document:
+   `path / 最近更新 / 参与 / 来源（最近一次讨论主题）`. This **replaces the
+   per-document header meta lines** (see **Incremental Persist Protocol**); the
+   documents themselves no longer carry them.
+5. **Persist authorisations** — one block per persist in this round, headed by
+   its UTC timestamp, each carrying the nine items the Change List Gate requires
+   (new files / interface-contract determination / modified files / explicitly
+   untouched / interface-matrix changes / core-class reconciliation / diagrams /
+   conflicts / notes).
+
+**Switching is mechanically guarded.** Within a round the file never changes —
+a later persist appends to it. A **new** file may be pointed at only when a new
+round has opened: `change-state.mjs change-list <path>` refuses a different file
+while the round is incomplete (`draft` / `confirm` / `closed` without a reopen),
+and `init` / `reopen` are the two moments a round begins. The command also
+requires the file to exist and to sit under `.brainstorming-archify/change-lists/`,
+and `advance closed` refuses to close a round whose current change-list file is
+unset or missing.
 
 `.brainstorming-archify/change-lists/` is a **process artifact**, not a managed design
 directory: it sits outside `specs/design/`, this skill never deletes it, and it is
-**not** part of the commit scope. `specs/design/` stays the **only** anchor for
-resuming a conversation, so an old file under `change-lists/` is neither evidence
-of a pending approval nor of an approved one — a resumed session still presents
-its list and gets approval as usual.
+**not** part of the commit scope. Older rounds' files stay on disk as history;
+`state.yaml` points at the current one only. Because the round file is a process
+artifact, an old file under `change-lists/` is neither evidence of a pending
+approval nor of an approved one — a resumed session still presents its list and
+gets approval as usual.
 
 ## The Three Gates
 
@@ -1240,7 +1296,10 @@ reading time.
    Protocol, Rule 1. Then decide the write set: what is new, what is
    merged, and which entries change in each document.
 3. **Present the change list and get approval** — per the Change List
-   Gate. Nothing is written before that approval.
+   Gate. No design document is written before that approval (the round
+   file's own discussion record and decision entries are bookkeeping and
+   are not gated; its persist-authorisation block is added in this same
+   batch, after approval).
 4. **Fill each template exactly** — keep every section, in order. Do not
    add, remove, or rename sections. For a section that does not apply,
    keep its heading and write `不适用：<reason>`.

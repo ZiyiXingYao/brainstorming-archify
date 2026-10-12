@@ -573,12 +573,18 @@ test('brand-marks 源码不再含联网抓取实现', () => {
  * 断言锚点取完整短语以免误伤；负向断言防旧口径回退。
  * ------------------------------------------------------------------------- */
 
-test('SKILL.md 定明变更清单的落盘形态与时机', () => {
+test('SKILL.md 定明变更清单的落盘形态与时机（一轮一份、轮内追加）', () => {
   const skill = read(SKILL);
   assert.match(skill, /\.brainstorming-archify\/change-lists\//, '应给出变更清单落盘目录');
   // 正文按排版硬换行，短语断言须容忍换行（用 \s+ 而非字面空格）。
   assert.match(skill, /After\s+this gate is approved/, '应点明清单落在门批准之后');
-  assert.match(skill, /One file per\s+persist/, '应点明每次落盘一份、后次不覆盖前次');
+  assert.match(skill, /One file per discussion round/, '应点明一轮一份（不再是每次落盘一份）');
+  assert.doesNotMatch(skill, /One file per\s+persist/, '不得残留「每次落盘一份」旧口径');
+  assert.match(skill, /append\*\* that\s+persist's list to \*\*the current round's change-list file\*\*/, '应点明轮内追加到当前文件');
+  for (const section of ['Round header', 'Discussion record', 'Key decisions', 'File modification ledger', 'Persist authorisations']) {
+    assert.ok(skill.includes(section), `轮次记录应有小节「${section}」`);
+  }
+  assert.match(skill, /change-state\.mjs change-list <path>` refuses a different file/, '应点明切换的机械守卫');
 });
 
 test('审查提示词声明 .brainstorming-archify/change-lists/ 属非受管文档', () => {
@@ -590,8 +596,8 @@ test('审查提示词声明 .brainstorming-archify/change-lists/ 属非受管文
   );
   assert.match(
     prompt,
-    /the change-list file this persist wrote/,
-    'change-list coverage 判据应从本次落盘的那份清单文件读取内容',
+    /read the content from the current round's change-list\s+file/,
+    'change-list coverage 判据应从当前轮次的 change-list 文件读取内容',
   );
 });
 
@@ -681,12 +687,17 @@ test('审查提示词含 task.md 判据', () => {
   }
 });
 
-test('三份模板文件头无「状态」行，README 无旧元信息表述', () => {
+test('三份模板文件头只剩标题与对应架构，修改信息改由轮次台账承载', () => {
   for (const rel of [ARCH_TEMPLATE, MODULE_TEMPLATE, 'templates/interface-contract-template.md']) {
     const template = read(rel);
     assert.doesNotMatch(template, /^\> \*\*状态\*\*：/m, `${rel} 文件头不得再有状态行`);
-    assert.match(template, /\*\*最近更新\*\*/, `${rel} 应保留最近更新行`);
+    assert.doesNotMatch(template, /^\> \*\*最近更新\*\*：/m, `${rel} 文件头不得再有最近更新行`);
+    assert.doesNotMatch(template, /^\> \*\*参与\*\*：/m, `${rel} 文件头不得再有参与行`);
+    assert.doesNotMatch(template, /^\> \*\*来源\*\*：/m, `${rel} 文件头不得再有来源行`);
   }
+  // 模块文档与接口契约保留「对应架构」交叉引用行
+  assert.match(read(MODULE_TEMPLATE), /\*\*对应架构\*\*/, '模块文档应保留对应架构行');
+  assert.match(read('templates/interface-contract-template.md'), /\*\*对应架构\*\*/, '接口契约应保留对应架构行');
   const readme = read('README.md');
   assert.doesNotMatch(readme, /「状态」新建为「草稿」/, 'README 不得残留旧状态口径');
   assert.match(readme, /文件头不再写「状态」|\.brainstorming-archify\/state\.yaml/, 'README 应说明状态改记 state.yaml');
@@ -700,6 +711,55 @@ test('命令适配器源文件在位：占位符与禁改口径', () => {
   assert.match(src, /__BSA_ROOT__/, '适配器源文件应含 __BSA_ROOT__ 占位符');
   assert.match(src, /不得直接修改 `\.brainstorming-archify\/state\.yaml`/, '适配器应禁直接改 state.yaml');
   assert.match(src, /resume-state\.mjs.*--json/s, '适配器应指示跑 resume-state --json');
+});
+
+test('Discussion State 收管当前轮次 change-list 文件', () => {
+  const skill = read(SKILL);
+  assert.match(skill, /change_list\.path/, 'Discussion State 应点名 state.yaml 的 change_list.path');
+  assert.match(
+    skill,
+    /Recovery = those two\s+files read together/,
+    '恢复现场应是 state.yaml + 当前轮次 change-list 文件这两个',
+  );
+  assert.match(
+    skill,
+    /no \*\*design document\*\* has landed/,
+    'explore 的「无产物落盘」应限定为设计文档（流程簿记除外）',
+  );
+  assert.match(skill, /the round's first act is its\s+round file|round file\*\*/, '开轮动作应含「建轮次文件」');
+  assert.match(skill, /update the round file's file-modification ledger/, '落盘动作应含「更新台账行」');
+});
+
+test('审查提示词的 merge-integrity 判据不再以「最近更新行」为唯一例外', () => {
+  const prompt = read('skill/design-doc-reviewer-prompt.md');
+  assert.doesNotMatch(prompt, /the 最近更新 line is the one permitted exception/, '不得残留旧例外口径');
+  assert.match(prompt, /do not demand a 最近更新\/参与\/来源 header line/, '应明说不得索要头行');
+  assert.match(prompt, /fully\*\* untouched/, '应说明未触动文档完全逐字不变');
+});
+
+test('活文件无「每次落盘一份」旧口径（MAINTAINING 的历史条目除外）', () => {
+  // MAINTAINING 的重放清单是历史记录：第 45 条原文保留、其「已被第 53 条取代」的注解才是现行口径。
+  for (const rel of [SKILL, 'skill/design-doc-reviewer-prompt.md', 'README.md']) {
+    assert.doesNotMatch(read(rel), /每次落盘一份/, `${rel} 不得残留「每次落盘一份」旧口径`);
+  }
+});
+
+test('轮次文件的创建时机与变更清单门不矛盾（F1 修法）', () => {
+  const skill = read(SKILL);
+  assert.match(
+    skill,
+    /This gate governs design documents, not process bookkeeping/,
+    '变更清单门应明确只管设计文档、不管流程簿记',
+  );
+  assert.match(skill, /maintained as the\s+discussion proceeds, including during `explore`/, '应说明簿记在 explore 期间即维护');
+  assert.match(skill, /No design document is written before that approval/, 'Writing 第 3 步应改为「设计文档」而非「任何文件」');
+  assert.doesNotMatch(skill, /Nothing is written before that approval/, '不得残留「批准前什么都不写」的旧口径');
+});
+
+test('轮次文件形状被机械校验（F2 修法）', () => {
+  const skill = read(SKILL);
+  assert.match(skill, /each a markdown heading, in this order/, 'SKILL 应说明五小节是 markdown 标题');
+  assert.match(skill, /the `change-list`\s+command checks for them/, 'SKILL 应说明 change-list 命令会校验');
 });
 
 test('dry-run 状态库复测的修法已落盘（F1 计数词 / F5 reopen 登记 / F6 Scope 例外）', () => {

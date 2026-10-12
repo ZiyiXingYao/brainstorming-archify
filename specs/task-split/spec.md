@@ -13,62 +13,76 @@ resume-state.mjs 只读），使跨天/中断的讨论可恢复；全部文档�
 ### Requirement: 讨论状态落库 state.yaml
 
 技能 SHALL 把设计讨论的进度落在 `<项目根>/.brainstorming-archify/state.yaml`，作为**进度锚点**：
-`specs/design/` 是内容锚点（答「讨论了什么」），state.yaml 答「进行到哪了」；
-`.brainstorming-archify/change-lists/` 保持过程产物定位（落盘授权的审计流水，不是进度记录）。
+`specs/design/` 是**内容锚点**（答「讨论了什么」），state.yaml 答「进行到哪了」，
+**当前轮次的 change-list 文件**（其路径记在 state.yaml 的 `change_list.path`）答
+「这一轮讨论了什么、定了什么、授权了什么」——**恢复一个讨论 SHALL 读这两个文件**。
 
 state.yaml SHALL 记录四级整体状态与每个登记文件的三态：
 
-- 整体状态取值恰为 `explore`（纯讨论，无产物落盘）、`draft`（草稿已落盘、人工校验中）、
+- 整体状态取值恰为 `explore`（纯讨论，没有**设计文档**落盘；`.brainstorming-archify/` 下的流程簿记
+  不算「产物」，故 `explore` 期间轮次记录文件已在写）、`draft`（草稿已落盘、人工校验中）、
   `confirm`（全部确认，只差生成 task.md）、`closed`（task.md 已生成，结束）；
-- 文件状态取值恰为 `discussing`（讨论中）、`landed`（已落盘待校验）、`confirmed`（人类已确认），
-  且 `confirmed` 蕴含 `landed`——推进判「全部 landed」时 `confirmed` 的文件算已落盘。
+- 文件状态取值恰为 `discussing`、`landed`、`confirmed`，且 `confirmed` 蕴含 `landed`。
 
 状态推进 SHALL 满足：
 
-- 正向推进只能走一步（`explore → draft → confirm → closed`），不得跳级；
+- 正向推进只能走一步，不得跳级；回退 SHALL 必须给出 `--reason`；
 - 推进到 `draft` 的前置条件是全部登记文件已 `landed`；推进到 `confirm` 的前置条件是全部登记文件已
-  `confirmed`；推进到 `closed` 的前置条件是 `specs/design/task.md` 存在且其修改时间**晚于**最后一次
-  重开（重开会作废 task.md）；
-- 向更早状态回退 SHALL 必须给出 `--reason`；
+  `confirmed`；推进到 `closed` 的前置条件是 `specs/design/task.md` 存在且其修改时间晚于最后一次重开，
+  **且本轮已设当前 change-list 文件、该文件在盘上**；
 - `reopen <文件>... --reason` SHALL 只把点名文件翻回 `discussing`（未点名文件状态不变）、整体状态退回
-  `explore`，并登记一条重开事件（时间、原因、文件）；点名一个尚未登记的文件时 SHALL 先登记再翻转。
+  `explore`，并登记一条重开事件；点名尚未登记的文件时 SHALL 先登记再翻转。
+
+**当前 change-list 指针 SHALL 只有一个，且切换受守卫**：state.yaml SHALL 记录
+`change_list: { path, set_at }`；`change-state.mjs change-list <path>` SHALL 要求路径位于
+`.brainstorming-archify/change-lists/` 下、文件已存在、且**该文件是形状合法的轮次记录**
+（至少含五个 markdown 标题：轮次头 / 讨论记录 / 重要决策 / 文件修改台账 / 落盘授权——恢复靠这几节
+取内容，缺节即拒绝并列出应有小节）；指向同一文件（轮内追加）SHALL 允许多次调用；
+指向**不同**文件 SHALL 仅当「还没有当前文件」（首轮）或「当前 `set_at` 早于最后一次 `reopen`」
+（新轮次已开）——其余情形 SHALL 拒绝并不改盘，因为一个讨论没完成时换文件会让进度记录断链。
+`advance closed` SHALL 同样校验当前轮次文件的形状。
 
 `state.yaml` SHALL 只允许由 `scripts/task-state/change-state.mjs` 编辑；`resume-state.mjs` SHALL 为
-只读命令，供对话中断或跨会话重启后恢复：从当前目录向上发现项目根，输出当前状态、文件三态、
-`next_action`（按四态给出下一步与要加载的技能文件）与 `blockers`（state.yaml 不存在、形状或取值非法、
-登记为 `landed`/`confirmed` 的文件在盘上已不存在）。存在 blocker 时调用方 SHALL 停下并展示修复命令，
-MUST NOT 猜测继续。
+只读命令：输出当前状态、文件三态、`change_list`（当前轮次文件）、`next_action`
+（按四态给出下一步与要加载的文件——`load` SHALL 含当前 change-list 文件）与 `blockers`
+（state.yaml 不存在、形状或取值非法、登记为 `landed`/`confirmed` 的文件已不在盘上、
+**当前 change-list 文件已不在盘上**）。存在 blocker 时调用方 SHALL 停下并展示修复命令。
 
-三份设计文档模板的文件头 SHALL NOT 再写「状态」行——文件讨论状态的唯一权威是 state.yaml；
-文件头保留 `最近更新` / `参与` / `来源`（模块文档与接口契约另留 `对应架构`）。
-架构模板 §6.2 的 `设计状态` 列与 §7 接口矩阵的状态取值是不同概念（模块设计存在性、接口依赖状态），
-SHALL NOT 随本次删除。
+（文件头只留标题、修改信息由轮次台账承载的形态口径，见 `design-doc-templates` 能力。）
 
 #### Scenario: 首轮讨论走到收口
 
-- **WHEN** 项目没有 state.yaml 时开始讨论，随后落盘设计文档、人工逐份确认，最后生成 task.md
+- **WHEN** 项目没有 state.yaml 时开始讨论，创建轮次 change-list 文件并设指针，随后落盘设计文档、
+  人工逐份确认，最后生成 task.md
 - **THEN** 状态依次为 `explore`（init 后）→ 文档登记为 `landed` 且全部落盘后 `advance draft` →
   逐份 `confirmed` 且全部确认后 `advance confirm` → 生成 `specs/design/task.md` 后
   `advance closed --task-md specs/design/task.md` 成功，状态为 `closed`
 
-#### Scenario: closed 之后新增模块
+#### Scenario: 讨论未完成时换 change-list 文件被拒
+
+- **WHEN** 本轮处于 `draft` 或 `confirm`，或处于 `closed` 但未重开，调用
+  `change-state.mjs change-list <另一个文件>`
+- **THEN** 命令 SHALL 拒绝（非零退出）并提示讨论未完成不能切换，且 state.yaml 一个字节都不改
+
+#### Scenario: closed 之后新增模块换新文件
 
 - **WHEN** 状态为 `closed`，人类要求新增一个功能模块
 - **THEN** `reopen <新模块文档> --reason "<原因>"` 只把该文件登记为 `discussing`、既有 `confirmed`
-  文件保持原状、整体状态退回 `explore`；重走「落盘 → draft → 确认 → confirm」后，**旧 task.md 未重新生成时
-  `advance closed` 被拒绝**（修改时间不晚于最后一次重开），重新生成 task.md 后才可收口
+  文件保持原状、整体状态退回 `explore`；此时 `change-list <新轮次文件>` SHALL 成功；
+  重走一遍后**旧 task.md 未重新生成时 `advance closed` 被拒绝**，重新生成后才可收口
 
 #### Scenario: 重启后续讨论
 
 - **WHEN** 会话中断数日后重启，运行 `resume-state.mjs --json`
-- **THEN** 输出含 `state`、每个文件的 `status`、按状态给出的 `next_action` 与 `blockers`；
-  若某文件登记为 `landed`/`confirmed` 但已不在盘上，`ok` 为 false 且 blockers 指名该文件，
-  调用方不得绕过
+- **THEN** 输出含 `state`、每个文件的 `status`、`change_list` 与按状态给出的 `next_action` 与
+  `blockers`；`next_action.load` 含当前 change-list 文件（恢复现场要读它）；若某文件登记为
+  `landed`/`confirmed` 但已不在盘上，或当前 change-list 文件已不在盘上，`ok` 为 false 且 blockers
+  指名该文件
 
-#### Scenario: 状态文件被手工改坏
+#### Scenario: 收口时没有轮次记录
 
-- **WHEN** state.yaml 的形状或取值不合法（如 state 取值不在四态之内）
-- **THEN** 两个命令都以失败关闭处理并报出问题行，MUST NOT 猜测语义后继续
+- **WHEN** 本轮从未设置当前 change-list 文件（或该文件已被删除），调用 `advance closed`
+- **THEN** 命令 SHALL 拒绝，理由是每一轮都应有轮次记录才允许收口
 
 ### Requirement: 实现任务清单 task.md
 
