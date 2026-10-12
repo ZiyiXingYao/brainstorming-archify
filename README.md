@@ -1,59 +1,59 @@
 # brainstorming-archify
 
-> **当前版本**：`v0.1.0`（2026-09-22） · [Releases](https://github.com/ZiyiXingYao/brainstorming-archify/releases) ·
-> 三个版本号各是什么见[版本口径](#版本)
+> **当前版本**：`1.0.0`（tag `v1.0.0`） · [Releases](https://github.com/ZiyiXingYao/brainstorming-archify/releases) · [MIT](LICENSE) · 三个版本号的区分见[版本](#版本)
+> **技能本体**：[`skill/SKILL.md`](skill/SKILL.md)（英文，AI 读的行为约束） · **维护手册**：[MAINTAINING.md](MAINTAINING.md) · **规格基线**：[`specs/`](specs/) · **测试面**：[`tests/README.md`](tests/README.md)
 
-一个可独立安装到 [CodeBuddy](https://cnb.cool/codebuddy/codebuddy-code) 的**对话式设计技能**：
-用一问一答把设计谈透，最后（经你同意）按固定模板落成一套**人类可读的实现级设计文档**——
-一份全局架构总纲 + 每个功能模块一份 + 按需产出的接口契约，并自动为其中的关键流程产出配套图。
+一个可独立安装到 [CodeBuddy](https://cnb.cool/codebuddy/codebuddy-code) 的**对话式设计技能**：用一问一答把设计谈透，最后（经你同意）按固定模板落成一套**人类可读的实现级设计文档**，并生成实现任务清单。它**不写代码、不接下游流程**。
 
-它**不写代码、不接下游技能、不产 spec 模式产物**。落盘的设计文档集可以交给 `spec-superflow`
-之类的流程继续消费。
+## 这个库干了啥
 
-| | |
-|---|---|
-| **它解决什么问题** | [设计与讨论落不了盘、跨模块契约对不上、图与正文各自漂移](#它解决什么问题) |
-| **两个来源** | [superpowers（流程骨架） + archify（绘图内核）](#两个来源) |
-| **版本口径** | [本仓库版本、技能文本上游、绘图内核上游三个坐标](#版本) |
-| **项目概况** | [仓库布局、依赖分层、关键机制](#项目概况) |
-| **安装 / 卸载** | [一条命令装到 `~/.codebuddy/skills/brainstorming-archify/`](#安装) |
-| **怎么用** | [七步流程、产出物、三道门](#使用) |
-| **维护本仓库** | [MAINTAINING.md](MAINTAINING.md)（同步上游、重放清单、dry-run 记录） |
+- **把讨论收敛成设计文档集**：一份全局架构总纲（**14 节**，含 4+1 视图里的运行视图与部署视图）+ 每个功能模块一份 + 命中七类接口任一类时按需产出一份接口契约；关键流程与模块依赖自动出图（`.json` 源 IR / `.svg` 静态图 / `.html` 交互版三件套）。
+- **用门约束 AI**：**落盘门**（要不要写）→ **变更清单门**（写什么，你批）→ **用户审查门**（写得对不对），外加绘图规划 Gate 与子代理独立审查。设计期的取舍与理由都落进文档的「关键决策记录」节，不留在对话里。
+- **多模块项目的契约不靠口头对齐**：未设计模块的依赖按**签名级**（函数名 / 入参 / 返回类型 / 边界语义）记进架构接口矩阵，提供方设计时逐条翻牌；函数名须与提供方函数表逐字相等。
+- **讨论进度落库、可中断续接**：`.brainstorming-archify/state.yaml` 记状态机与文件状态，当前轮次的 change-list 文件记讨论记录 / 决策 / 台账 / 落盘授权；隔天或换会话用 `/bsa:resume` 恢复现场，explore 阶段的决策不会因中断而丢。
+- **全部确认后产出实现任务清单**：`specs/design/task.md`——框架 → 模块 → 具体功能三层，每任务一行（勾选框 + 概要 + 依赖 + 四段式 AI 提示词 `[实现的功能]`—`[任务实现的要求]`—`[实现的约束]`—`[验收标准]`），带依赖校验。
+- **明确不做**：不写实现代码、不调用下游技能或流程、不产出 spec 模式的验收产物（字段表 / 签名表 / 接口矩阵是设计描述，模板要求，不算 spec 模式）。技能**只描述行为**，权威口径在 `SKILL.md`、三份模板与 `specs/`。
 
-## 它解决什么问题
+## 怎么用
 
-设计期的四类典型损失，本技能逐条对上：
+**安装**（唯一带版本硬门、备份与自检的路径）：
 
-| 典型的坑 | 本技能的做法 |
-|---|---|
-| 设计只在对话里谈过，没落盘；换个会话就找不回当时的取舍与理由 | **落盘门**先问你要不要写文件；要写就按固定模板落成 `specs/design/` 下的文档集，关键决策与待定问题各有专节 |
-| 多模块项目里，跨模块依赖只靠口头对齐，实现时签名对不上 | **签名级跨模块契约**：未设计模块的依赖按函数名 / 入参 / 返回类型 / 边界语义记进架构接口矩阵，状态三段落定，提供方设计时必须逐条回应 |
-| 每个人的设计文档格式都不一样，下游流程无法消费 | **三套模板锁死章节结构**（架构总纲 14 节 / 功能模块 7 节 / 接口契约 11 个二级标题），产出即实现级设计 |
-| 架构图画完就与正文漂移，重画一遍成本高 | **图是被说明条目的派生产物**：条目改则其图与 IR 同批重渲染并进变更清单，未触及条目的图不动，条目删除则连带删图 |
+```bash
+node scripts/install.mjs   # → ~/.codebuddy/skills/brainstorming-archify/ + ~/.codebuddy/commands/bsa/resume.md
+node scripts/install.mjs --dry-run   # 只列将写入的文件与目标路径，不落盘
+```
 
-它**明确不做**的三件事：不写实现代码、不调用下游技能或流程、不产出 spec 模式的验收产物。
-字段表、函数签名表、接口矩阵**不算** spec 模式——它们是设计描述，是模板要求的。
+- 启动先查 Node 主版本，**< 18 时非零退出且一个文件都不写**；目标已存在先整体备份为 `brainstorming-archify.bak-<时间戳>`；装完对已安装副本跑 `diagram-engine doctor` 自检。
+- 可选：`--target <技能目录>`（默认 `~/.codebuddy/skills/brainstorming-archify`）、`--commands-dir <命令目录>`（默认 `~/.codebuddy/commands`；只覆盖 `bsa/resume.md` 自己那份，其他命令原样保留、重复安装幂等）、`--help`。
 
-## 两个来源
+**用**：提出想法 / 新功能 / 行为变更（或需求模糊、要选型）时技能会自动触发，也可显式调用；安装后需**新开一个 CodeBuddy 会话**才会加载。讨论被打断或跨会话时，打 **`/bsa:resume`** 从状态库恢复现场（它报告当前状态、每个文件什么状态、当前轮次记录文件与下一步）。
 
-本技能**不是从零写的，也不是某个上游的完整复刻**：它把两个上游各取一块拼起来。
+**产出物**（落在**你的项目**里，不在本仓库）：
 
-| 来源 | 取的是什么 | 以什么形态并入 | 基准坐标 | 许可 |
-|---|---|---|---|---|
-| [superpowers](https://github.com/obra/superpowers) 的 `brainstorming` 技能 | **对话式设计流程骨架**——路径分类、提问与收敛、设计呈现、自审与用户审查 | **改造副本**：`skill/SKILL.md` 保留英文原文，便于与上游逐句 diff 与同步 | `v7.0.0`（commit `bb92a77`） | MIT，Copyright (c) 2025 Jesse Vincent |
-| [archify](https://github.com/tt-a1i/archify) 出图技能包 | **绘图内核**——架构图 / 工作流图 / 时序图 / 数据流图 / 生命周期图五类图的渲染、校验与自检 | **裁剪副本**：只保留 5 类图渲染能力，删掉全部与 5 类图无关的子命令、`--repo-root` 溯源能力与 `examples/`、`references/` 等目录 | `v3.0.1`（commit `2ab3cae`；技能包版本 `3.0.1`） | MIT（Copyright (c) 2026 tt-a1i (Archify) 与 Copyright (c) 2025 Cocoon AI）；内联字体 JetBrains Mono 依 SIL OFL 1.1 |
+```
+<你的项目>/
+├── specs/design/
+│   ├── 01-架构设计.md     架构总纲，全项目唯一（固定 01）
+│   ├── 00-接口契约.md     按需产出，全项目唯一（`00-` 固定字面前缀）
+│   ├── 02-<模块名>.md …   每个功能模块一份（序号追加不重排）
+│   ├── task.md            实现任务清单（全部文档确认后生成）
+│   └── diagrams/          图三件套：同前缀 .json / .svg / .html，不拆散
+└── .brainstorming-archify/   过程产物（不随设计文档交接、不入提交）
+    ├── state.yaml            进度锚点：explore → draft → confirm → closed
+    └── change-lists/         轮次记录：当前那一份由 state.yaml 指向
+```
 
-两处需要特别说清的地方：
+**验证安装**：
 
-- **绘图内核不是第二个技能。** 它作为**技能内部构件**装在 `brainstorming-archify/scripts/diagram-engine/`，
-  没有第二份 `SKILL.md`，也不再需要 Skill 工具调用——由本技能直接调它的唯一入口
-  `scripts/diagram-engine/bin/render.mjs`。**用户不单独调用出图能力，也不写 IR。**
-- **上游坐标一律按同一形态书写**：有稳定 tag 的写「`<tag>`（commit `<短 sha>`）」，
-  无稳定 tag 的写「commit `<全值>`（技能包版本 `<version>`）」。
+```bash
+node ~/.codebuddy/skills/brainstorming-archify/scripts/diagram-engine/bin/render.mjs doctor
+# 期望：检查项全部 [ok]，退出码 0；需 Node ≥ 18
+```
 
-同步上游的完整办法、《需要重放的改动清单》全文（46 条）、以及 archify 的裁剪明细与回归判定方式，
-都在 [MAINTAINING.md](MAINTAINING.md)；上游逐项改动与被删清单另见
-`scripts/diagram-engine/UPSTREAM.md`。
+**更新**：重跑 `node scripts/install.mjs`（先备份后覆盖；`git clone` 方式则 `git pull` 后再跑一次）。
+**卸载**：`rm -rf ~/.codebuddy/skills/brainstorming-archify ~/.codebuddy/commands/bsa`（按需清理 `brainstorming-archify.bak-*`）。卸载不影响已落盘的设计文档——它们在你的项目目录里。
+
+**三套模板的章节形状**（固定结构，产出即实现级设计）：架构总纲 **14 节**（背景/目标/方案对比/整体功能/功能点/模块划分/跨模块接口矩阵/核心类/代码文件树/全局功能流程/运行视图/部署视图/关键决策/待定问题）；功能模块 **7 节**；接口契约 `## 总则`（不编号）+ `## 1.`–`## 10.`，七类接口节各含「清单表 / 逐项契约 / 该类规则」三段，该文档**不配图**。
 
 ## 版本
 
@@ -61,395 +61,25 @@
 
 | 版本号 | 值 | 指的是什么 | 什么时候变 |
 |---|---|---|---|
-| **本仓库 / 本技能的发布版本** | **`v0.1.0`**（2026-09-22） | 这个仓库与它导出的技能的版本，由 git tag 与 [GitHub Release](https://github.com/ZiyiXingYao/brainstorming-archify/releases) 承载；本 README 顶部与本节是它的文字出处 | 每次发版 |
+| **本仓库 / 本技能的发布版本** | **`1.0.0`**（tag `v1.0.0`） | 这个仓库与它导出的技能的版本，由 git tag 与 [GitHub Release](https://github.com/ZiyiXingYao/brainstorming-archify/releases) 承载；本 README 顶部与本节是它的文字出处（历史：`v0.1.0`，2026-09-22） | 每次发版 |
 | 技能文本上游基准 | `v7.0.0`（commit `bb92a77`） | `skill/SKILL.md` 所同步的 superpowers 坐标 | 同步 superpowers 时 |
 | 绘图内核上游基准 | `v3.0.1`（commit `2ab3cae`；技能包版本 `3.0.1`） | 内核搬运自 archify 的坐标 | 搬运新内核时 |
 
-**`scripts/diagram-engine/skill-release.json` 里的 `3.0.1` 不是本仓库版本。** 那是**上游
-archify 技能包**的发布清单（含它自己的 `skillId`、更新通道与仓库地址），随内核一起逐字节搬进来、
-保留上游可追溯性；改它会让内核与上游对不上号。
+**`scripts/diagram-engine/skill-release.json` 里的 `3.0.1` 不是本仓库版本**——那是上游 archify 技能包的发布清单（含它自己的 `skillId`、更新通道与仓库地址），随内核逐字节搬入以保留可追溯性，改它会让内核与上游对不上号。发版步骤见 [MAINTAINING.md §4](MAINTAINING.md#4-发布一个版本)。
 
-发版步骤见 [MAINTAINING.md](MAINTAINING.md#4-发布一个版本)。
+## 依赖的上游库
 
-## 项目概况
+**运行依赖只有一个：`Node ≥ 18`，而且只有出图需要。** 本仓库**零 npm 依赖**（没有 node_modules）；设计文档本身是纯 Markdown，读写、审阅、交接都不需要任何运行时——所以在完全没有 Node 的机器上技能依然可用，只是没有图（版本不满足时跳过出图、在文档里留占位说明，不阻塞文档落盘）。
 
-**仓库布局**——本仓库就是**一个技能**的源码树：顶层按职责分四个技能目录，另有两个非技能目录
-（`specs/` 规格基线、`changes/` 变更工作区）与三个仓库级文件。
+| 上游 | 被用作 | 以什么形态并入 | 基准 | 许可 |
+|---|---|---|---|---|
+| [superpowers](https://github.com/obra/superpowers) 的 `brainstorming` 技能 | **对话式设计流程骨架**——路径分类、提问与收敛、设计呈现、自审与用户审查 | **改造副本**：`skill/SKILL.md` 保留英文原文，便于与上游逐句 diff；本地偏离逐条登记在 MAINTAINING 的重放清单 | `v7.0.0` | MIT, © 2025 Jesse Vincent |
+| [archify](https://github.com/tt-a1i/archify) 出图技能包 | **绘图内核**——架构图 / 工作流图 / 时序图 / 数据流图 / 生命周期图五类图的渲染、校验与自检 | **裁剪副本**：只保留五类图渲染能力，删掉无关子命令、`--repo-root` 溯源能力与 `examples/`、`references/` 等目录；作为**技能内部构件**装在 `scripts/diagram-engine/`，不是第二个技能，用户不单独调用、不写 IR | `v3.0.1` | MIT, © 2026 tt-a1i (Archify) 与 © 2025 Cocoon AI；内联字体 JetBrains Mono 依 SIL OFL 1.1 |
 
-```
-brainstorming-archify/
-├── skill/                             CodeBuddy 加载入口
-│   ├── SKILL.md                       技能本体（英文，对齐上游 superpowers）
-│   └── design-doc-reviewer-prompt.md  子代理审查提示词
-├── templates/                         三套 Markdown 模板（中文骨架）
-│   ├── architecture-doc-template.md   架构总纲模板（14 节）
-│   ├── module-doc-template.md         功能模块模板（7 节）
-│   └── interface-contract-template.md 接口契约模板（`## 总则` + `## 1.`–`## 10.`）
-├── scripts/                           可执行脚本与绘图内核
-│   ├── install.mjs                    一键安装（Node ≥ 18 硬门 + 备份 + 装后自检 + 部署命令适配器）
-│   ├── task-state/                    讨论状态库的两个命令（state.yaml 唯一写入口 + 只读恢复）
-│   │   ├── change-state.mjs           init / file / advance / reopen / show
-│   │   ├── resume-state.mjs           只读：中断/重启后恢复讨论（--json 对齐 ssf resume）
-│   │   └── state-yaml.mjs             state.yaml 的形状锁定序列化/解析（零依赖）
-│   ├── sync-upstream.sh               仓库维护工具：与 superpowers 比对 skill/SKILL.md
-│   └── diagram-engine/                裁剪后的绘图内核（搬运自 archify，非独立技能）
-│       ├── bin/render.mjs             唯一入口：render / validate / doctor
-│       ├── renderers/ schemas/ assets/ svg/ lib/   渲染器、JSON schema、交互页模板等
-│       ├── test/                      内核自带的上游回归集（不进安装）
-│       └── UPSTREAM.md                内核与上游的关系、被删清单、回归判定（第 1、3 节）
-├── commands/                          CodeBuddy 命令适配器源文件（安装时重写路径后部署）
-│   └── bsa/resume.md                  `/bsa:resume`：读 state.yaml 恢复讨论
-├── tests/                             本技能自己的测试面（不进安装）
-├── specs/                             已发布规格基线（design-doc-guardrails / design-doc-templates / diagram-engine / skill-packaging / task-split）
-├── changes/                           spec-superflow 变更工作区（gitignore）
-├── MAINTAINING.md                     维护者手册（不进安装）
-├── README.md
-└── LICENSE
-```
+同步办法与逐项偏离清单见 [MAINTAINING.md](MAINTAINING.md)；内核的裁剪明细与被删清单另见 [`scripts/diagram-engine/UPSTREAM.md`](scripts/diagram-engine/UPSTREAM.md)。
 
-**装成什么形态**——`skill/` 内文件**平铺**到技能根，`templates/` 与 `scripts/` **整目录**复制；
-命令适配器另部署到 CodeBuddy 命令目录：
+## 语言与许可
 
-```
-~/.codebuddy/skills/brainstorming-archify/
-├── SKILL.md                       ← 平铺
-├── design-doc-reviewer-prompt.md
-├── templates/                     ← 三套模板
-└── scripts/
-    ├── install.mjs
-    ├── task-state/                ← 讨论状态库两个命令（随 scripts/ 整目录进来）
-    └── diagram-engine/            ← 唯一入口 bin/render.mjs
-
-~/.codebuddy/commands/bsa/resume.md   ← 命令适配器（源文件 commands/bsa/resume.md，
-                                        __BSA_ROOT__ 重写为上面的技能根）→ /bsa:resume
-```
-
-`tests/`、内核回归集 `scripts/diagram-engine/test/`、`scripts/sync-upstream.sh`、`commands/` 与 `MAINTAINING.md`
-**都不进安装**：前三者是仓库自测面与维护工具，安装后没有对应物；`commands/` 只以**重写后的单文件**
-形态进命令目录，源目录本身不复制；`MAINTAINING.md` 是给维护者的。
-
-**依赖分两层**——这是最容易被误读的一点：
-
-- **设计文档本身是纯 Markdown**：读写、审阅、交接都不需要任何运行时；
-- **出图需要 Node，最低 18**：版本不满足时**跳过出图、在文档里留占位说明，不阻塞文档落盘**。
-
-所以在完全没有 Node 的机器上这个技能依然可用，只是没有图。
-
-**关键机制**（一句话版；权威描述在 `skill/SKILL.md`）：
-
-| 机制 | 一句话 |
-|---|---|
-| 三路径分类 | Spike / Bounded / Architectural，按复杂度缩放流程；有界改动只在已有设计文档集时走增量，不为小改动制造整套文档 |
-| 三道门 | **落盘门**（要不要写）→ **变更清单门**（写什么，你批）→ **用户审查门**（写得对不对）；一次会话问你三次，各管各的、不合并 |
-| 三套模板 | 架构总纲 / 功能模块 / 接口契约，章节结构锁定，产出即实现级设计 |
-| 增量落盘 | 先读盘再判决：只填模块内部细节时架构文档零改动；动了模块划分等才改**受影响条目**，其余逐字保留（含措辞、顺序、格式） |
-| 接口契约按需产出 | 命中 MySQL / Redis / MQ / HTTP / gRPC / 动态库 API / TCP 七类中**任意一类**即必须产出；七类全不命中则不产出，并在变更清单里**逐族**写明判定依据 |
-| 签名级跨模块契约 | 未设计模块的依赖按签名级记进架构接口矩阵（`待提供` → `已落地` / `有差异` → 裁决收口），提供方设计时逐条翻牌；**函数名须与提供方函数表逐字相等**（含驼峰/下划线），且**同一写集内双方都已落盘时该行直接翻牌**、不停留 `待提供` |
-| 端到端流程分层 | 架构总纲第 10 节画**方向级骨架**并登记全部功能流程，模块文档第 5 节写函数级细节，避免同一条流程在多份文档里重复漂移 |
-| 绘图规划 Gate + 三件套 | 出图前先确认「要哪些图 / 各是什么图类型 / 落在哪一节」；确认后由内核一次产出 `.json`（源 IR）/ `.svg`（静态图）/ `.html`（交互版）三件套 |
-| 依赖分层 | 文档纯 Markdown 零运行时；出图需 Node ≥ 18，不满足则留占位、不阻塞落盘 |
-| 可同步上游 | `SKILL.md` 保留英文原文便于逐句 diff；内核按 commit 比对并跑回归集判回归 |
-| 讨论状态落库 | `.brainstorming-archify/state.yaml` 是**进度锚点**：explore → draft → confirm → closed 四态 + 文件三态，`change-state.mjs` 是唯一写入口，`/bsa:resume` 读它恢复中断/跨天的讨论 |
-| 轮次记录 | change-list 文件一轮一份、轮次开始即创建：讨论记录 / 重要决策 / 文件修改台账（取代文档头三行）/ 落盘授权；`state.yaml` 只指当前那一个，讨论未完成不能换文件 |
-| 任务拆分 | 全部文档确认后生成 `specs/design/task.md`：框架 → 模块 → 具体功能三层，每任务一行（勾选框 + 概要 + 依赖 + 四段式 AI 提示词），带依赖校验 |
-
-## 讨论状态与任务拆分
-
-一个系统的设计可能讨论好几天、随时被打断。**进度不写在会话记忆里**，落在两处：
-`<项目根>/.brainstorming-archify/state.yaml`（答「进行到哪了」）与它指向的
-**当前轮次 change-list 文件**（答「这轮讨论了什么、定了什么、授权了什么」）；
-`specs/design/` 仍是设计本体（答「讨论了什么」）。**恢复现场 = 这两个文件一起读**。
-
-```
-explore ──→ draft ──→ confirm ──→ closed
-纯讨论     草稿落盘    全部确认     task.md 已生成
-           人工校验中  只差 task.md
-```
-
-- 文件三态：`discussing`（讨论中）/ `landed`（已落盘待校验）/ `confirmed`（人类已确认）。
-- **`change-state.mjs` 是 state.yaml 的唯一写入口**（`init` / `file` / `change-list` / `advance` /
-  `reopen` / `show`），`resume-state.mjs` 只读。正向推进只能走一步且校验前置条件；回退必须 `--reason`；
-  收口（`advance closed`）要求本轮已设 change-list 且文件在盘上。
-- **重开**：closed/confirm/draft 之后新增或修改模块——`reopen <文件> --reason "<原因>"` 只把点名文件
-  翻回 `discussing`、整体回 `explore`，未点名的确认文件不动；重开会作废 task.md，重新收口前必须
-  重新生成（`advance closed --task-md` 校验文件比最后一次重开更新）。
-- **中断/重启后恢复**：跑 `/bsa:resume`（或 `node scripts/task-state/resume-state.mjs --json`）——
-  它报告当前状态、每个文件什么状态、**当前轮次 change-list 文件**与下一步干什么；有 blocker
-  （登记文件已不在盘上、当前 change-list 文件丢失）就停下修，不猜。命令适配器口径对齐
-  spec-superflow 的 `ssf:resume`：只消费状态输出，禁直接改 state.yaml。
-
-### change-list 文件 = 一次讨论轮次的记录
-
-**一轮一份、轮次开始即创建、轮内追加不换文件**，五个固定小节：
-
-| 小节 | 作用 |
-|---|---|
-| 轮次头 | 主题、开始时间、参与者 |
-| 讨论记录 | 每轮问答要点与人类的纠正 |
-| 重要决策 | explore 阶段做出、**尚未落进设计文档**的决策先记这里（中断不丢），落进文档后标注「已落入 §x」 |
-| 文件修改台账 | 每份文档一行：`路径 / 最近更新 / 参与 / 来源`——**取代文档头部的同名三行** |
-| 落盘授权 | 每次落盘一段，即变更清单九项 |
-
-**切换被机械守卫**：讨论未完成（`draft`/`confirm`/`closed` 且未重开）时
-`change-state.mjs change-list` 拒绝换文件——只有 `init` 或 `reopen` 开的**新轮次**才能指向新文件。
-历史轮次文件留在盘上，state.yaml 只指当前。该目录仍是过程产物：不受管、不删除、不入提交。
-
-**全部确认后生成 `specs/design/task.md`**——从框架到模块到具体功能拆分实现任务：每个任务一行，
-第一列勾选框，然后简短概要、依赖（前置任务号）、详细的 AI 实现提示词（固定四段：
-`[实现的功能]`—`[任务实现的要求]`—`[实现的约束]`—`[验收标准]`）；生成时过一遍依赖校验
-（不得前向/自依赖、同文件无先后、功能任务的模块任务须在前、依赖 ID 必须存在），结论写进
-task.md 的「依赖校验」小节。它随设计文档一起交接，实现由下游流程负责。
-
-## 安装
-
-**单一技能**：一条命令装到 `~/.codebuddy/skills/brainstorming-archify/`。
-手工安装时，**权威文件清单是 `node scripts/install.mjs --dry-run` 的输出**——该模式只列清单不落盘，
-**同样受 Node 主版本硬门约束**（版本不满足即以非零退出码结束、不写任何文件）。
-
-```bash
-node scripts/install.mjs
-```
-
-安装脚本有四道行为约束：
-
-1. 启动即检查 Node 主版本，**低于 18 时以非零退出码结束且不写入任何文件**；
-2. 目标技能目录已存在时**先整体备份**为 `brainstorming-archify.bak-<时间戳>`，不就地覆盖、不删你的既有文件；
-3. 拷贝规则：`skill/` 内文件**平铺**到目标根，`templates/` 与 `scripts/` **整目录**复制；
-4. 装完对**已安装副本**执行 `bin/render.mjs doctor` 自检——把「装了但跑不起来」暴露在安装期，而不是首次出图时。
-
-其他可选参数：
-
-| 命令 | 行为 |
-|------|------|
-| `node scripts/install.mjs --dry-run` | 只列出将写入的文件与目标路径，不改文件系统；该模式**同样受 Node 主版本硬门约束** |
-| `node scripts/install.mjs --target <dir>` | 指定**技能安装目录**（默认 `~/.codebuddy/skills/brainstorming-archify`）；传的是技能目录本身，不会自动追加 `brainstorming-archify/` |
-| `node scripts/install.mjs --commands-dir <dir>` | 指定 **CodeBuddy 命令目录**（默认 `~/.codebuddy/commands`）；命令适配器 `bsa/resume.md` 部署在这里，目录下其他命令原样保留、重复安装幂等 |
-| `node scripts/install.mjs --help` | 打印用法 |
-
-### 其他安装方式
-
-| 方式 | 命令要点 | 适用 |
-|---|---|---|
-| 一键安装 | `node scripts/install.mjs` | 推荐，唯一带版本硬门、备份与自检的路径 |
-| 从本机源码目录安装 | 在仓库根跑上面的命令 | 开发本技能时 |
-| `git clone` 后安装 | `git clone https://github.com/ZiyiXingYao/brainstorming-archify.git ~/.codebuddy/skills/brainstorming-archify` 后**仍须跑一次安装脚本** | 想用 git 跟踪更新 |
-| 下载后手工拷贝 | 把 `skill/` 内两个文件平铺到技能根，`templates/`、`scripts/` 整目录复制 | 无 Node 或不便跑脚本时；等价清单见 `--dry-run` 输出（该模式**同样受 Node 主版本硬门约束**） |
-
-`git clone` 方式要特别注意：**技能入口在 `skill/SKILL.md`，而 CodeBuddy 要求 `SKILL.md` 位于技能目录根**，
-所以克隆后必须再跑一次安装脚本（或按最后一行手工平铺）。
-
-### 验证安装
-
-```bash
-ls ~/.codebuddy/skills/brainstorming-archify/
-# 期望：SKILL.md  design-doc-reviewer-prompt.md  scripts  templates
-
-node ~/.codebuddy/skills/brainstorming-archify/scripts/diagram-engine/bin/render.mjs doctor
-# 期望：11 项检查全部 [ok]，退出码 0；需 Node ≥ 18
-
-ls ~/.codebuddy/commands/bsa/resume.md
-# 期望：命令适配器在盘上（/bsa:resume 可用）
-```
-
-安装是否完整，**以 `doctor` 是否以退出码 0 结束为准**（用安装脚本时它已自动跑过一次并把结果打进安装输出）。
-安装后需**新开一个 CodeBuddy 会话**，技能才会被加载。
-
-## 更新
-
-```bash
-# 一键安装方式：重跑一次即可——目标先被备份为 brainstorming-archify.bak-<时间戳>，再覆盖并自检
-node scripts/install.mjs
-
-# git clone 方式：pull 之后重跑安装脚本
-cd ~/.codebuddy/skills/brainstorming-archify && git pull
-node /path/to/brainstorming-archify/scripts/install.mjs   # 或用仓库里的安装脚本重新平铺
-```
-
-## 卸载
-
-```bash
-rm -rf ~/.codebuddy/skills/brainstorming-archify
-```
-
-若安装时产生过 `brainstorming-archify.bak-<时间戳>` 备份目录，按需一并清理
-（`rm -rf ~/.codebuddy/skills/brainstorming-archify.bak-*`）。卸载不影响任何已落盘的设计文档——
-它们在你的项目目录里，不在技能目录里。
-
-## 使用
-
-提出新想法、新功能、新组件、行为变更，或需求模糊、需要方案选型时，技能会自动触发，也可以显式调用。
-
-### 一次会话会发生什么
-
-1. AI 分类路径（Spike / Bounded / Architectural）并说明理由
-2. 一问一答澄清意图、约束与取舍
-3. 收敛设计
-4. **落盘门**：询问是否写入文件——不要就直接结束，不留垃圾文件
-5. **变更清单门**：给出将新建 / 修改哪些文件、各改哪几节、哪些逐字不动、新增了哪些未落地依赖、
-   **本次将新建 / 重渲染哪些图**、有哪些待裁决差异——批准后才落盘
-6. 按模板生成文档到 `specs/design/`；出图前先过**绘图规划 Gate**（确认要哪些图、各是什么图类型、
-   落在哪一节），确认后由内置绘图内核把三件套写进 `specs/design/diagrams/`，与文档同批落盘
-7. AI 自审 → 子代理独立审查 → **用户审查门**：你确认内容
-
-产出文档的语言跟随对话语言（中文对话产中文文档），模板保持固定结构、不随语言改变。
-路径基准为**项目根**。**图文件名是例外**：无论文档用什么语言，图名固定为英文 slug。
-
-### 产出物结构
-
-```
-specs/design/
-├── 01-架构设计.md      架构总纲，全项目唯一一份（固定 01）
-├── 02-<功能模块>.md    每个功能模块一份，文件名 = 模块名
-├── 03-<功能模块>.md
-├── 00-接口契约.md      按需产出且全项目唯一一份（`00-` 为固定字面前缀）
-└── diagrams/           图：每张图一组三件套，同前缀、同目录，不拆散
-    ├── 01-<图名>.<图类型>.json   源 IR（判断该图是否过期用）
-    ├── 01-<图名>.<图类型>.svg    文档里显示的静态图
-    └── 01-<图名>.<图类型>.html   完整交互式页面（文档第二行链接指向它）
-```
-
-序号**追加不重排**：新增模块排在当前最大序号之后，即使逻辑上应靠前也不插入重排——否则会重命名既有文件、打断文档间引用。
-
-**架构总纲全局唯一**：所有模块的架构级内容（功能点需求、模块划分、核心类归属、类关系、接口、全局流程、文件树）都累积在这一份里，分模块的详细设计在各自的模块文档里。`specs/design/` 下永远只有一份架构文档。同理**接口契约也全项目唯一一份**，文件名固定为 `00-接口契约.md`——`00-` 是它自己的**固定字面前缀**，不参与模块序号序列（架构总纲固定 `01-`、各模块文档为 `02+`），不随模块增删而变化，不受「序号追加不重排」管辖，永不重编号。
-
-### 三套模板的章节形状
-
-| 模板 | 章节 | 关键约定 |
-|---|---|---|
-| 架构总纲（`architecture-doc-template.md`） | 14 节：背景与问题 / 目标与非目标 / 方案对比与选型 / 整体功能说明 / 功能点需求说明 / 功能模块划分 / 跨模块接口矩阵 / 核心类设计 / 代码文件树组织 / 全局功能流程 / 运行视图 / 部署视图 / 关键决策记录 / 待定问题与风险 | 代码文件树只承载「模块文件夹 + 核心文件」，但必须能定位第 8.1 节核心类清单里每个核心类的定义文件；非核心类的源文件可以不在树里，这不算缺陷；**运行视图（§11）讲运行起来有哪些进程、每进程有哪些线程及它们的关系，部署视图（§12）讲部署目录结构、如何部署与文件组成，两节不要求配图** |
-| 功能模块（`module-doc-template.md`） | 7 节：模块职责与边界 / 本模块类清单与关系 / 类详细设计 / 对外依赖契约 / 端到端业务流程 / 关键决策记录 / 待定问题与风险 | 第 1 节拆为「1.1 职责与边界」与「1.2 本模块参与的功能点」；第 2.1 节类清单是本模块**完整**类清单的唯一权威；第 5 节每条流程都标注**服务功能点** |
-| 接口契约（`interface-contract-template.md`） | `## 总则`（不编号）+ `## 1.`–`## 10.`，共 11 个二级标题 | 七个接口类节（MySQL / Redis / MQ / HTTP / gRPC / 动态库 API / TCP）各含 `x.1` 清单表 / `x.2` 逐项契约 / `x.3` 该类规则三段；**总则含命名规范**（Redis key `<系统>:<域>:<实体>:<用途>:{实体标识}`、MQ topic `<系统>.<域>.<实体>.<用途>.{实体标识}`、HTTP `/<系统>/<域>/<实体>/<用途>`）；Redis 清单表**含数据类型列**；七类 `x.2` 各含**强制示例**（建表 SQL / 结构示例 / proto message / 请求与响应 / 头文件签名 / 报文帧）；其后是第 8 节其他对外接口、第 9 节跨类别共同约定、第 10 节待定问题与风险。**该文档不配图**，不需要 `diagrams/` |
-
-对外依赖契约按**调用方定义的硬约束**（函数名、入参个数与含义、返回类型、边界语义）与
-**提供方自定的软约束**（参数具体类型、错误类型体系、内部结构）分列。
-
-### 接口状态怎么收口
-
-状态**只在架构总纲第 7 节的接口矩阵维护**，三段收口，避免「待提供」永远挂着、也避免两处状态对不上：
-
-1. **调用方产生**——调用方落盘时在矩阵写入条目，状态 `待提供`，同时提示你后续单独讨论提供方模块（若提供方与调用方在**同一写集**内落盘，则直接进入第 2 段翻牌，不停留 `待提供`）
-2. **提供方翻牌**——提供方设计时**必须逐条处理**指向自己的条目：硬约束一致 → `已落地`；不一致 → `有差异` 并列出差异
-3. **裁决者收口**——`有差异` 经你裁决后改文档对齐，状态回 `已落地`；暂时改不了就保持 `有差异`，并在两边「待定问题与风险」各留一条
-
-**模块文档的依赖契约表不写状态**，只写「我需要什么」（提供方、类、期望签名、语义）——状态会因**别人的**落盘而变化，
-而模块文档无权替别人翻牌。状态收在一处，翻牌就永远不需要改另一个模块的文档。
-提供方已设计却仍留 `待提供`，等于缺口无人认领，自审与 reviewer 都会报。
-**函数名属硬约束**：矩阵行与调用方期望签名里的函数名，须与提供方模块文档函数表的函数名**逐字相等**（含大小写与驼峰/下划线风格）——写法不一致即判 `有差异`，不得判 `已落地`。
-
-### 流程与图
-
-**端到端流程分两层，避免跨模块流程在多份文档里重复漂移**：
-
-- 架构总纲第 10 节画**方向级骨架**——模块级调用链 + 每条流程服务的功能点 + 每跳承担的核心类 +
-  每跳数据形态 + 结果落地 + 跨模块的失败处理
-- 模块文档第 5 节写本模块内部的**函数级细节**，每条流程标注服务功能点——触发入口 → 本模块内调用链 →
-  数据形态变化 → 结果投递给谁 → 异常路径；跨模块那一跳只写「调用 &lt;模块&gt; 的 &lt;接口&gt;」，骨架不重复
-
-**流程对齐规则**：架构总纲第 10 节登记的**每一条功能流程**（包括只在单个模块内完成的）都与各参与模块
-第 5 节**同名出现**；只有纯模块内部的**实现级流程**留在模块文档，不登记到架构总纲。
-
-**图**：架构总纲**第 6.3 节模块依赖关系**、**第 10 节每条全局功能流程**、模块文档**第 5 节每条端到端业务流程**
-都必须配图——登记了却没有图、且未按占位形态写明原因的流程判定为缺陷。图类型按描述对象的性质选，
-不按作者偏好挑：
-
-| 要描述的东西 | 选用的图类型 |
-|---|---|
-| 跨模块调用顺序、每步返回什么 | 时序图 |
-| 不同责任方或阶段的分工，含审批门与异常分支（泳道） | 工作流图 |
-| 状态流转与重试 | 生命周期图 |
-| 数据从哪来、经过哪些处理、存到哪去，或敏感数据边界 | 数据流图 |
-| 系统整体结构（组件、服务、数据库、云资源、安全边界） | 架构图 |
-
-**单图主节点 ≤ 12**，更复杂的内容必须拆成多张图。**用户不写 IR、不需要知道 schema 存在。**
-
-落点与引用都是硬规则：三件套落 `<项目根>/specs/design/diagrams/`（不允许放到项目根 `diagrams/`
-或其他位置），文件名 `<文档序号>-<图名>.<图类型>.<ext>`（如 `03-task-flow.workflow.svg`；
-**图名固定为英文 slug**，即使文档是中文）；文档固定写**两行**：
-
-```markdown
-![任务下发流程](diagrams/03-task-flow.workflow.svg)
-> [打开交互式版本](diagrams/03-task-flow.workflow.html)
-```
-
-相对路径相对文档自身目录，不允许绝对路径或 `../` 跳转；**正文不得内联 `<svg>` 标签**。
-同一流程名跨文档**共用同一组三件套**，序号取归属文档（跨模块流程归架构总纲 `01-`）。
-**类关系三节（架构 8.2 / 8.3、模块 2.2）仍用文字或 mermaid**——不做类图（上游 archify 无此能力），
-这是**预期结果，不是缺陷**。
-
-**出图时序**只有一种说法：先写 IR 并跑 `validate`（不写盘，只判定通过与否）→ 把图写进变更清单 →
-**变更清单门批准后**才渲染三件套 → 与文档同批落盘。因此「在变更清单之外写图」是不变式。
-环境不满足 Node ≥ 18 时跳过出图、留占位说明，不阻塞文档落盘。
-
-### 出现分歧时以谁为准
-
-避免两边互相「必须一致」却判不出该改哪边：
-
-| 分歧内容 | 权威 |
-|---------|------|
-| 依赖签名 | 调用方模块文档第 4 节（接口矩阵只是摘录，跟着改） |
-| 有哪些模块 | 架构总纲第 6.2 节 |
-| 跨模块接口是否已落地 | 架构总纲第 7 节 |
-| 类的归属 | 各模块文档的类清单（架构总纲第 8.1 节只登记核心类，且必须是各**已设计**模块类清单并集的子集；属于未设计模块的核心类先临时登记，待该模块落盘时对齐） |
-
-> 字段表、函数签名表、调用链表、接口矩阵**不算** spec 模式——它们是设计描述，是模板要求的，不是被禁止的验收条件。
->
-> 一个 reviewer 子代理同时审三类文档：`01-架构设计.md` 对架构模板、模块文档对模块模板、`00-接口契约.md`
-> 对接口契约模板。写盘集超过 5 份时先审架构总纲，再按模块分批。
-
-### 若干硬规则
-
-- **模块划分粒度**：一个模块要能独立回答「它做什么、怎么用、依赖谁」，且能被一次讨论讲透。类详细设计一屏放不下、
-  或要拆成多次讨论 → 该拆细；两个模块总是一起改、找不到清晰接缝 → 该合并。**模块与代码目录不要求一一对应。**
-- **模块名全项目唯一**：它同时是文件名主体和所有交叉引用的锚点，两个模块不得同名。
-- **引用与元信息**：文档间引用统一写相对项目根的完整路径（如 `specs/design/02-通信模块.md`）。
-  **文档头不写状态、也不写修改信息**——讨论状态只记在 `.brainstorming-archify/state.yaml`，
-  「最近更新 / 参与 / 来源」只记在**当前轮次 change-list 文件的文件修改台账**（同一次落盘更新多份
-  文档时这几行填同一天）；文档头再写一份就是会对不上的双权威。文档头只留标题（模块文档与接口契约
-  另留「对应架构」交叉引用行）。
-- **模块删除与改名**：删除要连带删模块文档、清单行、以及把它当调用方或提供方的所有接口矩阵行，
-  序号留空洞**不重排**；删除前先扫一遍它欠别人的「待提供」条目并报告（这些缺口将无人认领）。
-  改名要同步更新所有引用——清单的「对应文档」列、矩阵的「详见」列、其他模块文档里的交叉引用，不留失效路径。
-- **架构大改的例外**：若某次讨论把模块划分本身推倒重来，几乎每条都「受影响」，这是「只改受影响条目」的合法例外。
-  但要在变更清单里明示「本次为架构大改」，并且仍然**逐条比对**既有文档（不是盲写重生成），仍然成立的内容逐字保留。
-- **首次落盘**会先创建 `specs/design/` 目录。
-
-## 语言约定
-
-| 文件 | 语言 | 原因 |
-|------|------|------|
-| `skill/SKILL.md` | 英文 | 这是给 AI 读的行为约束，保持与上游逐句可比，便于同步 |
-| `skill/design-doc-reviewer-prompt.md` | 英文 | 同上 |
-| `templates/` 三份模板 | 中文骨架 | 与上游无关；中文用户产出文档开箱即用 |
-| `scripts/diagram-engine/` 内含文档 | 与上游一致（英文为主） | 逐字节搬运，不翻译，便于按 commit 比对 |
-| `scripts/diagram-engine/UPSTREAM.md`、`tests/README.md`、`MAINTAINING.md` | 中文 | 本仓库新增的说明文件 |
-| 产出的设计文档 | 跟随对话语言 | 人读的文档 |
-| 图文件名 | **恒为英文 slug** | 文件名要跨语言稳定、可被引用解析 |
-
-## 测试与维护
-
-```bash
-node --test tests/*.test.mjs      # 一条命令覆盖全部：59 个用例，0 失败
-node tests/render.smoke.test.mjs  # 只跑冒烟（独立脚本）
-```
-
-`tests/engine.test.mjs` 会在根入口里**唤起绘图内核的回归集**（`scripts/diagram-engine/test/run-valid.mjs`，
-13 文件 / 241 用例）并断言全过——所以「跑根目录测试」就等于「跑全部测试」，不会漏掉引擎。
-回归集**不搬进 `tests/`**：它位置耦合（用例把内核根解析为自己所在目录的上一级），搬出即系统性失效。
-
-**仓库维护**（同步两个上游、《需要重放的改动清单》46 条、后续变更登记、历次 dry-run 记录）
-统一在 [MAINTAINING.md](MAINTAINING.md)。
-
-## 许可
-
-本技能改编自 [superpowers](https://github.com/obra/superpowers) 的 `brainstorming` 技能
-（MIT License, Copyright (c) 2025 Jesse Vincent）。
-
-出图内核（`scripts/diagram-engine/`）搬运自 [archify](https://github.com/tt-a1i/archify)
-（MIT License, Copyright (c) 2026 tt-a1i (Archify) 与 Copyright (c) 2025 Cocoon AI），
-按「只保留 5 类图渲染能力」做过裁剪；内联字体 JetBrains Mono 依 SIL Open Font License 1.1 授权，
-完整授权文本见 `scripts/diagram-engine/assets/JetBrainsMono-OFL.txt`；第三方商标与图标归属见
-`scripts/diagram-engine/THIRD_PARTY_NOTICES.md`。
-
-本仓库以 MIT License 发布，详见 [LICENSE](LICENSE)（`scripts/diagram-engine/LICENSE` 为其独立副本）。
-
-
+- **语言**：`skill/` 下两个文件（技能本体与子代理提示词）用**英文**，保持与上游逐句可比；三份模板、README、MAINTAINING、tests/README 用**中文**；产出的设计文档跟随对话语言；**图文件名恒为英文 slug**。内核内含文档与上游一致（英文为主），逐字节搬运不翻译。
+- **许可**：[MIT](LICENSE)（`scripts/diagram-engine/LICENSE` 为其独立副本）。本技能改编自 superpowers 的 `brainstorming`（MIT, © 2025 Jesse Vincent）；出图内核搬运自 archify（MIT, © 2026 tt-a1i (Archify) 与 © 2025 Cocoon AI）并做过裁剪；内联字体 JetBrains Mono 依 SIL OFL 1.1，完整文本见 `scripts/diagram-engine/assets/JetBrainsMono-OFL.txt`；第三方商标与图标归属见 `scripts/diagram-engine/THIRD_PARTY_NOTICES.md`。
+- **自测**：`node --test tests/*.test.mjs`（覆盖仓库测试与内核回归集，零依赖）。
