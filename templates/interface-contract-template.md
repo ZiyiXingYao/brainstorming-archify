@@ -76,7 +76,7 @@
 - **MQ topic**：MUST 一律采用 `<系统>.<域>.<实体>.<用途>.{实体标识}`——点号分隔，**topic 末段即分片键**（同一实体的消息落同一分区、保序处理）。
 - **HTTP 接口**：MUST 一律采用 `/<系统>/<域>/<实体>/<用途>`——斜杠分隔的 REST 路径，方法在名称中另写（如 `GET /<系统>/<域>/<实体>/<用途>`）。
 
-各段含义：**系统** 指服务／系统标识（如 `order`），**域** 指业务域（如 `dispatch`），**实体** 指该接口操作的实体（如 `task`），**用途** 指该条目的动作或语义（如 `state`、`create`）；`{实体标识}` 是运行时填充的实体实例标识。同为四段式，Redis 用冒号、MQ 用点号、HTTP 用斜杠，不得混用分隔符。**全局／聚合级 Redis key** 的「实体」段写该 key 管理的对象范畴（如 `lock`、`counter`、`watermark`），**「用途」段写该 key 承担的机制或角色**（如 `mutex`、`incr`、`checkpoint`），末段不带 `{实体标识}`——例如跨进程互斥锁写 `telemetry:rollup:lock:mutex`。>
+各段含义：**系统** 指服务／系统标识（如 `order`），**域** 指业务域（如 `dispatch`），**实体** 指该接口操作的实体（如 `task`），**用途** 指该条目的用途语义——**实体级**写它做的动作（如 `state`、`create`），**全局／聚合级**写该 key 承担的机制或角色（如 `mutex`、`incr`、`checkpoint`）；`{实体标识}` 是运行时填充的实体实例标识。同为四段式，Redis 用冒号、MQ 用点号、HTTP 用斜杠，不得混用分隔符。**全局／聚合级 Redis key** 的「实体」段写该 key 管理的对象范畴（如 `lock`、`counter`、`watermark`），末段不带 `{实体标识}`——例如跨进程互斥锁写 `inventory:sync:lock:mutex`、兑换计数写 `coupon:redeem:counter:incr`。>
 
 ## 1. MySQL 数据表
 

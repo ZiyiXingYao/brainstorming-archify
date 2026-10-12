@@ -450,7 +450,7 @@ test('dry-run 复测暴露的修法已落盘（整族不适用 / Redis 全局 ke
     '审查提示词应允许家族整节不适用',
   );
   // Redis 全局 key 的「用途」段语义
-  assert.match(contract, /「用途」段写该 key 承担的机制或角色/, '总则应给全局 key 的「用途」段语义');
+  assert.match(contract, /写该 key 承担的机制或角色/, '总则应给全局 key 的「用途」段语义');
   // 单模块流程序号的判定规则（先判是否跨模块）
   assert.match(arch, /先判是否跨模块/, '§10 应先给跨模块/单模块的判定规则');
 });
@@ -475,6 +475,17 @@ test('dry-run 第四轮复测的修法已落盘（meta.output 必填 / 三级小
   assert.match(skill, /`output` — \*\*required\*\*/, 'meta.output 应写必填');
   assert.doesNotMatch(skill, /`output`, `viewBox` — optional output name/, '不得残留 output 可选的旧口径');
   assert.match(contract, /在用族数 × 3/, '第 1–7 节三级小节计数应随整族不适用而变');
+});
+
+test('dry-run 第五轮复测的修法已落盘（编排类算核心类 / 集合级比对 / 两门独立 / Redis 用途段统一 / output 不必同名）', () => {
+  const skill = read(SKILL);
+  const arch = read(ARCH_TEMPLATE);
+  const contract = read('templates/interface-contract-template.md');
+  assert.match(arch, /任一跳点名的承担类都算/, '§8.1 应说明调用链任一跳的承担类都算');
+  assert.match(arch, /集合级比对/, '§7 的逐字一致应是集合级比对');
+  assert.match(skill, /The Persist Gate does not wait for design approval/, 'SKILL 应说明落盘门不等设计批准');
+  assert.match(contract, /兑换计数写/, '总则应给出全局级计数的例子（用途段口径统一）');
+  assert.match(skill, /need to equal the triple's/, 'meta.output 应说明不必与三件套同名');
 });
 
 /* ---------------------------------------------------------------------------
