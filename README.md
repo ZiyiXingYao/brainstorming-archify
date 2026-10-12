@@ -360,7 +360,7 @@ specs/design/
 ## 测试与维护
 
 ```bash
-node --test tests/*.test.mjs      # 一条命令覆盖全部：57 个用例，0 失败
+node --test tests/*.test.mjs      # 一条命令覆盖全部：58 个用例，0 失败
 node tests/render.smoke.test.mjs  # 只跑冒烟（独立脚本）
 ```
 

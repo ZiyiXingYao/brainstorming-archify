@@ -291,6 +291,8 @@ digraph brainstorming {
 }
 ```
 
+**The Persist Gate does not wait for design approval.** The two are independent gates: ask the Persist Gate as soon as the conclusion is statable (see **The Persist Gate**). The flow above draws them in sequence only for readability — read the edge from *User approves design?* to *Persist Gate* as a default ordering, not a dependency.
+
 **On the persist stage:** every path that answers *yes* at the Persist Gate then
 runs the same three **persist-stage** decisions in order — the **Diagram
 Planning Gate** (when this persist will produce diagrams), the **Change List
@@ -828,7 +830,9 @@ Shared `meta` fields:
   per-kind `label` / `visible` overrides. Keys are renderer-owned (below).
 - `output` — **required**: a portable POSIX-relative `.html` path (for example
   `reports/diagram.html`); every diagram schema lists it as required, so omitting
-  it fails schema validation. `viewBox` — optional explicit canvas.
+  it fails schema validation. It is the durable authored portable path and does
+  **not** need to equal the triple's `.html` name, which is derived from the IR
+  file name. `viewBox` — optional explicit canvas.
 
 ### Architecture diagrams
 
