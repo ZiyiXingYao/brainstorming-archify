@@ -5,14 +5,14 @@
  *
  * 背景
  * ----
- * `design-diagrams/test/` 是从上游 archify 仓库（见 ../UPSTREAM.md）整包逐字节
+ * `scripts/diagram-engine/test/` 是从上游 archify 仓库（见 ../UPSTREAM.md）整包逐字节
  * 搬来的测试集，但技能包被搬入本仓库时是「裁剪结构」：上游仓库根的构建 / CI /
  * 发布 / 站点工具、`viewer/`、`benchmarks/` 与三份 `README*.md` 都未搬入。
  *
- * **裁剪后的实况口径**（不要再用裁剪前的统计）：上游基准下这份清单原有 78 个文件
- * 全绿；本次裁剪删除了十一个子命令、`--repo-root` 溯源能力、`examples/` 目录与
- * `bin/archify.mjs` 这个入口名之后，失效用例只剩三类成因（见下方 UPSTREAM_VALID
- * 的注释），共 111 个文件已按成因删除，原因逐条记在 ../UPSTREAM.md「裁剪后的实测结论」。
+ * **裁剪后的实况口径**（不要再用裁剪前的统计）：上游基准（commit 58ab0b98…，技能包 3.0.1）
+ * 下，本目录对上游整包逐文件串行实测，只有实测退出码 0 的那批进入 `UPSTREAM_VALID`；
+ * 其余因依赖已删入口 / 样例 / 文档 / 参考资料或未安装的 devDependencies 而按成因删除，
+ * 逐条记在 ../UPSTREAM.md「裁剪后的实测结论」。
  *
  * 本入口做什么
  * ------------
@@ -67,34 +67,38 @@ const RUN_CWD = path.resolve(HERE, '..', '..');
 /**
  * 本内核裁剪后**实测仍然全绿**的上游用例。
  *
- * 上游基准（commit 5289f686…，技能包 2.17.0-dev.1）下这份清单原有 **78** 个文件，
- * 全部实测通过（已核）。
+ * 上游基准（commit 58ab0b98…，技能包 3.0.1）下，本目录对上游整包（165 个 *.test.mjs）
+ * 逐文件**串行**实测（`node --test --test-reporter=tap <file>`），退出码 0 者入本清单。
  *
- * 本次裁剪按设计删除了：11 个子命令（compare / deliver / preview / migrate /
- * inspect / check / visual-check / guide / brands / examples / demo）、`--repo-root`
- * 代码溯源能力、`examples/` 目录、以及 `bin/archify.mjs` 这个入口名（改为内部驱动
- * `bin/render-driver.mjs`）。其余上游用例因此**按设计不再适用**——它们的失败原因只有
- * 三类，逐条记录在 `../UPSTREAM.md`「裁剪后的实测结论」：
- *
- *   ① `Cannot find module …/bin/archify.mjs | preview.mjs | visual-check.mjs`
- *      —— 依赖已被砍掉的入口/子命令；
- *   ② `ENOENT …/examples/*.json` —— 依赖已删除的样例目录；
- *   ③ `ENOENT …/SKILL.md` —— 读取已删除的上游技能文档。
- *
- * **这 111 个文件已按上述三类成因删除**（连同只服务它们的 `helpers/`、`fixtures/`，以及
- * `golden.mjs`、`webm-artifact.smoke.mjs`、`site-language-integration.mjs` 三个非测试运行器）。
- * 本目录现在只剩「实测全绿」的 13 个文件 + 本入口 + `svg-css-extract.golden.json` 一个数据文件，
- * 末尾不再有 drift 提示。将来需要这些用例时，从 `../UPSTREAM.md` 第 1 节的基准 commit 重新取。
+ * 本次裁剪按设计删除了：全部新增子命令（compare / deliver / finalize / preview /
+ * migrate / inspect / check / visual-check / browser-check / guide / brands / examples /
+ * demo / recover-output）、`--repo-root` 代码溯源能力、`examples/`、`references/`、
+ * `SKILL.md`、`bin/archify.mjs` 这个入口名（改为内部驱动 `bin/render-driver.mjs`），
+ * 并收窄品牌为「只认内置 canonical ID、不联网」。实测失败的上游用例因此都落在同一批
+ * 成因上（缺已删入口 / 样例 / 文档 / 参考资料或未安装的 devDependencies），逐条分类记在
+ * `../UPSTREAM.md`「裁剪后的实测结论」。**未通过者已按成因删除**；将来需要时从
+ * `../UPSTREAM.md` 第 1 节的基准 commit 重新取。
  * **改动裁剪范围后必须重跑重测**：本清单是「实测全绿」的记录，不是愿望清单。
  */
 export const UPSTREAM_VALID = [
+  'architecture-readable-routing-labels.test.mjs',
+  'architecture-readable-routing.test.mjs',
   'geometry.test.mjs',
   'grid.test.mjs',
-  'render-output-checks.test.mjs',
+  'native-output-path.test.mjs',
+  'path-boundary-contract.test.mjs',
+  'path-semantics.test.mjs',
+  'portable-path.test.mjs',
   'renderer-diagnostic-boundary.test.mjs',
+  'renderer-import-isolation.test.mjs',
+  'spatial-grid.test.mjs',
+  'spread-regression.test.mjs',
   'toolbar-polish.test.mjs',
+  'workflow-action-pinning.test.mjs',
+  'workflow-compiler-call-contract.test.mjs',
   'workflow-compiler-hard-contract.test.mjs',
   'workflow-semantic-contract.test.mjs',
+  'workflow-shared-trunks.test.mjs',
 ];
 
 /**

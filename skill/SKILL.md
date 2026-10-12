@@ -5,13 +5,49 @@ description: "You MUST use this before any design or implementation work - creat
 
 # Brainstorming Ideas Into Designs
 
-Help turn ideas into fully formed designs through natural collaborative dialogue.
+You are very good at building. You build what you believe your human
+partner wants, and that belief is usually thinner than it feels. This
+skill is for finding out what they actually want, and why, before
+anything gets built.
 
-Start by classifying how much process the request needs, then work
-through your path: understand the context, refine the idea, present a
-design, and get your human partner's approval. Once the design has
-settled and your human partner wants it kept, write it out as
+People often haven't finished working out what they want. Good questions
+help them think it through. When you understand the why, you make the
+hundred decisions they never mention the way they would have made them.
+
+This skill settles the design through that conversation and, once it is
+settled and your human partner wants it kept, writes it out as
 human-readable design documents.
+
+## First: What Do You Actually Know?
+
+Before you reply, ask yourself: what do I know about what they want, and
+why?
+
+- **Everything that matters is in the request** ("rename the flag to
+  `--dry-run`"). State in one line what you would do and stop; this skill
+  is done. No design document is written for a quick, clear task.
+- **Something non-trivial is missing.** Start the conversation.
+
+## Your First Message
+
+Your first message is three things, in this order:
+
+1. One line letting them know that if they'd rather skip the questions and
+   have you just start, they can say so. If they take you up on it, this
+   skill is done: state any significant how-it-gets-made choice (platform,
+   language, structure) in one plain line, then hand the work back to their
+   normal workflow.
+2. The path classification, said out loud (see **Three Paths**) so they can
+   override it.
+3. One open question that gets them describing. Ask about a real moment or
+   a concrete picture ("what's the moment you find yourself wishing this
+   existed?"), not a menu.
+
+That is the whole message. The classification shares this message with the
+single open question; because that open question belongs to no layer, this is
+also the one case where the classification is not paired with a layer's
+questions. Gathering missing requirements never asks them to authorize the
+task again.
 
 ## Scope
 
@@ -82,10 +118,18 @@ allowed while those prerequisites remain incomplete.
 
 ## Three Paths
 
-Before your first question, classify the request and say the
-classification out loud — "this looks bounded, so I'll present a short
+Size the work first, then name the path. Say the classification out loud
+before your first question — "this looks bounded, so I'll present a short
 design here rather than write a design doc" — so your human partner can
 override it:
+
+| Size | The full description | Then |
+|------|----------------------|------|
+| A quick, clear task | the request itself | state what you'd do and stop; this skill is done |
+| A bounded change | in chat | a short in-chat design; the Persist Gate then decides whether anything is written |
+| An architectural change | a written design document | the design documents, then hand them to a separate process |
+
+The three paths below give each size its prerequisites:
 
 - **Spike** — a feasibility question ("can we...", "is it possible...",
   "quick and dirty is fine") whose output is an answer, not code you
@@ -136,13 +180,16 @@ that path's gates before implementation.
 
 | Thought | Reality |
 |---------|---------|
+| "I'll offer options to save them effort" | Options steer. Ask them to describe it first. |
+| "I'll fill in sensible defaults" | Good — say them out loud. A default they never heard is one they couldn't reject. |
+| "I should explain the process first" | Ask your question. The process shows itself. |
 | "This is too simple to need a design" | Follow the selected path: a bounded change gets a short chat design; an architectural change gets the design documents. |
 | "I'll call it bounded and skip the design doc" | Reaching for a label to skip work IS the doubt — take the heavier path. |
 | "It's bounded and the design is obvious — I'll start while they read it" | The gate is the approval, not the design's length. Present, then stop until you hear yes. |
 | "I understand this kind of app, so it's bounded" | Bounded measures the repo, not your familiarity. A new project has no existing flow — it is architectural. |
 | "They just asked casually, so I'll write the doc anyway" | The Persist Gate: ask first. No consent, no file. |
 | "I'll write the doc in whatever shape feels right" | Design documents MUST follow `architecture-doc-template.md`, `module-doc-template.md`, or `interface-contract-template.md`, in section and in order. |
-| "No interface came up in this discussion, so no interface contract is needed" | Whether the interface contract is produced is a mechanical test, not a topic judgment: any one of the seven interface families — MySQL, Redis, MQ, HTTP, gRPC, dynamic-library API, TCP — being present means the document MUST be produced. A skip justified by "we did not touch interfaces" is a defect. |
+| "No interface came up in this discussion, so no interface contract is needed" | Whether the interface contract is produced is a mechanical test, not a topic judgment: any one of the seven interface families — MySQL, Redis, MQ, HTTP, gRPC, dynamic-library API, TCP — being used by the system this design covers means the document MUST be produced. The base is that system's runtime dependencies, not the surrounding repository and not whether the code exists yet. A skip justified by "we did not touch interfaces" is a defect. |
 | "The interface contract can be `0-接口契约.md` so it sorts with the others" | The interface contract's path and file name are fixed at `specs/design/00-接口契约.md`. Its `00-` is a fixed literal prefix that sits outside the module ordinal sequence — the architecture overview is fixed `01-` and the module documents are `02+` — so the `00-` does not change as modules are added or removed, is not governed by the "append, never renumber" rule, and is never renumbered even when a new module is added. Any other name — no-prefix `接口契约.md`, single-zero `0-接口契约.md`, or the English alias `contract.md` — is a defect. |
 | "This is a module discussion, but I'll tidy up the architecture doc while I'm in there" | Untouched sections stay word-for-word. Only entries actually affected by this discussion may change. |
 | "I know the module list well enough, I'll just write the doc" | Reading `specs/design/` first is a hard prerequisite. Writing without reading silently erases other discussions' work. |
@@ -273,6 +320,48 @@ spike stops at "present the probe, get a nod"). Sections from
 bounded work, context plus a few questions plus a short in-chat design
 is the whole process.
 
+**The conversation:**
+
+- Each message ends with one question: a single sentence with no list of
+  example answers hanging off it. Use plain language, pitched just a little
+  above where your human partner is. Match their vocabulary; never use
+  process jargon. Be clear and concise and lead with what matters.
+- **Get them describing.** Open questions come first; their own words carry
+  intent your options can't. Offer a short menu only when they're stuck.
+  When they say "just guess" or "what do you think?", propose something
+  concrete.
+- **How it gets made.** Find out early which choices about medium, tools and
+  resources they want to make, which they're handing to you, and what they
+  already have to work with. When there is existing work, build on what it
+  already uses. Any choice you make goes into the design as your call, never
+  as something they agreed to.
+- **Ground to cover** (territory, not a script — never read these out as
+  questions): what kind of thing this is and what makes it special; why now
+  and what success looks like to them; goals, non-goals and anti-goals (what
+  would make this a failure even if it technically works); prior art; current
+  state; the details they care about.
+- **Questions that work** anchor in specifics ("walk me through the last
+  time…", "if it could only do one of these well, which?", "what would make
+  you wince if I got it wrong?"). A guess they can correct ("I'm guessing
+  this is because X keeps biting you?") often beats a question.
+- **Offer recon.** Once you have a bit of grounding and looking would help,
+  offer to go look — their codebase or project, their own files and data, or
+  the web. Say what you'd look for; they decide whether you go.
+- **Think wide privately** before proposing anything: come up with several
+  ideas and drop the weak ones, including any that fight what they've told
+  you about why. Show the comparison only when it helps them decide.
+- **Spike to feel things out.** A quick throwaway build is often the cheapest
+  way to learn what they want or whether something works. Offer one when it
+  would help; when they just want to spike, get out of the way.
+
+**Play it back.** As soon as you understand one part well enough to describe
+it, describe that part back in about 200-300 words, then return to questions
+about the next part. Playback and questions alternate through the whole
+conversation; the last chunk covers whatever is left. Mark anything you're
+guessing as your guess; only what they said goes in as theirs. End each
+chunk by asking what's wrong or missing. This is the working form of
+**Establish Shared Understanding** above.
+
 **Understanding the idea:**
 
 - Check out the current project state first (files, docs, recent commits)
@@ -280,10 +369,10 @@ is the whole process.
 - If the project is too large for a single design, help the user decompose it into functional modules: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first module through the normal design flow. `01-架构设计.md` stays global and accumulates every module's architecture-level content; each module's detail goes in its own `<NN>-<模块名>.md`. There is only ever one architecture document.
 - For appropriately-scoped projects, ask questions to refine the idea one **layer** at a time
 - Prefer multiple choice questions when possible, but open-ended is fine too
-- **One layer per message.** Never mix two layers' questions in the same message or the same structured-question call. Within the current layer you may ask several questions at once, up to your platform's per-call limit for the question tool; if a layer needs more, send another message for that same layer. "One message" means one user-facing message whose content is the question — do not bundle other material into it. The classification announcement the Checklist requires may share a message with the current layer's questions; that is the single exception. The "nothing else" requirement is strict only for the three gates — Persist, Change List and User Review — each of which gets a message of its own.
+- **One layer per message.** Never mix two layers' questions in the same message or the same structured-question call. Within the current layer you may ask several questions at once, up to your platform's per-call limit for the question tool; if a layer needs more, send another message for that same layer. "One message" means one user-facing message whose content is the question — do not bundle other material into it. The classification announcement the Checklist requires may share a message with the first message's single open question or with the current layer's questions; those are the only exceptions. The "nothing else" requirement is strict only for the three gates — Persist, Change List and User Review — each of which gets a message of its own.
 - Ask the clarifying questions in **three layers**. The five steps named throughout this skill — **functional points → module division → core classes → file tree → flows** — are the order the *design* is built in; the three layers are the order the *questions* are asked, mapped onto them as: the functional-point layer covers step 1; the architecture layer covers steps 2–4 plus the architecture-level skeleton of step 5; the module layer covers the module-level detail of step 5.
   - **Functional-point layer** — ask until **every** functional point is captured: which functional points does the system offer? For each, what need it serves, for whom, its input and its observable result, and its boundary (what it deliberately does not do). Which are goals and which are explicit non-goals?
-  - **Architecture layer** — ask until **every** functional point and **every** functional flow is captured: how is the system cut into modules, and *why* that way (the seams, the alternative divisions rejected)? Which modules depend on which, and how strongly? Which cross-module interfaces are needed, and what does the calling side expect of each signature? Which classes are the core classes that chain the functional flows together? What do the module folders and core files look like? Deliberately defer the details — they belong to the module layer.
+  - **Architecture layer** — ask until **every** functional point and **every** functional flow is captured: how is the system cut into modules, and *why* that way (the seams, the alternative divisions rejected)? Which modules depend on which, and how strongly? Which cross-module interfaces are needed, and what does the calling side expect of each signature? Which classes are the core classes that chain the functional flows together? What do the module folders and core files look like? How does it *run* — which processes, each with which threads, and how do they interact? How is it *deployed* — the deployment directory structure, the deployment steps, and the files the deployment is made of? Deliberately defer the details — they belong to the module layer.
   - **Module layer** — only now: for each class, its fields and functions; the relationships between classes; for each declared outward dependency, the provider, class, and expected signature; and for each flow the module participates in, the function-level call chain with its data-shape changes, who receives the result, and the failure path.
 - **A layer is finished when its template fields are fillable — not when the conversation feels done.** Concretely: the functional-point layer is finished when every column of architecture section 5 is answerable for every functional point; the architecture layer, when sections 6, 7, 8, 9 and the flow skeletons of 10 are answerable; the module layer, when sections 2, 3, 4 and 5 of that module's document are answerable. Before starting the next layer, list which of the current layer's template fields you still cannot fill and ask about exactly those — an unfillable field is a question you have not asked yet.
 - **When the architecture is already confirmed and you are designing one module** — the normal incremental case — the functional-point and architecture layers have already been answered *by that document*. Do not re-ask them. Verify each of their template fields against the architecture you read, and ask only about the ones it genuinely leaves open or that this module changes; the questions that remain belong to the module layer.
@@ -303,7 +392,7 @@ is the whole process.
 - Once you believe you understand what you're building, present the design
 - Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
 - Ask after each section whether it looks right so far
-- Cover the ground the templates will require: functional points; module division and its rationale; core classes with their relationships and calls; the file tree; cross-module interfaces; the global flows; and, for any project that produces the interface contract, the outward interfaces and data contracts across the seven families — MySQL tables; Redis keys and structures; MQ channels; HTTP interfaces; gRPC interfaces; dynamic-library APIs; TCP interfaces — plus the catch-all for other outward interfaces. The templates decide the exact section list — inventing a section name the templates do not have is a defect.
+- Cover the ground the templates will require: functional points; module division and its rationale; core classes with their relationships and calls; the file tree; cross-module interfaces; the global flows; the runtime view (which processes run, each process's threads, and how they relate) and the deployment view (deployment directory structure, how to deploy, and the files involved) — each with an explicit `不适用` reason when the section genuinely does not apply; and, for any project that produces the interface contract, the outward interfaces and data contracts across the seven families — MySQL tables; Redis keys and structures; MQ channels; HTTP interfaces; gRPC interfaces; dynamic-library APIs; TCP interfaces — plus the catch-all for other outward interfaces. The templates decide the exact section list — inventing a section name the templates do not have is a defect.
 - Be ready to go back and clarify if something doesn't make sense
 
 **Design for isolation and clarity:**
@@ -719,15 +808,17 @@ Shared `meta` fields:
 
 - `title` — required, one concise title; let the diagram carry the explanation.
 - `subtitle` — omit unless explicitly asked; never restate the title.
-- `locale` — `en` or `zh-CN`; selects renderer-owned viewer UI only (it never
-  translates authored strings). Omit for English.
+- `locale` — `en` and `zh-CN` ship built in; any other well-formed language tag
+  needs a matching `meta.translations` message catalog, or the renderer falls
+  back to English and says so. It selects renderer-owned viewer UI only (it
+  never translates authored strings). Omit for English.
 - `animation` — `trace` opts into a finite, reader-controlled trace; static is
   the default.
 - `visual_preset` — omit to open in `classic`; `signal-flow`, `blueprint` or
   `editorial` only on explicit request.
 - `quality_profile` — `standard` or `showcase` (see the shared constraints).
-- `views` — up to five curated story chapters; each has a unique `id`, a
-  reader-facing `label`, and a non-empty `focus` list of existing node IDs.
+- `views` — **retired**: the schemas still accept the old guided-view shape so
+  existing files keep validating, but the renderer ignores it. Do not author it.
 - `legend` — `mode` is `auto` (default), `all` or `hidden`, with optional
   per-kind `label` / `visible` overrides. Keys are renderer-owned (below).
 - `output`, `viewBox` — optional output name and explicit canvas.
@@ -801,6 +892,14 @@ obvious from the endpoints.
 Legend keys: `emphasis`, `security`, `dashed`, `database`, `default`.
 
 ### Lifecycle diagrams
+
+**Start new lifecycle diagrams on `schema_version: 2`** (one row per lane on a
+shared column grid); the geometry described below is the fixed three-band
+`schema_version: 1` layout, which existing sources keep. To move a v1 document to
+v2, set `schema_version: 2`, re-place lower-lane `col` values on the shared grid
+(v1 column `N` sat under main column `N + 2`), and drop the v1 canvas coordinates
+(`viewBox`, `via`, `channelX`, `channelY`, `labelAt`). There is no `migrate`
+subcommand — author v2 directly.
 
 Main phases use columns `0..4`; event and terminal bands use columns `0..2`, and
 event/terminal column `N` aligns to the same x coordinate as main column `N + 2`.
@@ -1073,12 +1172,18 @@ in that template's order — no section added, removed, or reordered:
   outside the module ordinal sequence and never renumbered).
 
 **When the interface contract is produced — a mechanical test, not a topic
-judgment.** If the project has **any one** of the seven interface families —
-**MySQL, Redis, MQ, HTTP, gRPC, dynamic-library API, TCP** — the interface
-contract MUST be produced. If **none** of the seven is present it MUST NOT be
-produced, and the change list records, **family by family**, the ground on which
-each one is judged absent. Skipping it for a reason such as "this discussion did
-not touch interfaces" is never valid. The interface contract carries **no
+judgment.** **The base of that test is the system this design covers** —
+everything the system itself depends on at runtime (a table it reads or
+writes, a cache, a channel, an endpoint it serves or calls, a dynamic library
+it loads, a socket it opens) — **not** the surrounding repository and **not**
+whether the code exists yet. If the system in scope uses **any one** of the
+seven interface families — **MySQL, Redis, MQ, HTTP, gRPC, dynamic-library
+API, TCP** — the interface contract MUST be produced. If **none** of the seven
+is present it MUST NOT be produced, and the change list records, **family by
+family**, the ground on which each one is judged absent — a dependency the
+surrounding repository happens to contain but this system does not use does
+**not** trigger the contract. Skipping it for a reason such as "this discussion
+did not touch interfaces" is never valid. The interface contract carries **no
 diagrams** — it is not a diagram-bearing document, and its lack of SVG diagrams
 is never a defect.
 
@@ -1113,7 +1218,7 @@ is never a defect.
 
 Check each item and fix in place:
 
-1. **Template compliance per document:** Has each document been checked against its own template — architecture against `architecture-doc-template.md`, each module against `module-doc-template.md`, the interface contract against `interface-contract-template.md`? Every section present, in order, no extra sections?
+1. **Template compliance per document:** Has each document been checked against its own template — architecture against `architecture-doc-template.md`, each module against `module-doc-template.md`, the interface contract against `interface-contract-template.md`? Every section present, in order, no extra sections? For the architecture document this includes the 4+1 views: the **runtime view** (§11 — which processes run, each process's threads, and how processes and threads relate) and the **deployment view** (§12 — the deployment directory structure, how to deploy, and which files make up the deployment) — each present with its sub-parts, or carrying an explicit `不适用：<reason>`.
 2. **Placeholder scan:** Any `TBD`, `TODO`, unfilled `<...>` prose placeholder, or empty sections? The scan targets **prose placeholders the author must fill**. Do not flag (a) a literal spec inside inline backticks or a fenced block (e.g. the interface contract's mandated naming format string `<系统>:<域>:<实体>:<用途>`), (b) the templates' fixed notation `不适用：<原因>` and the fixed placeholder line, or (c) the trailing 「使用说明」 block — that block is template guidance and must not appear in the product.
 3. **Internal consistency:** Do any sections contradict each other? Does the recommended approach match the comparison's conclusion?
 4. **Ambiguity check:** Can any sentence be read two ways? Pick one reading and make it explicit.
@@ -1157,6 +1262,21 @@ One subagent reviews all three document types. Route each document to its
 template: `01-架构设计.md` follows the architecture template,
 `specs/design/00-接口契约.md` follows the interface-contract template, and every
 other document follows the module template.
+
+**Builder check.** Also dispatch a fresh subagent as a talented builder in the
+domain (for software, a skilled engineer), using `builder-check-prompt.md` in
+this skill's directory, handed the design documents and asked
+to report *only* the questions it would still need answered before it could
+plan from them — the places where it would have to guess and a wrong guess
+would matter. Tell it to skip anything the documents explicitly leave to the
+builder, anything it could reasonably decide itself, and wording nitpicks, and
+to rank what remains by importance. Sort the answers into three piles: **already
+answered** by the conversation or the documents (fold the answer in), **minor**
+(a sensible builder could settle it without changing what gets built — settle
+it yourself and mark it as your call), and **theirs** (only your human partner
+can answer it, and the answer changes what gets built). Bring the *theirs* pile
+in one message, most important first, and fold the answers back into the
+documents before the user review gate.
 
 When the write set exceeds five documents, split the review: review
 `01-架构设计.md` first, then dispatch the module documents in batches,

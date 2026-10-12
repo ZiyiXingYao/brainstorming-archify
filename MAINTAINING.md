@@ -22,7 +22,7 @@
 | 对象 | 上游仓库 | 基准坐标 | 同步方式 |
 |------|---------|---------|---------|
 | `skill/SKILL.md` 等技能文本 | [superpowers](https://github.com/obra/superpowers) | `v6.4.1`（commit `5bf4e78`） | `./scripts/sync-upstream.sh` 看 diff 后按《需要重放的改动清单》重放 |
-| `scripts/diagram-engine/` | [archify](https://github.com/tt-a1i/archify) | commit `5289f6867f048a7450ec5718f58459613a84cf41`（技能包 `2.17.0-dev.1`） | **无脚本**，按 commit 手工比对 + 跑 `test/run-valid.mjs` 判回归（见下文） |
+| `scripts/diagram-engine/` | [archify](https://github.com/tt-a1i/archify) | `v3.0.1`（commit `2ab3cae`；技能包版本 `3.0.1`） | **无脚本**，按 tag / commit 手工比对 + 跑 `test/run-valid.mjs` 判回归（见下文） |
 
 `./scripts/sync-upstream.sh` **只覆盖 `superpowers`**：它比对的是 `skill/SKILL.md`，与绘图内核无关。
 
@@ -30,9 +30,9 @@
 
 本技能的 `SKILL.md` 是 [superpowers](https://github.com/obra/superpowers) `skills/brainstorming/SKILL.md` 的**改造副本**。
 
-**上游基准**：`obra/superpowers` @ `v6.4.1`（commit `5bf4e78`）
+**上游基准**：`obra/superpowers` @ `v7.0.0`（commit `bb92a77`）
 
-**上游现状（2026-09-22 实测）**：本仓库**已同步到** `v6.4.1`（commit `5bf4e78`）。本仓库最初自上游 `v6.3.0`（commit `b36e082`）分叉；从该版到 `v6.4.1`，`skills/brainstorming/SKILL.md` 实测为 **250 → 285 行、diff 66 行**，新增一节 `## Establish Shared Understanding`——已把《需要重放的改动清单》按新基准逐条复核，并把新增节与上游改写处的**节级／段落级本地化**登记为第 36、37 条（见下）。
+**上游现状（2026-10-12 实测）**：本仓库**已同步到** `v7.0.0`（commit `bb92a77`）。本仓库最初自上游 `v6.3.0`（commit `b36e082`）分叉；`v6.4.1 → v6.4.2` 对 `skills/brainstorming/SKILL.md` **零改动**，而 `v6.4.2 → v7.0.0` 是**整节重写**（466 行 diff）：删掉 `## Three Paths`（改为 `## Size the Work` 三档表）、删掉 spec 产物与 `spec-document-reviewer-prompt.md`、新增 `builder-check-prompt.md`（子代理「构建者检查」）与更口语化的对话指引（`## Your First Message`、`## The Conversation`、`## Play It Back`）。本仓库**未照抄重写后的版式**——那会丢掉本库赖以成立的三路径、三道门、三模板与绘图内核——而是把 v7.0.0 的**新增内容与措辞**并入本库既有设计模型，并把 v7.0.0 内容在 `SKILL.md` 上的**节级／段落级本地化**登记为第 47 条（见下）。
 
 《需要重放的改动清单》是**活指令**：上游再前移时，须把清单逐条重新施加到新坐标、为新增节判定偏离，再跑 `./sync-upstream.sh --ref <新坐标>` 复验 diff；只改本文件里的版本号不算同步。
 
@@ -43,7 +43,7 @@
 ./sync-upstream.sh
 
 # 与指定 tag / 分支对比
-./sync-upstream.sh --ref v6.4.1
+./sync-upstream.sh --ref v7.0.0
 ```
 
 脚本会浅克隆上游仓库，打印上游版本信息和 `SKILL.md` 的双向 diff。
@@ -131,11 +131,27 @@ rm -rf /tmp/sp
 45. （新增）`## Change List Gate` 增补**变更清单自身的落盘形态与时机**（新增 `### Where the change list itself is persisted` 小节）：清单在门**批准之后**、与文档**同批**写盘到 `<项目根>/.brainstorming-archify/change-lists/<UTC 时间戳>-<主题 slug>.md`（如 `20260922T112442Z-order-module.md`；UTC 时间戳在前，按文件名排序即落盘顺序；主题 slug 取本次落盘**主文档**的语义英文短名，规则同图名 slug——仅 ASCII 字母、数字与 `-`、无中日韩字符，首次或架构级落盘用 `architecture`、单模块落盘用该模块英文名、一次落盘覆盖多份时取序号最小者）；**每次落盘一份**，后次新增自己的文件、绝不覆盖前次；批准前只在对话里重列、不写盘——该门的唯一写盘例外仍只是绘图规划 Gate 点名的源 IR；`.brainstorming-archify/change-lists/` 定性为**过程产物**而非受管设计目录——位于 `specs/design/` 之外、技能从不删除、**不在提交范围内**；`specs/design/` 仍是恢复对话的**唯一锚点**，该目录里的旧文件既不表示「待批准」也不表示「已批准」，恢复的会话照旧重列清单并重新取得批准。
 46. （补登）`## Handoff to a Downstream Process` 整节：交接物是**整个 `specs/design/` 目录**（文档集 + `diagrams/` 三件套；因每份文档都以相对自身的路径引用其图，该目录自包含，交接的是这个目录而非单个文件）；本技能**从不**调用下游流程，是否交接、交给谁由人类决定，被问到时只报出上述产物集即止；接口契约是该集合的一部分而非交接的前置条件——它因机械判定命中而存在，交接不需要重新推导。
 
+**（叠加）v7.0.0 新基准的本地化**
+
+47. （叠加）本地化 v7.0.0 的重写内容。上游 v7.0.0 把 `## Three Paths` 换成 `## Size the Work` 三档表、删掉 spec 产物与 `spec-document-reviewer-prompt.md`、新增 `builder-check-prompt.md`，并重写了对话指引。本仓库**保留本库的三路径（Spike／Bounded／Architectural）与三道门模型**，把 v7.0.0 的增量并入：
+   - `## First: What Do You Actually Know?`（v7 新节）：收在 `SKILL.md` 开头，作为「快速清晰的任务 → 说一句就停、本技能结束」的 triage；`## Your First Message`（一句话允许对方跳过提问 + 一个开放式问题）照收，并把「跳过即交回对方常规流程」明确为**本技能不实现**（与 Scope 口径一致）。
+   - `## The Conversation` 与 `## Play It Back`：把 v7 的对话指引（一消息一问、把选择说出口、Ground to cover 的领地清单、Questions that work、Offer recon、Think wide privately、spike）并入本库 `## The Process` 的「The conversation／Play it back」两段；**删去 v7 的 `## Visual Companion` 整节与 `visual-companion.md`／`scripts/`**（沿用第 1、2 条裁剪）。本地既有的**三层提问清单**（功能点／架构／模块层）与「一消息一层」保留。
+   - `## Size the Work` 三档表：并入 `## Three Paths` 的开头（三档 ↔ 三路径），保留本地路径名与 prerequisite 分级。
+   - **Builder check**：v7 新增的「构建者检查」并入本库 `## Subagent Review`，作为审阅子代理之外的**第二支透镜**（把「构建者还缺什么」分三堆：已答／次要／只有人类能答）。
+   - 上游删掉的 `spec-document-reviewer-prompt.md` 本库早已用 `design-doc-reviewer-prompt.md` 取代（第 17 条），不回归。
+   - `## Red Flags` 表补入 v7 的三行（选项会引导、默认值要说出口、别先讲流程），与本地既有行并存。
+   - front-matter `description` 仍按第 38 条；**不予采纳** v7 把适用范围扩到「软件之外（一场演讲、一门生意、一次装修）」的措辞——本技能落点是 `specs/design/` 下的设计文档。
+   - **未采纳 v7 版式**：v7 把 `Checklist`／`Process Flow`／`The Persist Gate`／`Incremental Persist Protocol`／`Diagrams`／`Change List Gate`／`Self-Review`／`User Review Gate` 等本库机制整节删除，本库沿用自有版本，不随上游删除。
+
+**（新增）4+1 视图**
+
+48. （新增）架构模板新增 4+1 视图模型中的**运行视图**与**部署视图**，架构模板由 **12 节改为 14 节**：在全局功能流程（§10）之后、关键决策记录之前插入 **§11 运行视图**（运行起来有哪些进程、每个进程有哪些线程、进程与线程之间的关系——含进程清单、线程模型、进程与线程关系三部分）与 **§12 部署视图**（部署目录结构、如何部署、有哪些文件组成——含部署目录结构、部署方式、文件组成三部分），原 §11 关键决策记录、§12 待定问题与风险顺延为 **§13、§14**；**两节不要求配图**（以叙述与表格承载，缺图不判缺陷；确实不适用时保留标题写 `不适用：<原因>`）。技能把两节并入设计呈现覆盖清单、架构层提问清单与自审的**模板合规项**（**自审仍 15 项**，只扩写既有第 1 项，不新增条目）；审查提示词新增两节判据（含「不因其缺图报缺陷」的校准条）。README 的章节数与章节清单、`tests/doc-consistency.test.mjs` 的断言同批改到 14 节。
+
 ### 上游二：archify（绘图内核）
 
-`scripts/diagram-engine/` 是 [archify](https://github.com/tt-a1i/archify) 出图技能包的**裁剪副本**：按「只保留 5 类图渲染能力」删掉了 10 个子命令、`--repo-root` 溯源能力、`examples/` 等目录，把入口 `archify.mjs` 裁成内部驱动 `render-driver.mjs`（2139 → 562 行）、把 `design-diagrams.mjs` 改造为唯一入口 `render.mjs`。逐项改动与被删清单见 `scripts/diagram-engine/UPSTREAM.md` 第 1 节。
+`scripts/diagram-engine/` 是 [archify](https://github.com/tt-a1i/archify) 出图技能包的**裁剪副本**：按「只保留 5 类图渲染能力」删掉了全部与 5 类图无关的子命令（compare / deliver / finalize / preview / migrate / inspect / check / visual-check / browser-check / guide / brands / examples / demo / recover-output）、`--repo-root` 溯源能力、`examples/`、`references/` 与上游 `SKILL.md`，把入口 `archify.mjs`（6936 行）裁成内部驱动 `render-driver.mjs`（只留 `render`／`validate`／`doctor`），并以本仓库新增的 `render.mjs` 作为唯一对外入口；品牌解析收窄为「只认内置 canonical ID、不联网」。逐项改动与被删清单见 `scripts/diagram-engine/UPSTREAM.md` 第 1 节。
 
-**上游基准**：`tt-a1i/archify` @ commit `5289f6867f048a7450ec5718f58459613a84cf41`（技能包版本 `2.17.0-dev.1`；`skill-release.json` 的 `channel` 是 `development`，该仓库**无稳定 tag**，因此基准按 commit 固定，不按 tag 或 `latest`）。
+**上游基准**：`tt-a1i/archify` @ `v3.0.1`（commit `2ab3cae`；技能包版本 `3.0.1`，`skill-release.json` 的 `channel` 已是 `stable`）。
 
 **许可证归属**：archify 本体为 MIT（版权方与全文见 `scripts/diagram-engine/LICENSE`）；内联字体 **JetBrains Mono** 依 SIL Open Font License 1.1 授权，完整授权文本随包存放在 `scripts/diagram-engine/assets/JetBrainsMono-OFL.txt`；第三方商标与图标归属见 `scripts/diagram-engine/THIRD_PARTY_NOTICES.md`。
 
@@ -145,9 +161,9 @@ rm -rf /tmp/sp
 node scripts/diagram-engine/test/run-valid.mjs
 ```
 
-它只跑**在裁剪后成立的那个子集**（当前为上游 7 + 本地 6 = 13 个文件，退出码 `0` = 全过；本地 6 个含驱动 CLI 面、环境自检与品牌边界三组新增用例）。哪些上游检查项被排除、为什么排除（三类成因），逐条登记在 `scripts/diagram-engine/UPSTREAM.md` 第 3 节。
+它只跑**在裁剪后成立的那个子集**（当前为上游全绿 18 + 本地 6 = 24 个文件、360 个用例，退出码 `0` = 全过；上游 18 个由 3.0.1 整包逐文件**串行**实测筛出，本地 6 个含 CSS 抽取、主题变量解析、图名派生、驱动 CLI 面、环境自检与品牌边界）。哪些上游检查项被排除、为什么排除，逐条登记在 `scripts/diagram-engine/UPSTREAM.md` 第 3、4 节。
 
-**注意：`./scripts/sync-upstream.sh` 只覆盖 `superpowers`，不覆盖 archify**——它比对的是 `skill/SKILL.md`，与绘图内核无关；同步 archify 需按上面的基准 commit 手工比对。
+**注意：`./scripts/sync-upstream.sh` 只覆盖 `superpowers`，不覆盖 archify**——它比对的是 `skill/SKILL.md`，与绘图内核无关；同步 archify 需按上面的基准 tag / commit 手工比对。
 
 ## 2. 后续变更登记
 
@@ -159,7 +175,32 @@ node scripts/diagram-engine/test/run-valid.mjs
 
 该项是在 `add-interface-contract-template` 变更的归档验证中被实测确认的，当时按该变更的范围边界未处理。
 
+### 2026-10-12 dry-run 暴露、本次未修的问题
+
+`resync-upstream-and-add-views` 变更的 dry-run（库存同步服务，三模块，实渲 4 组三件套）结论 `有需猜`（无阻塞）。其中**本次改动引入的 1 条已修**（F1：首条消息与分类宣告的次序冲突），**1 条既有真缺陷已修**（F2：接口契约按需产出的判定基准未定义——现定义为「本次设计覆盖的系统」的运行时依赖）。以下为**既有、本次未修**，登记待处置：
+
+| 编号 | 问题 | 建议 | 断言可行性 |
+|------|------|------|-----------|
+| F3 | 架构模板 §8.1 核心类判定未覆盖 §10 的「触发入口」类（如调度器类）：这类类不在「模块级调用链」段、也不是矩阵行承载者，算不算核心类无判据 | 判定标准补入「或作为某条流程**触发入口**的承担者」，并同批改 spec 与审查判据 | 可写成断言 |
+| F4 | 接口契约命名总则把 Redis key 规定为**一律** `<系统>:<域>:<实体>:<用途>:{实体标识}`，不给**全局 key**（无实体标识，如跨进程对账锁）留口径 | 需人裁定：放宽总则，或另立全局 key 约定 | 不可（格式需人先裁定） |
+| F5 | 同一份架构文档内三种配图口径（§6.3/§10 强制 SVG、§8.2/§8.3 可用 mermaid、§11/§12 不要求配图）分散三处，无集中声明 | 在架构模板顶部集中列一张「哪些节配什么图」对照 | 可写成断言 |
+| F6 | 流程图台账随「流程数 × 引用它的模块文档数」记，逐文档核对同名流程前缀与类型一致性负担重 | 已有「同名共用一组三件套」缓解；可考虑在变更清单模板加一列自动核对 | 可写成断言 |
+| F7 | `validate` 与 `render` 分工细微，「两轮降级台账只由 `render` 维护」藏在长段里，按 `validate` 循环易漏 | 把该口径提到《The validation hard gate》开头或加粗 | 不可（阅读负担） |
+| F8 | 「每层可一次问多个、上限取平台单次提问上限」未给平台对照 | 工具适配问题，非文档缺陷 | 不可 |
+
+### `backfill-run-valid-cases` 的现状重估（2026-10-12）
+
+内核重搬到 3.0.1 后，`run-valid.mjs` 的清单已按新基准重测重写（上游全绿 18 + 本地 6 = 24 文件）。上一轮登记的 `backfill-run-valid-cases`（把排除粒度从文件级改为用例级）**前提再次变化**：原拟回填的用例文件已随本次裁剪删除，且新的 18 个上游文件本就是「整文件全绿」，暂无可回填的缺口——该变更建议**关闭**或按新基准重新评估。
+
 ## 3. 历次 dry-run 记录
+
+### 重同步上游 + 4+1 视图后的 dry-run（2026-10-12）
+
+变更 `resync-upstream-and-add-views` 收口前，用**未受污染**的代理按新版 `skill/SKILL.md`（同步到 superpowers v7.0.0、内核重搬到 archify 3.0.1、架构模板 14 节）实跑了一次「三模块 × 多轮」的设计（库存同步服务），结论 `有需猜`（无阻塞）——整个流程可在不向人要授权、不违反任何硬门的前提下走完（含真渲染 4 组三件套、自审、审查、用户评审）。
+
+- 新增的 **§11 运行视图 / §12 部署视图** 被判定**可产出且自然**（文字+表格即可，不需要配图）。
+- 摩擦 **F1（首条消息与分类宣告次序冲突）为本次改动引入，已修**；**F2（接口契约判定基准未定义）为既有真缺陷，已修**（基准定为「本次设计覆盖的系统」）。其余 F3–F8 为既有问题，登记在 §2 的处置表。
+- 报告：`changes/resync-upstream-and-add-views/dryrun-report.md`（`changes/` 不入库；要点已摘入 §2）。
 
 ### 技能 dry-run 暴露的待修问题（2026-09-22）
 
@@ -228,7 +269,7 @@ git push origin --delete v0.1.0   # 再删远端 tag
 # 改完 → 提交推送 → 重新打 tag → 重新 create release（URL 不变）
 ```
 
-**版本号不写进 `scripts/diagram-engine/skill-release.json`**——那里的 `2.17.0-dev.1` 是上游 archify
+**版本号不写进 `scripts/diagram-engine/skill-release.json`**——那里的 `3.0.1` 是上游 archify
 技能包的版本，改它会让内核与上游对不上号。
 
 

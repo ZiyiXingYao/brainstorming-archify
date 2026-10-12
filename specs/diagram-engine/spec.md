@@ -208,8 +208,11 @@ MUST NOT 为收集仓库证据而读取本内核目录之外的文件；图的�
 
 `render` SHALL 把渲染时使用的交互式页面写成 `.html` 产物，与 `.svg`、`.json` 同目录同前缀；
 该页面 MUST 保留其全部交互能力：拖拽画布、滚轮缩放、点击节点高亮上下游、`/` 搜索框、
-深色/浅色主题切换、Story 章节播放、Route 路径探查、Reach 上下游探查、
+深色/浅色主题切换、Route 路径探查、Reach 上下游探查、焦点/透镜/关系预览、
 Export 菜单（PNG / JPEG / WebP / SVG / WebM / Copy Share Card）、URL hash 深链接、演示模式。
+
+上游已**退役**由 `meta.views` 驱动的「Story 章节」，本内核随上游一并退役：schema 仍接受旧的
+guided-view 结构（使既有文件继续通过校验），但渲染器忽略它，且不再作为可产出的交互能力。
 
 #### Scenario: 打开交互页
 
@@ -218,9 +221,15 @@ Export 菜单（PNG / JPEG / WebP / SVG / WebM / Copy Share Card）、URL hash �
 
 #### Scenario: 交互页承载渲染配置
 
-- **WHEN** IR 中带 `meta.views`（Story 章节）与 `meta.animation` 轨迹动画
-- **THEN** 交互页可播放 Story 章节并呈现轨迹动画；WebM 导出可用；`showcase` 严格校验
-  与 `meta.visual_preset`（`signal-flow` / `blueprint` / `editorial` / `classic`）均照旧生效
+- **WHEN** IR 中带 `meta.animation` 轨迹动画与 `meta.visual_preset`
+- **THEN** 交互页呈现轨迹动画；WebM 导出可用；`showcase` 严格校验与 `meta.visual_preset`
+  （`signal-flow` / `blueprint` / `editorial` / `classic`）均照旧生效
+
+#### Scenario: 退役的 Story 章节
+
+- **WHEN** IR 中带旧的 `meta.views`（guided story chapters）
+- **THEN** 该字段被渲染器忽略、不产出生效的 Story 章节，且不判为缺陷——它是上游退役的形状，
+  只是为兼容既有文件而保留可校验性
 
 #### Scenario: 交互页不得被裁剪
 
@@ -242,3 +251,37 @@ MUST NOT 保留指向本仓库中不存在的文件的命令。
 
 - **WHEN** 逐条核对 `package.json` 的 `scripts` 命令所引用的路径
 - **THEN** 每一条都能在本仓库中找到对应文件；找不到的已被删除或改正，不存在指向缺失父级脚本目录的死链
+
+### Requirement: `meta.locale` 与 `meta.translations` 的覆盖
+
+IR 的 `meta.locale` SHALL 接受任意格式合法的语言标签（schema pattern
+`^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$`）；`en` 与 `zh-CN` 为内置目录，其余标签 SHALL 由
+`meta.translations`（规范消息键 → 译文字符串）提供查看器 UI 文案，缺失或不匹配时回落英文并在
+渲染回执中披露覆盖率。`meta.locale` 只选择渲染器自有的查看器 UI，**不翻译作者字符串**。
+
+#### Scenario: 内置语言
+
+- **WHEN** `meta.locale` 为 `en` 或 `zh-CN`
+- **THEN** 查看器 UI 使用该内置目录，无需 `meta.translations`
+
+#### Scenario: 非内置语言缺翻译
+
+- **WHEN** `meta.locale` 为未内置的语言标签且未提供匹配的 `meta.translations`
+- **THEN** 渲染器回落英文并披露覆盖率，不因此失败
+
+### Requirement: `schema_version` 的合法取值
+
+`workflow` 与 `lifecycle` 两类图的 `schema_version` SHALL 接受 `1` 与 `2` 两个取值
+（`architecture`、`sequence`、`dataflow` 仍固定为 `1`）；`workflow` 的 v2 走可读编译器，
+`lifecycle` 的 v2 每泳道一行、共用列网格。内核 MUST NOT 提供 schema-version 的 `migrate`
+子命令——迁移 SHALL 由作者直接改写 IR 完成。
+
+#### Scenario: lifecycle v1 与 v2
+
+- **WHEN** lifecycle IR 的 `schema_version` 为 `1`
+- **THEN** 使用固定三段带布局；为 `2` 时每泳道一行、共用列网格
+
+#### Scenario: 不存在的 migrate 子命令
+
+- **WHEN** 以 `migrate` 调用内核入口
+- **THEN** 以非零退出码失败并指出该子命令不存在

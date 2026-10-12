@@ -51,7 +51,7 @@ test('模板里能取到字体块与主样式块，字体块原文逐字节可�
   assert.equal(fonts, m[1]);
 });
 
-test('主样式块剥离注释后：顶层 791 个块 / 其中 35 个 at-rule / 756 条普通规则', () => {
+test('主样式块剥离注释后：顶层 832 个块 / 其中 31 个 at-rule / 801 条普通规则', () => {
   const { main } = findStyleBlocks(html);
   const rules = splitTopLevelRules(main);
   assert.equal(rules.length, GOLDEN.topLevelChunkCount);
@@ -76,12 +76,16 @@ test('金样：抽取出的 SVG 相关规则集合与金样完全一致（选择
   assert.equal(sha256(css), GOLDEN.extractedTextSha256);
 });
 
-test('金样集合里含 2 条 #theme-icon 规则（正则过滤的副作用必须被如实保留）', () => {
+test('金样集合里含 3 条 #theme-icon 规则（正则过滤的副作用必须被如实保留）', () => {
   const { main } = findStyleBlocks(html);
   const { selectors } = extractSvgCss(main);
   const themeIcon = selectors.filter((s) => s.includes('#theme-icon'));
-  assert.equal(themeIcon.length, 2);
-  assert.deepEqual(themeIcon, ['[data-theme="light"] #theme-icon', '[data-theme="dark"] #theme-icon']);
+  assert.equal(themeIcon.length, 3);
+  assert.deepEqual(themeIcon, [
+    '[data-theme="dark"] .toolbar #theme-icon',
+    '[data-theme="light"] #theme-icon',
+    '[data-theme="dark"] #theme-icon',
+  ]);
 });
 
 test('at-rule 内部规则被排除：@media print 的变量覆盖不得进入抽取结果', () => {

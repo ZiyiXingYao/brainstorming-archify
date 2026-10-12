@@ -1,7 +1,7 @@
 // 任务 2.2 —— 主题变量解析用例（本仓库新增，非上游文件）
 //
 // 覆盖：
-//   - classic 深浅两套各 32 个变量；
+//   - classic 深浅两套各 33 个变量；
 //   - 少定义变量的预设（signal-flow 深 30 / 浅 27）能由 classic 补齐到完整；
 //   - 四套预设 × 两主题共 8 个组合均非空、无缺项、无 undefined；
 //   - 未知预设 / 未知主题明确报错，不静默回落；
@@ -53,30 +53,30 @@ test('模板里恰好有 4 套预设 × 2 主题 = 8 个主题块，且不含 #t
   }
   // #theme-icon 规则不是主题块：其 body 无 -- 变量；若被误当主题块，classic light 会多出无关键
   const classicLight = resolveThemeVars(blocks, 'classic', 'light');
-  assert.equal(Object.keys(classicLight).length, 32);
+  assert.equal(Object.keys(classicLight).length, 33);
 });
 
-test('classic 深浅两套各 32 个变量，且键集合一致', () => {
+test('classic 深浅两套各 33 个变量，且键集合一致', () => {
   const dark = resolveThemeVars(parseThemeBlocks(main), 'classic', 'dark');
   const light = resolveThemeVars(parseThemeBlocks(main), 'classic', 'light');
-  assert.equal(Object.keys(dark).length, 32);
-  assert.equal(Object.keys(light).length, 32);
+  assert.equal(Object.keys(dark).length, 33);
+  assert.equal(Object.keys(light).length, 33);
   assert.deepEqual(Object.keys(dark).sort(), Object.keys(light).sort());
   // 值必须是实际解析出的色值，而非浏览器默认（同时锁定 @media print 未泄漏）
   assert.equal(dark['--bg'], '#020617');
-  assert.equal(light['--bg'], '#f8fafc');
+  assert.equal(light['--bg'], '#f4f5f7');
   assert.equal(dark['--toolbar-text'], '#e2e8f0');
   assert.equal(light['--toolbar-menu-bg'], '#ffffff');
 });
 
-test('signal-flow 浅色（仅定义 27 个）由 classic 补齐到完整的 32 个', () => {
+test('signal-flow 浅色（仅定义 27 个）由 classic 补齐到完整的 33 个', () => {
   const blocks = parseThemeBlocks(main);
   const presetLight = blocks['signal-flow'].light;
   const classicLight = blocks.classic.light;
   assert.equal(Object.keys(presetLight).length, 27);
 
   const merged = resolveThemeVars(blocks, 'signal-flow', 'light');
-  assert.equal(Object.keys(merged).length, 32);
+  assert.equal(Object.keys(merged).length, 33);
   // classic 的每个键都必须在，且无 undefined
   for (const key of Object.keys(classicLight)) {
     assert.ok(key in merged, `缺项：${key}`);
@@ -96,7 +96,7 @@ test('signal-flow 浅色（仅定义 27 个）由 classic 补齐到完整的 32 
 test('signal-flow 深色（仅定义 30 个）由 classic 补齐，且预设值覆盖 classic', () => {
   const blocks = parseThemeBlocks(main);
   const merged = resolveThemeVars(blocks, 'signal-flow', 'dark');
-  assert.equal(Object.keys(merged).length, 32);
+  assert.equal(Object.keys(merged).length, 33);
   assert.equal(merged['--bg'], '#030711'); // 预设覆盖
   assert.equal(merged['--arrow-emphasis'], '#2dd4bf'); // 预设覆盖
   assert.equal(merged['--toolbar-text'], '#e2e8f0'); // classic 补齐
@@ -176,10 +176,10 @@ test('合并不修改入参：resolveThemeVars 返回新对象，且重复调用
   assert.equal(JSON.stringify(blocks), before);
 });
 
-test('从模板 HTML 直接解析：classic/dark 与 classic/light 各 32 项', () => {
+test('从模板 HTML 直接解析：classic/dark 与 classic/light 各 33 项', () => {
   const dark = resolveThemeVarsFromHtml(html, 'classic', 'dark');
   const light = resolveThemeVarsFromHtml(html, 'classic', 'light');
-  assert.equal(Object.keys(dark).length, 32);
-  assert.equal(Object.keys(light).length, 32);
+  assert.equal(Object.keys(dark).length, 33);
+  assert.equal(Object.keys(light).length, 33);
   assert.notDeepEqual(dark, light);
 });
