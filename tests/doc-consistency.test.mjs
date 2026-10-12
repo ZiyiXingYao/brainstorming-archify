@@ -32,6 +32,8 @@
  *      总则命名规范含 Redis 全局/聚合 key 形态、SKILL 含台账去重口径与两轮台账前置、平台提问上限口径。
  *   ⑭ dry-run 复测的修法：审查提示词允许家族整节不适用（`section-level 不适用`）、总则给出 Redis 全局 key
  *      的「用途」段语义、§10 先给跨模块/单模块的判定规则。
+ *   ⑮ dry-run 第三轮复测的修法：整族不适用在技能自审与接口契约模板正文三处一致；
+ *      §10 用「单模块功能流程」并与「纯模块内部实现级流程」区分；§7 点明「模块是设计划分、进程是运行单元」。
  *
  * 只用 Node 内置模块，不依赖 node_modules。
  */
@@ -369,7 +371,7 @@ test('占位形态与序号口径只有一种说法', () => {
   }
   assert.match(
     read(ARCH_TEMPLATE),
-    /单模块流程用\*\*该模块\*\*的序号/,
+    /单模块功能流程用\*\*该模块\*\*的序号/,
     '序号应取归属文档（单模块功能流程用该模块的序号）',
   );
   assert.match(read('skill/design-doc-reviewer-prompt.md'), /豁免|exempt/, '审查提示词应豁免占位图');
@@ -449,6 +451,20 @@ test('dry-run 复测暴露的修法已落盘（整族不适用 / Redis 全局 ke
   assert.match(contract, /「用途」段写该 key 承担的机制或角色/, '总则应给全局 key 的「用途」段语义');
   // 单模块流程序号的判定规则（先判是否跨模块）
   assert.match(arch, /先判是否跨模块/, '§10 应先给跨模块/单模块的判定规则');
+});
+
+test('dry-run 第三轮复测的修法已落盘（整族不适用三处一致 / 术语 / 进程≠模块）', () => {
+  const skill = read(SKILL);
+  const contract = read('templates/interface-contract-template.md');
+  const arch = read(ARCH_TEMPLATE);
+  // 整族不适用：技能自审与模板正文也允许节级不适用（与审查提示词/规格一致）
+  assert.match(skill, /never demand three sub-parts from a family the project does not use/, '自审应允许整族不适用');
+  assert.match(contract, /代替三个小节/, '模板正文应允许整族不适用');
+  // 术语：单模块功能流程 ≠ 纯模块内部实现级流程
+  assert.match(arch, /单模块功能流程/, '§10 应用「单模块功能流程」');
+  assert.match(arch, /不是\*\*模块模板所说的「纯模块内部\*\*实现级\*\*流程」/, '§10 应点明与「纯模块内部实现级流程」的区别');
+  // 进程 ≠ 模块
+  assert.match(arch, /模块是设计划分、进程是运行单元/, '§7 应点明模块与进程不是一回事');
 });
 
 /* ---------------------------------------------------------------------------
