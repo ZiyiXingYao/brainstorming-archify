@@ -5,13 +5,44 @@ description: "You MUST use this before any design or implementation work - creat
 
 # Brainstorming Ideas Into Designs
 
-Help turn ideas into fully formed designs through natural collaborative dialogue.
+You are very good at building. You build what you believe your human
+partner wants, and that belief is usually thinner than it feels. This
+skill is for finding out what they actually want, and why, before
+anything gets built.
 
-Start by classifying how much process the request needs, then work
-through your path: understand the context, refine the idea, present a
-design, and get your human partner's approval. Once the design has
-settled and your human partner wants it kept, write it out as
+People often haven't finished working out what they want. Good questions
+help them think it through. When you understand the why, you make the
+hundred decisions they never mention the way they would have made them.
+
+This skill settles the design through that conversation and, once it is
+settled and your human partner wants it kept, writes it out as
 human-readable design documents.
+
+## First: What Do You Actually Know?
+
+Before you reply, ask yourself: what do I know about what they want, and
+why?
+
+- **Everything that matters is in the request** ("rename the flag to
+  `--dry-run`"). State in one line what you would do and stop; this skill
+  is done. No design document is written for a quick, clear task.
+- **Something non-trivial is missing.** Start the conversation.
+
+## Your First Message
+
+Your first message is two things, in this order:
+
+1. One line letting them know that if they'd rather skip the questions and
+   have you just start, they can say so. If they take you up on it, this
+   skill is done: state any significant how-it-gets-made choice (platform,
+   language, structure) in one plain line, then hand the work back to their
+   normal workflow.
+2. One open question that gets them describing. Ask about a real moment or
+   a concrete picture ("what's the moment you find yourself wishing this
+   existed?"), not a menu.
+
+That is the whole message. Gathering missing requirements never asks them
+to authorize the task again.
 
 ## Scope
 
@@ -82,10 +113,18 @@ allowed while those prerequisites remain incomplete.
 
 ## Three Paths
 
-Before your first question, classify the request and say the
-classification out loud — "this looks bounded, so I'll present a short
+Size the work first, then name the path. Say the classification out loud
+before your first question — "this looks bounded, so I'll present a short
 design here rather than write a design doc" — so your human partner can
 override it:
+
+| Size | The full description | Then |
+|------|----------------------|------|
+| A quick, clear task | the request itself | state what you'd do and stop; this skill is done |
+| A bounded change | in chat | a short in-chat design; the Persist Gate then decides whether anything is written |
+| An architectural change | a written design document | the design documents, then hand them to a separate process |
+
+The three paths below give each size its prerequisites:
 
 - **Spike** — a feasibility question ("can we...", "is it possible...",
   "quick and dirty is fine") whose output is an answer, not code you
@@ -136,6 +175,9 @@ that path's gates before implementation.
 
 | Thought | Reality |
 |---------|---------|
+| "I'll offer options to save them effort" | Options steer. Ask them to describe it first. |
+| "I'll fill in sensible defaults" | Good — say them out loud. A default they never heard is one they couldn't reject. |
+| "I should explain the process first" | Ask your question. The process shows itself. |
 | "This is too simple to need a design" | Follow the selected path: a bounded change gets a short chat design; an architectural change gets the design documents. |
 | "I'll call it bounded and skip the design doc" | Reaching for a label to skip work IS the doubt — take the heavier path. |
 | "It's bounded and the design is obvious — I'll start while they read it" | The gate is the approval, not the design's length. Present, then stop until you hear yes. |
@@ -272,6 +314,48 @@ spike stops at "present the probe, get a nod"). Sections from
 **Exploring approaches** onward are architectural-path depth — for
 bounded work, context plus a few questions plus a short in-chat design
 is the whole process.
+
+**The conversation:**
+
+- Each message ends with one question: a single sentence with no list of
+  example answers hanging off it. Use plain language, pitched just a little
+  above where your human partner is. Match their vocabulary; never use
+  process jargon. Be clear and concise and lead with what matters.
+- **Get them describing.** Open questions come first; their own words carry
+  intent your options can't. Offer a short menu only when they're stuck.
+  When they say "just guess" or "what do you think?", propose something
+  concrete.
+- **How it gets made.** Find out early which choices about medium, tools and
+  resources they want to make, which they're handing to you, and what they
+  already have to work with. When there is existing work, build on what it
+  already uses. Any choice you make goes into the design as your call, never
+  as something they agreed to.
+- **Ground to cover** (territory, not a script — never read these out as
+  questions): what kind of thing this is and what makes it special; why now
+  and what success looks like to them; goals, non-goals and anti-goals (what
+  would make this a failure even if it technically works); prior art; current
+  state; the details they care about.
+- **Questions that work** anchor in specifics ("walk me through the last
+  time…", "if it could only do one of these well, which?", "what would make
+  you wince if I got it wrong?"). A guess they can correct ("I'm guessing
+  this is because X keeps biting you?") often beats a question.
+- **Offer recon.** Once you have a bit of grounding and looking would help,
+  offer to go look — their codebase or project, their own files and data, or
+  the web. Say what you'd look for; they decide whether you go.
+- **Think wide privately** before proposing anything: come up with several
+  ideas and drop the weak ones, including any that fight what they've told
+  you about why. Show the comparison only when it helps them decide.
+- **Spike to feel things out.** A quick throwaway build is often the cheapest
+  way to learn what they want or whether something works. Offer one when it
+  would help; when they just want to spike, get out of the way.
+
+**Play it back.** As soon as you understand one part well enough to describe
+it, describe that part back in about 200-300 words, then return to questions
+about the next part. Playback and questions alternate through the whole
+conversation; the last chunk covers whatever is left. Mark anything you're
+guessing as your guess; only what they said goes in as theirs. End each
+chunk by asking what's wrong or missing. This is the working form of
+**Establish Shared Understanding** above.
 
 **Understanding the idea:**
 
@@ -1167,6 +1251,21 @@ One subagent reviews all three document types. Route each document to its
 template: `01-架构设计.md` follows the architecture template,
 `specs/design/00-接口契约.md` follows the interface-contract template, and every
 other document follows the module template.
+
+**Builder check.** Also dispatch a fresh subagent as a talented builder in the
+domain (for software, a skilled engineer), using `builder-check-prompt.md` in
+this skill's directory, handed the design documents and asked
+to report *only* the questions it would still need answered before it could
+plan from them — the places where it would have to guess and a wrong guess
+would matter. Tell it to skip anything the documents explicitly leave to the
+builder, anything it could reasonably decide itself, and wording nitpicks, and
+to rank what remains by importance. Sort the answers into three piles: **already
+answered** by the conversation or the documents (fold the answer in), **minor**
+(a sensible builder could settle it without changing what gets built — settle
+it yourself and mark it as your call), and **theirs** (only your human partner
+can answer it, and the answer changes what gets built). Bring the *theirs* pile
+in one message, most important first, and fold the answers back into the
+documents before the user review gate.
 
 When the write set exceeds five documents, split the review: review
 `01-架构设计.md` first, then dispatch the module documents in batches,

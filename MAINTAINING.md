@@ -30,9 +30,9 @@
 
 本技能的 `SKILL.md` 是 [superpowers](https://github.com/obra/superpowers) `skills/brainstorming/SKILL.md` 的**改造副本**。
 
-**上游基准**：`obra/superpowers` @ `v6.4.1`（commit `5bf4e78`）
+**上游基准**：`obra/superpowers` @ `v7.0.0`（commit `bb92a77`）
 
-**上游现状（2026-09-22 实测）**：本仓库**已同步到** `v6.4.1`（commit `5bf4e78`）。本仓库最初自上游 `v6.3.0`（commit `b36e082`）分叉；从该版到 `v6.4.1`，`skills/brainstorming/SKILL.md` 实测为 **250 → 285 行、diff 66 行**，新增一节 `## Establish Shared Understanding`——已把《需要重放的改动清单》按新基准逐条复核，并把新增节与上游改写处的**节级／段落级本地化**登记为第 36、37 条（见下）。
+**上游现状（2026-10-12 实测）**：本仓库**已同步到** `v7.0.0`（commit `bb92a77`）。本仓库最初自上游 `v6.3.0`（commit `b36e082`）分叉；`v6.4.1 → v6.4.2` 对 `skills/brainstorming/SKILL.md` **零改动**，而 `v6.4.2 → v7.0.0` 是**整节重写**（466 行 diff）：删掉 `## Three Paths`（改为 `## Size the Work` 三档表）、删掉 spec 产物与 `spec-document-reviewer-prompt.md`、新增 `builder-check-prompt.md`（子代理「构建者检查」）与更口语化的对话指引（`## Your First Message`、`## The Conversation`、`## Play It Back`）。本仓库**未照抄重写后的版式**——那会丢掉本库赖以成立的三路径、三道门、三模板与绘图内核——而是把 v7.0.0 的**新增内容与措辞**并入本库既有设计模型，并把 v7.0.0 内容在 `SKILL.md` 上的**节级／段落级本地化**登记为第 47 条（见下）。
 
 《需要重放的改动清单》是**活指令**：上游再前移时，须把清单逐条重新施加到新坐标、为新增节判定偏离，再跑 `./sync-upstream.sh --ref <新坐标>` 复验 diff；只改本文件里的版本号不算同步。
 
@@ -43,7 +43,7 @@
 ./sync-upstream.sh
 
 # 与指定 tag / 分支对比
-./sync-upstream.sh --ref v6.4.1
+./sync-upstream.sh --ref v7.0.0
 ```
 
 脚本会浅克隆上游仓库，打印上游版本信息和 `SKILL.md` 的双向 diff。
@@ -130,6 +130,18 @@ rm -rf /tmp/sp
 
 45. （新增）`## Change List Gate` 增补**变更清单自身的落盘形态与时机**（新增 `### Where the change list itself is persisted` 小节）：清单在门**批准之后**、与文档**同批**写盘到 `<项目根>/.brainstorming-archify/change-lists/<UTC 时间戳>-<主题 slug>.md`（如 `20260922T112442Z-order-module.md`；UTC 时间戳在前，按文件名排序即落盘顺序；主题 slug 取本次落盘**主文档**的语义英文短名，规则同图名 slug——仅 ASCII 字母、数字与 `-`、无中日韩字符，首次或架构级落盘用 `architecture`、单模块落盘用该模块英文名、一次落盘覆盖多份时取序号最小者）；**每次落盘一份**，后次新增自己的文件、绝不覆盖前次；批准前只在对话里重列、不写盘——该门的唯一写盘例外仍只是绘图规划 Gate 点名的源 IR；`.brainstorming-archify/change-lists/` 定性为**过程产物**而非受管设计目录——位于 `specs/design/` 之外、技能从不删除、**不在提交范围内**；`specs/design/` 仍是恢复对话的**唯一锚点**，该目录里的旧文件既不表示「待批准」也不表示「已批准」，恢复的会话照旧重列清单并重新取得批准。
 46. （补登）`## Handoff to a Downstream Process` 整节：交接物是**整个 `specs/design/` 目录**（文档集 + `diagrams/` 三件套；因每份文档都以相对自身的路径引用其图，该目录自包含，交接的是这个目录而非单个文件）；本技能**从不**调用下游流程，是否交接、交给谁由人类决定，被问到时只报出上述产物集即止；接口契约是该集合的一部分而非交接的前置条件——它因机械判定命中而存在，交接不需要重新推导。
+
+**（叠加）v7.0.0 新基准的本地化**
+
+47. （叠加）本地化 v7.0.0 的重写内容。上游 v7.0.0 把 `## Three Paths` 换成 `## Size the Work` 三档表、删掉 spec 产物与 `spec-document-reviewer-prompt.md`、新增 `builder-check-prompt.md`，并重写了对话指引。本仓库**保留本库的三路径（Spike／Bounded／Architectural）与三道门模型**，把 v7.0.0 的增量并入：
+   - `## First: What Do You Actually Know?`（v7 新节）：收在 `SKILL.md` 开头，作为「快速清晰的任务 → 说一句就停、本技能结束」的 triage；`## Your First Message`（一句话允许对方跳过提问 + 一个开放式问题）照收，并把「跳过即交回对方常规流程」明确为**本技能不实现**（与 Scope 口径一致）。
+   - `## The Conversation` 与 `## Play It Back`：把 v7 的对话指引（一消息一问、把选择说出口、Ground to cover 的领地清单、Questions that work、Offer recon、Think wide privately、spike）并入本库 `## The Process` 的「The conversation／Play it back」两段；**删去 v7 的 `## Visual Companion` 整节与 `visual-companion.md`／`scripts/`**（沿用第 1、2 条裁剪）。本地既有的**三层提问清单**（功能点／架构／模块层）与「一消息一层」保留。
+   - `## Size the Work` 三档表：并入 `## Three Paths` 的开头（三档 ↔ 三路径），保留本地路径名与 prerequisite 分级。
+   - **Builder check**：v7 新增的「构建者检查」并入本库 `## Subagent Review`，作为审阅子代理之外的**第二支透镜**（把「构建者还缺什么」分三堆：已答／次要／只有人类能答）。
+   - 上游删掉的 `spec-document-reviewer-prompt.md` 本库早已用 `design-doc-reviewer-prompt.md` 取代（第 17 条），不回归。
+   - `## Red Flags` 表补入 v7 的三行（选项会引导、默认值要说出口、别先讲流程），与本地既有行并存。
+   - front-matter `description` 仍按第 38 条；**不予采纳** v7 把适用范围扩到「软件之外（一场演讲、一门生意、一次装修）」的措辞——本技能落点是 `specs/design/` 下的设计文档。
+   - **未采纳 v7 版式**：v7 把 `Checklist`／`Process Flow`／`The Persist Gate`／`Incremental Persist Protocol`／`Diagrams`／`Change List Gate`／`Self-Review`／`User Review Gate` 等本库机制整节删除，本库沿用自有版本，不随上游删除。
 
 ### 上游二：archify（绘图内核）
 
