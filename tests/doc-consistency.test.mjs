@@ -573,12 +573,18 @@ test('brand-marks 源码不再含联网抓取实现', () => {
  * 断言锚点取完整短语以免误伤；负向断言防旧口径回退。
  * ------------------------------------------------------------------------- */
 
-test('SKILL.md 定明变更清单的落盘形态与时机', () => {
+test('SKILL.md 定明变更清单的落盘形态与时机（一轮一份、轮内追加）', () => {
   const skill = read(SKILL);
   assert.match(skill, /\.brainstorming-archify\/change-lists\//, '应给出变更清单落盘目录');
   // 正文按排版硬换行，短语断言须容忍换行（用 \s+ 而非字面空格）。
   assert.match(skill, /After\s+this gate is approved/, '应点明清单落在门批准之后');
-  assert.match(skill, /One file per\s+persist/, '应点明每次落盘一份、后次不覆盖前次');
+  assert.match(skill, /One file per discussion round/, '应点明一轮一份（不再是每次落盘一份）');
+  assert.doesNotMatch(skill, /One file per\s+persist/, '不得残留「每次落盘一份」旧口径');
+  assert.match(skill, /append\*\* that\s+persist's list to \*\*the current round's change-list file\*\*/, '应点明轮内追加到当前文件');
+  for (const section of ['Round header', 'Discussion record', 'Key decisions', 'File modification ledger', 'Persist authorisations']) {
+    assert.ok(skill.includes(section), `轮次记录应有小节「${section}」`);
+  }
+  assert.match(skill, /change-state\.mjs change-list <path>` refuses a different file/, '应点明切换的机械守卫');
 });
 
 test('审查提示词声明 .brainstorming-archify/change-lists/ 属非受管文档', () => {
@@ -590,8 +596,8 @@ test('审查提示词声明 .brainstorming-archify/change-lists/ 属非受管文
   );
   assert.match(
     prompt,
-    /the change-list file this persist wrote/,
-    'change-list coverage 判据应从本次落盘的那份清单文件读取内容',
+    /read the content from the current round's change-list\s+file/,
+    'change-list coverage 判据应从当前轮次的 change-list 文件读取内容',
   );
 });
 
@@ -681,12 +687,17 @@ test('审查提示词含 task.md 判据', () => {
   }
 });
 
-test('三份模板文件头无「状态」行，README 无旧元信息表述', () => {
+test('三份模板文件头只剩标题与对应架构，修改信息改由轮次台账承载', () => {
   for (const rel of [ARCH_TEMPLATE, MODULE_TEMPLATE, 'templates/interface-contract-template.md']) {
     const template = read(rel);
     assert.doesNotMatch(template, /^\> \*\*状态\*\*：/m, `${rel} 文件头不得再有状态行`);
-    assert.match(template, /\*\*最近更新\*\*/, `${rel} 应保留最近更新行`);
+    assert.doesNotMatch(template, /^\> \*\*最近更新\*\*：/m, `${rel} 文件头不得再有最近更新行`);
+    assert.doesNotMatch(template, /^\> \*\*参与\*\*：/m, `${rel} 文件头不得再有参与行`);
+    assert.doesNotMatch(template, /^\> \*\*来源\*\*：/m, `${rel} 文件头不得再有来源行`);
   }
+  // 模块文档与接口契约保留「对应架构」交叉引用行
+  assert.match(read(MODULE_TEMPLATE), /\*\*对应架构\*\*/, '模块文档应保留对应架构行');
+  assert.match(read('templates/interface-contract-template.md'), /\*\*对应架构\*\*/, '接口契约应保留对应架构行');
   const readme = read('README.md');
   assert.doesNotMatch(readme, /「状态」新建为「草稿」/, 'README 不得残留旧状态口径');
   assert.match(readme, /文件头不再写「状态」|\.brainstorming-archify\/state\.yaml/, 'README 应说明状态改记 state.yaml');

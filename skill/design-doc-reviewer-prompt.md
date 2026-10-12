@@ -56,14 +56,18 @@ Subagent (general-purpose):
 
     **`.brainstorming-archify/change-lists/` is not a managed design document.** It holds
     the approved change lists — process artifacts under
-    `<project root>/.brainstorming-archify/change-lists/`, written once the Change List
-    Gate is approved. Route them to no template and do not review them against any
-    template's criteria: their `<...>` hints and placeholders are expected and are
-    **not** a `Completeness` finding, and none of the rows below apply to them. When
-    a criterion below needs the approved change list's content — `change-list
-    coverage`, the diagram rows, the untouched-content row — read the content from
-    the change-list file this persist wrote, rather than treating the list as
-    unreadable because it is not in `specs/design/`.
+    `<project root>/.brainstorming-archify/change-lists/`. The **current round's**
+    file is the one `state.yaml`'s `change_list.path` points at (it is a living
+    round record: round header, discussion record, key decisions, file-modification
+    ledger, and one authorisation block per persist). Route the directory to no
+    template and do not review it against any template's criteria: its `<...>`
+    hints and placeholders are expected and are **not** a `Completeness` finding,
+    and none of the rows below apply to it. When a criterion below needs the
+    approved change list's content — `change-list coverage`, the diagram rows, the
+    untouched-content row — read the content from the current round's change-list
+    file (and, for an earlier persist of the same round, its earlier authorisation
+    block), rather than treating the list as unreadable because it is not in
+    `specs/design/`.
 
     A routing error is itself a defect to report: naming a document on the wrong template makes every finding drawn from it suspect. The interface contract's path and file name are fixed at `specs/design/00-接口契约.md`, so a document named `接口契约.md` with no prefix, `0-接口契约.md` with the wrong prefix, `contract.md`, or the like is a routing failure — report it, and do not fall back to checking it against another template.
 
@@ -128,7 +132,7 @@ Subagent (general-purpose):
     | Class attribution **(architecture)** | The architecture's core-class list is a **subset** of the union of the **already-designed** modules' class lists; every core-class entry satisfies the core-class criterion (it appears on the module-level chain of a section 10 flow, it is the carrier of a section 10 flow's trigger entry, or it is the interface carrier of a section 7 matrix row — the interface carrier being the class named in that row's dependency-summary column); a core class owned by an **already-designed** module whose class list does not contain it is an issue, and the same class owned by two modules is an issue; a core class owned by a module that is still 未设计 is registered provisionally and is **not** an issue, but must be reconciled into that module's class list when the module is designed. The architecture file tree covers module folders and core files and can locate every core class's `定义文件`; a tree that stops at module folders **and core files** is **not** a defect — file-level completeness is not required — but a tree that cannot locate a core class's `定义文件` **is** one, and a non-core source file's absence is **not** a defect. A module marked 已设计 has a document that exists, one marked 未设计 has no document yet and carries the `（待创建）` marker, and no module document exists whose module is absent from the list |
     | Functional-point coverage | The functional-point list in architecture section 5 is complete — every capability the system provides appears and nothing invented; each functional point is served by at least one section 10 flow, and each section 10 flow names at least one functional point (bidirectional coverage); a functional point listed in a module document's section 1.2 exists in architecture section 5 and vice versa, and each module's section 1.2 agrees with that module's section 5 服务功能点 annotations; a functional point claimed by no module is an issue. A 功能点 is a descriptive requirement entry — who needs it in what situation and what it achieves — and must **not** be a requirement ID plus acceptance criteria; Given/When/Then must not appear |
     | Cross-document consistency | Dependency-contract rows and interface-matrix rows agree in both directions; every **functional** flow — including one whose module-level chain stays inside a single module — appears in the architecture's global flow section with the matching name and 服务功能点, and no module document claims a global flow that the architecture does not have; a purely module-internal **implementation** flow must not be registered there; module names are unique across the list and match file names and the matrix's "详见" references, with no reference pointing at a renamed or deleted module; cross-references use the project-root-relative path form (`specs/design/02-通信模块.md`) rather than bare file names or `../` hops |
-    | Incremental merge integrity | Every document and section the approved change list declared untouched is word-for-word unchanged (the 最近更新 line is the one permitted exception); no content from other modules or earlier discussions was silently dropped — in particular, a module document redrafted wholesale rather than merged, and any document the change list did not name as modified. When the change list announced an architecture overhaul, check that the existing documents were still walked entry by entry and that whatever still holds was kept, rather than regenerated |
+    | Incremental merge integrity | Every document and section the approved change list declared untouched is word-for-word unchanged — untouched documents are now **fully** untouched, because the modification record no longer lives in their headers (it lives in the current round file's file-modification ledger, which is a process artifact, not a design document; do not demand a 最近更新/参与/来源 header line, and do not treat its absence as a defect). No content from other modules or earlier discussions was silently dropped — in particular, a module document redrafted wholesale rather than merged, and any document the change list did not name as modified. When the change list announced an architecture overhaul, check that the existing documents were still walked entry by entry and that whatever still holds was kept, rather than regenerated |
     | Completeness | No TBD/TODO/prose-placeholder/empty sections; background, comparison, recommendation, and decisions are all substantive. The placeholder scan targets prose placeholders the author must fill and must **not** flag a literal spec inside inline backticks (e.g. the interface contract's naming format string), the fixed `不适用：<原因>` notation, or the trailing 「使用说明」 block |
     | Consistency **(architecture)** | No contradictions between sections; the recommended approach matches the comparison's conclusion |
     | Decision traceability | Key decisions state their rationale and rejected alternatives |
