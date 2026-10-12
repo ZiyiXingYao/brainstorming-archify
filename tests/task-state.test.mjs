@@ -424,6 +424,20 @@ test('resume-state：closed 态的 next_action 指向 reopen', () => {
   assert.match(out.next_action.reason, /reopen/);
 });
 
+test('reopen：未登记的新文件先登记为 discussing（新增模块场景）', () => {
+  const root = tmpProject();
+  runChange(root, ['init']);
+  runChange(root, ['file', ARCH, 'confirmed']);
+  runChange(root, ['advance', 'draft']);
+  runChange(root, ['advance', 'confirm']);
+  // 新模块文档从未登记过
+  assert.equal(runChange(root, ['reopen', MOD_B, '--reason', '新增调度模块']).status, 0);
+  const out = JSON.parse(runChange(root, ['show', '--json']).stdout);
+  const entry = out.files.find((f) => f.path === MOD_B);
+  assert.ok(entry, 'reopen 未登记文件应把它登记进 files');
+  assert.equal(entry.status, 'discussing');
+});
+
 test('resume-state：文本输出含 State 与 Next 两行（对齐 ssf resume 口径）', () => {
   const root = tmpProject();
   runChange(root, ['init']);

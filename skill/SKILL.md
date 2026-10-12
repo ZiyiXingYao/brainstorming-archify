@@ -64,7 +64,12 @@ human-readable design documents.
   substance — a descriptively named functional point carrying a stable
   reference label such as `FP-1` is a cross-reference aid, not spec-mode
   content, and a reference site may cite that label alone once the name
-  is defined)
+  is defined). **The one sanctioned exception is `specs/design/task.md`**:
+  the implementation task list this skill generates once every document
+  is confirmed (see **Implementation Task Split**) is a task list whose
+  tasks carry acceptance criteria by design — it is the handoff artifact,
+  not a spec-mode byproduct, and the ban above applies to every other
+  document.
 
 **Where the output goes:** your human partner hands the design documents
 to a separate process (for example spec-superflow). This skill is not
@@ -474,7 +479,9 @@ node <skill-root>/scripts/task-state/resume-state.mjs [--json]
   A later round that touches registered files (or adds new ones) opens with
   `reopen <paths> --reason "<topic>"`: only the named files flip back to
   `discussing`, files nobody named keep their status, and the overall state
-  returns to `explore`.
+  returns to `explore`. Naming a file that is **not registered yet**
+  registers it as `discussing` first — that is how a new module joins a
+  library that already exists.
 - **After the Change List Gate approves a persist** — in the same batch as
   the documents, mark every document that persist wrote with
   `file <path> landed`. When every registered file is `landed`, run
@@ -1452,8 +1459,11 @@ must be regenerated before the round can close again).
    build and dependency setup, the directory layout from the architecture
    document's file-tree section, shared infrastructure (configuration,
    logging, error types, storage and cache clients, message-channel
-   clients), and the process and thread wiring from the runtime view. One
-   task per seam, not one per file.
+   clients), and the process and thread wiring from the runtime view. The
+   **seams** are those items — one task per item that can be implemented and
+   verified on its own; items that cannot stand alone (a client with nothing
+   to configure it yet) merge into the task that first makes them meaningful.
+   One task per seam, not one per file.
 2. **Module tasks** — one per module in the architecture document's module
    list, in dependency order: the module's internal structure, its classes
    from the module document's class list, and its side of every interface
@@ -1487,7 +1497,9 @@ is invalid if any of these holds, and the check's conclusion is written into
 a **依赖校验** section at the end of `task.md`:
 
 - a task depends on a task that comes later in the list, or on itself;
-- two tasks modify the same file without an explicit ordering between them;
+- two tasks modify the same file without an explicit ordering between them
+  — a task that only **reads** a file another task writes needs no ordering,
+  but its prompt must say so under `[实现的约束]`;
 - a feature task's module task is not complete (a feature task may only
   depend on module tasks listed before it);
 - a task's dependencies name an ID that does not exist.

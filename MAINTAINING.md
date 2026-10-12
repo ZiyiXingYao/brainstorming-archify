@@ -265,6 +265,28 @@ F3–F8 修完后用新项目**盲测复跑**一次，仍判 `有需猜`（无�
 
 > **结论（2026-10-12）**：连续 **6 轮**换项目盲测，**每轮都判 `无阻塞`**（技能可端到端走完、真渲染、自审/审查/用户门都成立）；摩擦集中在**文档精度的长尾**——每个新项目会翻出不同的边角，不是收敛到 0。已按轮次清掉 F1–F8 + 复测 1–6 轮共约 20 处真问题，均配机械断言（59 用例）。**"无阻塞" 是本技能可达到的稳定态；"零摩擦" 不可达**，余项按此登记。
 
+### 2026-10-12 讨论状态库 + 任务拆分 dry-run（报表导出服务）结论
+
+`add-discussion-state-and-task-split` 变更的 dry-run（报表导出服务：HTTP API 进程 + 定时导出 Worker，Redis 锁/计数、MySQL 报表定义、MQ 导出完成事件，三模块、二轮增至四模块）结论 **`无阻塞`**（4 需猜 + 6 体验）。场景结论全部属实：
+
+1. **状态机两轮全干净**：`explore → draft → confirm → closed`，reopen 后再走一遍到 closed；无命令行为异常，正向一步限制、回退需 `--reason`、closed 需 `--task-md` 均按文档生效。
+2. **中断/重启**：draft 态全新跑 `resume-state.mjs --json`，输出 state + 逐文件状态 + 带具体命令的 next_action，足以直接续跑、无需猜测。
+3. **reopen 语义**：`reopen 01 00 05 --reason …` 后仅这 3 个翻 `discussing`，未点名的 02/03/04 保持 `confirmed`，整体回 `explore`，新文件 05 被登记——与技能声称一致。
+4. **过期 task.md 拒绝**：reopen 后未重新生成即 `advance closed` 被拒（exit 1，mtime 不晚于最后重开）；重新生成后同命令成功。
+5. **task.md 可产出性**：三层（框架 3 / 模块 4 / 功能 5）、复选框行、四段式提示词、依赖校验节均可按 Implementation Task Split 单独产出。
+
+**本次引入并已修**（各配断言，用例 95→97）：
+
+| 编号 | 问题 | 修法 |
+|------|------|------|
+| F1 | 「Two file statuses」计数词与三态枚举矛盾 | 改 Three；断言不得残留 Two |
+| F5 | reopen 对**未登记新文件**会先登记再翻转，文档未写 | Discussion State 的 reopen 条补明文；task-state 测试锁行为 |
+| F6 | Scope 禁「任务清单」却要求 task.md 带 `[验收标准]`，例外未写明 | Scope 补「唯一明文例外是 `specs/design/task.md`」；断言 Scope 含该例外 |
+| F7 | 框架任务「one task per seam」的 seam 无判据 | 补「seam 即枚举的那些项；不能独立实现验证的项并入首个使其有意义的任务」 |
+| F8 | 依赖校验「同文件」规则没说「只读」能否免 ordering | 补「只读他方写入的文件无需 ordering，但提示词约束段须声明」 |
+
+**登记未修**：F2（sequence spread 下标签盒宽 vs desktop-readability 双约束在 5 参与者 + 长标签时无交集，出路是去掉 sublabel，repair order 未覆盖——几何问题，不可断言，可在引擎测试记禁用 sublabel 的回归）；F3（`validate` 传错图类型输出 schema 噪音而非用法级提示——先前就有，可断言）；F4（架构 §7 状态枚举表/填表规则是否随产物落盘需推断——先前就有，可断言）；F9（explore 态 resume 不知讨论层进度——设计使然， explore 进度锚在对话里）。
+
 ### `backfill-run-valid-cases` 的现状重估（2026-10-12）
 
 内核重搬到 3.0.1 后，`run-valid.mjs` 的清单已按新基准重测重写（上游全绿 18 + 本地 6 = 24 文件）。上一轮登记的 `backfill-run-valid-cases`（把排除粒度从文件级改为用例级）**前提再次变化**：原拟回填的用例文件已随本次裁剪删除，且新的 18 个上游文件本就是「整文件全绿」，暂无可回填的缺口——该变更建议**关闭**或按新基准重新评估。

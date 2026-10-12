@@ -701,3 +701,30 @@ test('命令适配器源文件在位：占位符与禁改口径', () => {
   assert.match(src, /不得直接修改 `\.brainstorming-archify\/state\.yaml`/, '适配器应禁直接改 state.yaml');
   assert.match(src, /resume-state\.mjs.*--json/s, '适配器应指示跑 resume-state --json');
 });
+
+test('dry-run 状态库复测的修法已落盘（F1 计数词 / F5 reopen 登记 / F6 Scope 例外）', () => {
+  const skill = read(SKILL);
+  // F1：「Two file statuses」计数词与三态枚举矛盾
+  assert.doesNotMatch(skill, /Two file statuses/, '不得残留「Two file statuses」的计数错误');
+  assert.match(skill, /Three file statuses/, '应写 Three file statuses');
+  // F5：reopen 对未登记新文件的行为要写明（先登记再翻转）
+  assert.match(
+    skill,
+    /Naming a file that is \*\*not registered yet\*\*[\s\S]*registers it as `discussing` first/,
+    '应写明 reopen 未登记文件会先登记为 discussing',
+  );
+  // F6：Scope 的 spec-mode 禁令要为 task.md 留明文例外
+  const scope = /## Scope\n([\s\S]*?)\n## /.exec(skill)?.[1] ?? '';
+  assert.match(
+    scope,
+    /sanctioned exception is `specs\/design\/task\.md`/,
+    'Scope 应写明 task.md 是 spec-mode 禁令的唯一明文例外',
+  );
+  // F7/F8 的口径补强
+  assert.match(skill, /\*\*seams\*\* are those items/, '框架任务的 seam 应有判据');
+  assert.match(
+    skill,
+    /only \*\*reads\*\* a file another task writes needs no ordering/,
+    '同文件规则应说明「只读」无需 ordering',
+  );
+});
