@@ -30,19 +30,24 @@ why?
 
 ## Your First Message
 
-Your first message is two things, in this order:
+Your first message is three things, in this order:
 
 1. One line letting them know that if they'd rather skip the questions and
    have you just start, they can say so. If they take you up on it, this
    skill is done: state any significant how-it-gets-made choice (platform,
    language, structure) in one plain line, then hand the work back to their
    normal workflow.
-2. One open question that gets them describing. Ask about a real moment or
+2. The path classification, said out loud (see **Three Paths**) so they can
+   override it.
+3. One open question that gets them describing. Ask about a real moment or
    a concrete picture ("what's the moment you find yourself wishing this
    existed?"), not a menu.
 
-That is the whole message. Gathering missing requirements never asks them
-to authorize the task again.
+That is the whole message. The classification shares this message with the
+single open question; because that open question belongs to no layer, this is
+also the one case where the classification is not paired with a layer's
+questions. Gathering missing requirements never asks them to authorize the
+task again.
 
 ## Scope
 
@@ -184,7 +189,7 @@ that path's gates before implementation.
 | "I understand this kind of app, so it's bounded" | Bounded measures the repo, not your familiarity. A new project has no existing flow — it is architectural. |
 | "They just asked casually, so I'll write the doc anyway" | The Persist Gate: ask first. No consent, no file. |
 | "I'll write the doc in whatever shape feels right" | Design documents MUST follow `architecture-doc-template.md`, `module-doc-template.md`, or `interface-contract-template.md`, in section and in order. |
-| "No interface came up in this discussion, so no interface contract is needed" | Whether the interface contract is produced is a mechanical test, not a topic judgment: any one of the seven interface families — MySQL, Redis, MQ, HTTP, gRPC, dynamic-library API, TCP — being present means the document MUST be produced. A skip justified by "we did not touch interfaces" is a defect. |
+| "No interface came up in this discussion, so no interface contract is needed" | Whether the interface contract is produced is a mechanical test, not a topic judgment: any one of the seven interface families — MySQL, Redis, MQ, HTTP, gRPC, dynamic-library API, TCP — being used by the system this design covers means the document MUST be produced. The base is that system's runtime dependencies, not the surrounding repository and not whether the code exists yet. A skip justified by "we did not touch interfaces" is a defect. |
 | "The interface contract can be `0-接口契约.md` so it sorts with the others" | The interface contract's path and file name are fixed at `specs/design/00-接口契约.md`. Its `00-` is a fixed literal prefix that sits outside the module ordinal sequence — the architecture overview is fixed `01-` and the module documents are `02+` — so the `00-` does not change as modules are added or removed, is not governed by the "append, never renumber" rule, and is never renumbered even when a new module is added. Any other name — no-prefix `接口契约.md`, single-zero `0-接口契约.md`, or the English alias `contract.md` — is a defect. |
 | "This is a module discussion, but I'll tidy up the architecture doc while I'm in there" | Untouched sections stay word-for-word. Only entries actually affected by this discussion may change. |
 | "I know the module list well enough, I'll just write the doc" | Reading `specs/design/` first is a hard prerequisite. Writing without reading silently erases other discussions' work. |
@@ -364,7 +369,7 @@ chunk by asking what's wrong or missing. This is the working form of
 - If the project is too large for a single design, help the user decompose it into functional modules: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first module through the normal design flow. `01-架构设计.md` stays global and accumulates every module's architecture-level content; each module's detail goes in its own `<NN>-<模块名>.md`. There is only ever one architecture document.
 - For appropriately-scoped projects, ask questions to refine the idea one **layer** at a time
 - Prefer multiple choice questions when possible, but open-ended is fine too
-- **One layer per message.** Never mix two layers' questions in the same message or the same structured-question call. Within the current layer you may ask several questions at once, up to your platform's per-call limit for the question tool; if a layer needs more, send another message for that same layer. "One message" means one user-facing message whose content is the question — do not bundle other material into it. The classification announcement the Checklist requires may share a message with the current layer's questions; that is the single exception. The "nothing else" requirement is strict only for the three gates — Persist, Change List and User Review — each of which gets a message of its own.
+- **One layer per message.** Never mix two layers' questions in the same message or the same structured-question call. Within the current layer you may ask several questions at once, up to your platform's per-call limit for the question tool; if a layer needs more, send another message for that same layer. "One message" means one user-facing message whose content is the question — do not bundle other material into it. The classification announcement the Checklist requires may share a message with the first message's single open question or with the current layer's questions; those are the only exceptions. The "nothing else" requirement is strict only for the three gates — Persist, Change List and User Review — each of which gets a message of its own.
 - Ask the clarifying questions in **three layers**. The five steps named throughout this skill — **functional points → module division → core classes → file tree → flows** — are the order the *design* is built in; the three layers are the order the *questions* are asked, mapped onto them as: the functional-point layer covers step 1; the architecture layer covers steps 2–4 plus the architecture-level skeleton of step 5; the module layer covers the module-level detail of step 5.
   - **Functional-point layer** — ask until **every** functional point is captured: which functional points does the system offer? For each, what need it serves, for whom, its input and its observable result, and its boundary (what it deliberately does not do). Which are goals and which are explicit non-goals?
   - **Architecture layer** — ask until **every** functional point and **every** functional flow is captured: how is the system cut into modules, and *why* that way (the seams, the alternative divisions rejected)? Which modules depend on which, and how strongly? Which cross-module interfaces are needed, and what does the calling side expect of each signature? Which classes are the core classes that chain the functional flows together? What do the module folders and core files look like? How does it *run* — which processes, each with which threads, and how do they interact? How is it *deployed* — the deployment directory structure, the deployment steps, and the files the deployment is made of? Deliberately defer the details — they belong to the module layer.
@@ -1167,12 +1172,18 @@ in that template's order — no section added, removed, or reordered:
   outside the module ordinal sequence and never renumbered).
 
 **When the interface contract is produced — a mechanical test, not a topic
-judgment.** If the project has **any one** of the seven interface families —
-**MySQL, Redis, MQ, HTTP, gRPC, dynamic-library API, TCP** — the interface
-contract MUST be produced. If **none** of the seven is present it MUST NOT be
-produced, and the change list records, **family by family**, the ground on which
-each one is judged absent. Skipping it for a reason such as "this discussion did
-not touch interfaces" is never valid. The interface contract carries **no
+judgment.** **The base of that test is the system this design covers** —
+everything the system itself depends on at runtime (a table it reads or
+writes, a cache, a channel, an endpoint it serves or calls, a dynamic library
+it loads, a socket it opens) — **not** the surrounding repository and **not**
+whether the code exists yet. If the system in scope uses **any one** of the
+seven interface families — **MySQL, Redis, MQ, HTTP, gRPC, dynamic-library
+API, TCP** — the interface contract MUST be produced. If **none** of the seven
+is present it MUST NOT be produced, and the change list records, **family by
+family**, the ground on which each one is judged absent — a dependency the
+surrounding repository happens to contain but this system does not use does
+**not** trigger the contract. Skipping it for a reason such as "this discussion
+did not touch interfaces" is never valid. The interface contract carries **no
 diagrams** — it is not a diagram-bearing document, and its lack of SVG diagrams
 is never a defect.
 

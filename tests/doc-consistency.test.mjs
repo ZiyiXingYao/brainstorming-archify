@@ -26,6 +26,8 @@
  *      接口契约模板「使用说明」块声明整块不随产物落盘。
  *   ⑪ 架构模板新增 4+1 视图中的运行视图（§11）与部署视图（§12），原关键决策记录、待定问题与风险
  *      顺延为 §13、§14；技能与审查提示词同步提到两节。
+ *   ⑫ 首条消息恰含三项（可跳过语 + 分类宣告 + 一个开放问题），且「单层提问」的例外明确包含首条消息；
+ *      接口契约的按需产出判定以「本次设计覆盖的系统」为基准，不得残留无基准的旧口径。
  *
  * 只用 Node 内置模块，不依赖 node_modules。
  */
@@ -391,6 +393,24 @@ test('架构模板为 14 节，且含运行视图与部署视图', () => {
   assert.match(read(SKILL), /deployment view/i, 'SKILL 应提到部署视图（deployment view）');
   assert.match(read('skill/design-doc-reviewer-prompt.md'), /运行视图/, '审查提示词应含运行视图判据');
   assert.match(read('skill/design-doc-reviewer-prompt.md'), /部署视图/, '审查提示词应含部署视图判据');
+});
+
+test('首条消息与分类宣告已和解，且接口契约判定基准已定义', () => {
+  const skill = read(SKILL);
+  // F1：首条消息含分类宣告；「单层提问」的例外明确包含首条消息
+  assert.match(skill, /Your first message is three things, in this order/, '首条消息应为三项（含分类宣告）');
+  assert.match(
+    skill,
+    /The classification announcement the Checklist requires may share a message with the first message's single open question/,
+    '单层提问的例外应含首条消息',
+  );
+  // F2：接口契约判定基准是「本次设计覆盖的系统」，不是周边代码库
+  assert.match(skill, /The base of that test is the system this design covers/, '接口契约判定基准应为本次设计覆盖的系统');
+  assert.doesNotMatch(
+    skill,
+    /If the project has \*\*any one\*\* of the seven interface families/,
+    '不得残留无基准的旧口径',
+  );
 });
 
 /* ---------------------------------------------------------------------------
