@@ -188,9 +188,10 @@ node scripts/diagram-engine/test/run-valid.mjs
 
 | 变更 | 要解决的问题 | 细节所在 |
 |------|-------------|---------|
-| `backfill-run-valid-cases` | 把 `run-valid.mjs` 的排除粒度从**文件级**改为**用例级**，才能把「同一文件内部分用例已通过」的运行时用例纳入回归清单。注意：裁剪后该变更原有的核心前提（读 `design-diagrams/SKILL.md` 的文档断言）**已不存在**，且失效用例文件已删除，需与新口径一并重估或直接关闭。 | `scripts/diagram-engine/UPSTREAM.md` 第 3、6 节 |
+| ~~`backfill-run-valid-cases`~~ | **已于 2026-10-12 关闭**：其前提（按文件级排除粒度回填运行时用例）在内核重搬到 3.0.1 后已消失，且失效用例文件随裁剪删除；用户裁定删除该变更目录（`changes/backfill-run-valid-cases/` 已不存在）。详见下节重估。 | `scripts/diagram-engine/UPSTREAM.md` 第 3、6 节 |
 
-该项是在 `add-interface-contract-template` 变更的归档验证中被实测确认的，当时按该变更的范围边界未处理。
+该项是在 `add-interface-contract-template` 变更的归档验证中被实测确认的，当时按该变更的范围边界未处理；
+2026-10-12 经用户裁定**关闭并删除目录**，不再有待处置项。
 
 ### 2026-10-12 dry-run 暴露的问题（已全部处置）
 
@@ -287,9 +288,11 @@ F3–F8 修完后用新项目**盲测复跑**一次，仍判 `有需猜`（无�
 
 **登记未修**：F2（sequence spread 下标签盒宽 vs desktop-readability 双约束在 5 参与者 + 长标签时无交集，出路是去掉 sublabel，repair order 未覆盖——几何问题，不可断言，可在引擎测试记禁用 sublabel 的回归）；F3（`validate` 传错图类型输出 schema 噪音而非用法级提示——先前就有，可断言）；F4（架构 §7 状态枚举表/填表规则是否随产物落盘需推断——先前就有，可断言）；F9（explore 态 resume 不知讨论层进度——设计使然， explore 进度锚在对话里）。
 
-### `backfill-run-valid-cases` 的现状重估（2026-10-12）
+### `backfill-run-valid-cases` 的现状重估（2026-10-12，已关闭）
 
-内核重搬到 3.0.1 后，`run-valid.mjs` 的清单已按新基准重测重写（上游全绿 18 + 本地 6 = 24 文件）。上一轮登记的 `backfill-run-valid-cases`（把排除粒度从文件级改为用例级）**前提再次变化**：原拟回填的用例文件已随本次裁剪删除，且新的 18 个上游文件本就是「整文件全绿」，暂无可回填的缺口——该变更建议**关闭**或按新基准重新评估。
+内核重搬到 3.0.1 后，`run-valid.mjs` 的清单已按新基准重测重写（上游全绿 18 + 本地 6 = 24 文件）。上一轮登记的 `backfill-run-valid-cases`（把排除粒度从文件级改为用例级）**前提再次变化**：原拟回填的用例文件已随本次裁剪删除，且新的 18 个上游文件本就是「整文件全绿」，暂无可回填的缺口。
+
+**处置（2026-10-12）**：用户裁定**关闭该变更并删除目录**——`changes/backfill-run-valid-cases/` 已不存在。若将来出现「同一文件内部分用例通过」的新缺口，按届时基准重新立项，不复用该目录。
 
 ## 3. 历次 dry-run 记录
 
