@@ -713,6 +713,37 @@ test('命令适配器源文件在位：占位符与禁改口径', () => {
   assert.match(src, /resume-state\.mjs.*--json/s, '适配器应指示跑 resume-state --json');
 });
 
+test('Discussion State 收管当前轮次 change-list 文件', () => {
+  const skill = read(SKILL);
+  assert.match(skill, /change_list\.path/, 'Discussion State 应点名 state.yaml 的 change_list.path');
+  assert.match(
+    skill,
+    /Recovery = those two\s+files read together/,
+    '恢复现场应是 state.yaml + 当前轮次 change-list 文件这两个',
+  );
+  assert.match(
+    skill,
+    /no \*\*design document\*\* has landed/,
+    'explore 的「无产物落盘」应限定为设计文档（流程簿记除外）',
+  );
+  assert.match(skill, /the round's first act is its\s+round file|round file\*\*/, '开轮动作应含「建轮次文件」');
+  assert.match(skill, /update the round file's file-modification ledger/, '落盘动作应含「更新台账行」');
+});
+
+test('审查提示词的 merge-integrity 判据不再以「最近更新行」为唯一例外', () => {
+  const prompt = read('skill/design-doc-reviewer-prompt.md');
+  assert.doesNotMatch(prompt, /the 最近更新 line is the one permitted exception/, '不得残留旧例外口径');
+  assert.match(prompt, /do not demand a 最近更新\/参与\/来源 header line/, '应明说不得索要头行');
+  assert.match(prompt, /fully\*\* untouched/, '应说明未触动文档完全逐字不变');
+});
+
+test('活文件无「每次落盘一份」旧口径（MAINTAINING 的历史条目除外）', () => {
+  // MAINTAINING 的重放清单是历史记录：第 45 条原文保留、其「已被第 53 条取代」的注解才是现行口径。
+  for (const rel of [SKILL, 'skill/design-doc-reviewer-prompt.md', 'README.md']) {
+    assert.doesNotMatch(read(rel), /每次落盘一份/, `${rel} 不得残留「每次落盘一份」旧口径`);
+  }
+});
+
 test('dry-run 状态库复测的修法已落盘（F1 计数词 / F5 reopen 登记 / F6 Scope 例外）', () => {
   const skill = read(SKILL);
   // F1：「Two file statuses」计数词与三态枚举矛盾

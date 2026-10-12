@@ -150,13 +150,15 @@ brainstorming-archify/
 | 依赖分层 | 文档纯 Markdown 零运行时；出图需 Node ≥ 18，不满足则留占位、不阻塞落盘 |
 | 可同步上游 | `SKILL.md` 保留英文原文便于逐句 diff；内核按 commit 比对并跑回归集判回归 |
 | 讨论状态落库 | `.brainstorming-archify/state.yaml` 是**进度锚点**：explore → draft → confirm → closed 四态 + 文件三态，`change-state.mjs` 是唯一写入口，`/bsa:resume` 读它恢复中断/跨天的讨论 |
+| 轮次记录 | change-list 文件一轮一份、轮次开始即创建：讨论记录 / 重要决策 / 文件修改台账（取代文档头三行）/ 落盘授权；`state.yaml` 只指当前那一个，讨论未完成不能换文件 |
 | 任务拆分 | 全部文档确认后生成 `specs/design/task.md`：框架 → 模块 → 具体功能三层，每任务一行（勾选框 + 概要 + 依赖 + 四段式 AI 提示词），带依赖校验 |
 
 ## 讨论状态与任务拆分
 
-一个系统的设计可能讨论好几天、随时被打断。**进度不写在会话记忆里，落在
-`<项目根>/.brainstorming-archify/state.yaml`**：`specs/design/` 答「讨论了什么」，
-它答「进行到哪了」（`.brainstorming-archify/change-lists/` 仍是落盘授权的审计流水，不是进度）。
+一个系统的设计可能讨论好几天、随时被打断。**进度不写在会话记忆里**，落在两处：
+`<项目根>/.brainstorming-archify/state.yaml`（答「进行到哪了」）与它指向的
+**当前轮次 change-list 文件**（答「这轮讨论了什么、定了什么、授权了什么」）；
+`specs/design/` 仍是设计本体（答「讨论了什么」）。**恢复现场 = 这两个文件一起读**。
 
 ```
 explore ──→ draft ──→ confirm ──→ closed
@@ -165,14 +167,32 @@ explore ──→ draft ──→ confirm ──→ closed
 ```
 
 - 文件三态：`discussing`（讨论中）/ `landed`（已落盘待校验）/ `confirmed`（人类已确认）。
-- **`change-state.mjs` 是 state.yaml 的唯一写入口**（`init` / `file` / `advance` / `reopen` / `show`），
-  `resume-state.mjs` 只读。正向推进只能走一步且校验前置条件；回退必须 `--reason`。
+- **`change-state.mjs` 是 state.yaml 的唯一写入口**（`init` / `file` / `change-list` / `advance` /
+  `reopen` / `show`），`resume-state.mjs` 只读。正向推进只能走一步且校验前置条件；回退必须 `--reason`；
+  收口（`advance closed`）要求本轮已设 change-list 且文件在盘上。
 - **重开**：closed/confirm/draft 之后新增或修改模块——`reopen <文件> --reason "<原因>"` 只把点名文件
   翻回 `discussing`、整体回 `explore`，未点名的确认文件不动；重开会作废 task.md，重新收口前必须
   重新生成（`advance closed --task-md` 校验文件比最后一次重开更新）。
 - **中断/重启后恢复**：跑 `/bsa:resume`（或 `node scripts/task-state/resume-state.mjs --json`）——
-  它报告当前状态、每个文件什么状态、下一步干什么；有 blocker（如登记的文件已不在盘上）就停下修，
-  不猜。命令适配器口径对齐 spec-superflow 的 `ssf:resume`：只消费状态输出，禁直接改 state.yaml。
+  它报告当前状态、每个文件什么状态、**当前轮次 change-list 文件**与下一步干什么；有 blocker
+  （登记文件已不在盘上、当前 change-list 文件丢失）就停下修，不猜。命令适配器口径对齐
+  spec-superflow 的 `ssf:resume`：只消费状态输出，禁直接改 state.yaml。
+
+### change-list 文件 = 一次讨论轮次的记录
+
+**一轮一份、轮次开始即创建、轮内追加不换文件**，五个固定小节：
+
+| 小节 | 作用 |
+|---|---|
+| 轮次头 | 主题、开始时间、参与者 |
+| 讨论记录 | 每轮问答要点与人类的纠正 |
+| 重要决策 | explore 阶段做出、**尚未落进设计文档**的决策先记这里（中断不丢），落进文档后标注「已落入 §x」 |
+| 文件修改台账 | 每份文档一行：`路径 / 最近更新 / 参与 / 来源`——**取代文档头部的同名三行** |
+| 落盘授权 | 每次落盘一段，即变更清单九项 |
+
+**切换被机械守卫**：讨论未完成（`draft`/`confirm`/`closed` 且未重开）时
+`change-state.mjs change-list` 拒绝换文件——只有 `init` 或 `reopen` 开的**新轮次**才能指向新文件。
+历史轮次文件留在盘上，state.yaml 只指当前。该目录仍是过程产物：不受管、不删除、不入提交。
 
 **全部确认后生成 `specs/design/task.md`**——从框架到模块到具体功能拆分实现任务：每个任务一行，
 第一列勾选框，然后简短概要、依赖（前置任务号）、详细的 AI 实现提示词（固定四段：
@@ -381,10 +401,11 @@ specs/design/
 - **模块划分粒度**：一个模块要能独立回答「它做什么、怎么用、依赖谁」，且能被一次讨论讲透。类详细设计一屏放不下、
   或要拆成多次讨论 → 该拆细；两个模块总是一起改、找不到清晰接缝 → 该合并。**模块与代码目录不要求一一对应。**
 - **模块名全项目唯一**：它同时是文件名主体和所有交叉引用的锚点，两个模块不得同名。
-- **引用与元信息**：文档间引用统一写相对项目根的完整路径（如 `specs/design/02-通信模块.md`）；
-  「最近更新」每次落盘刷新为当天，同一次落盘更新多份文档时这几份填同一天。**文件头不再写「状态」**——
-  每份文档的讨论状态（讨论中 / 已落盘待校验 / 已确认）只记在 `.brainstorming-archify/state.yaml`
-  这个进度锚点里，文档头再写一份就是会对不上的双权威。
+- **引用与元信息**：文档间引用统一写相对项目根的完整路径（如 `specs/design/02-通信模块.md`）。
+  **文档头不写状态、也不写修改信息**——讨论状态只记在 `.brainstorming-archify/state.yaml`，
+  「最近更新 / 参与 / 来源」只记在**当前轮次 change-list 文件的文件修改台账**（同一次落盘更新多份
+  文档时这几行填同一天）；文档头再写一份就是会对不上的双权威。文档头只留标题（模块文档与接口契约
+  另留「对应架构」交叉引用行）。
 - **模块删除与改名**：删除要连带删模块文档、清单行、以及把它当调用方或提供方的所有接口矩阵行，
   序号留空洞**不重排**；删除前先扫一遍它欠别人的「待提供」条目并报告（这些缺口将无人认领）。
   改名要同步更新所有引用——清单的「对应文档」列、矩阵的「详见」列、其他模块文档里的交叉引用，不留失效路径。
