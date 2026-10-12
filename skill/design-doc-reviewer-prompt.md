@@ -5,16 +5,20 @@ Use this template when dispatching a design document reviewer subagent.
 **Purpose:** Verify the design documents are complete, consistent,
 implementation-ready, and follow the fixed templates
 `architecture-doc-template.md`, `module-doc-template.md`, and
-`interface-contract-template.md`.
+`interface-contract-template.md` — and, once every document of the round is
+confirmed, that the generated `specs/design/task.md` splits the design into
+a dependency-clean implementation task list.
 
 **Dispatch after:** The design documents are written to `specs/design/`.
 
-**One subagent reviews all three document types.** When the write set
+**One subagent reviews all three document types** — plus `specs/design/task.md`
+when the round has reached `confirm`. When the write set
 exceeds five documents, split the dispatch: architecture first, then the
 module documents in batches, carrying the architecture findings forward.
 The interface contract may ride with any module batch or be dispatched on
 its own — it depends on no other document's findings and no other document
-depends on its.
+depends on its. `task.md` rides with the last batch, because it is only
+generated once every document is confirmed.
 
 ```
 Subagent (general-purpose):
@@ -41,6 +45,7 @@ Subagent (general-purpose):
     - `NN-<模块名>.md` whose number is **02 or above** (the module documents —
       `02-`, `03-`, … `10-`) → the module template (模块模板)
     - `specs/design/00-接口契约.md` (the interface contract, 接口契约模板) → the interface-contract template
+    - `specs/design/task.md` (the implementation task list, 任务清单) → no template; it is checked against the `Task split` row below
 
     Documents that are **not** managed design documents route to no template
     and are not reviewed here — for example the skill's own files (`SKILL.md`,
@@ -130,6 +135,7 @@ Subagent (general-purpose):
     | Ambiguity | Sentences that could be read two ways, enough to produce the wrong design |
     | Scope | **(architecture)** one project's architecture, expressed as a module split, flow set, and file tree — not a grab-bag of unrelated systems; **(module)** one module, not several |
     | Runtime and deployment views **(architecture)** | The architecture document's section 11 (运行视图) describes which processes run, each process's threads, and how processes and threads relate — or carries an explicit `不适用：<reason>`. Section 12 (部署视图) describes the deployment directory structure, how to deploy, and which files make up the deployment — or carries an explicit `不适用：<reason>`. A missing section, an out-of-order section, or a section present but empty with no `不适用` reason is an issue. These two sections do **not** require diagrams — never report a defect for their having none. |
+    | Task split **(task.md)** | `specs/design/task.md` exists exactly when every design document of the round is confirmed — when it is part of the write set it must be present, and when documents are still unconfirmed its absence is **not** a finding. Tasks come in three tiers in this order — framework (engineering skeleton, directory layout, shared infrastructure, process/thread wiring), then one task per module in the architecture's module list in dependency order, then one task per functional flow or flow-less functional point inside its module. Every task row starts with a checkbox (`- [ ]`) in the first column, then a short 概要, a 依赖 column naming predecessor IDs (or `无`), and a detailed AI implementation prompt whose four parts are present and in order — `[实现的功能]`, `[任务实现的要求]`, `[实现的约束]`, `[验收标准]`. Task IDs are `T-01`, `T-02`, … in execution order. The prompt references concrete design sections (`§6.2`, `§7`, `§8.1`, the contract's `x.2` items) rather than restating or re-deciding them; a prompt that asks the implementer to re-derive a settled decision is incomplete. The trailing 依赖校验 section states, per rule — forward or self dependency, two tasks touching the same file without an explicit order, a feature task whose module task is not listed before it, a dependency naming a nonexistent ID — either 无冲突 or the concrete violations; a verification section claiming 无冲突 that the list contradicts is a defect, and so is a missing verification section. |
     | Diagram consistency | Every diagram is a **triple** of same-prefix files — `.json`, `.svg`, `.html` — all under `<project root>/specs/design/diagrams/`, never split across directories and never outside that folder; a missing member of the triple, or a diagram placed elsewhere, is a defect. The file name carries both its document-number prefix and its type segment (`<document number>-<diagram name>.<diagram type>.<ext>`); a missing prefix or a missing type segment is a defect. The document uses the fixed **two-line** reference — the image line pointing at the `.svg`, plus the immediately following `> [打开交互式版本](…)` line pointing at the same-prefix `.html` — and a missing interactive-version line is a defect; every referenced file exists and the relative path resolves against that document (no absolute path, no `../` jump), and a reference to a missing or unresolvable file is a defect. The components, participants, or states shown in a diagram do not contradict the prose of the section the diagram accompanies; a contradiction is a defect and both contradicting places — the diagram element and the sentence — must be named. A flow that appears under the same name in both the architecture document and a module document references the **same** triple with the same diagram type under the owning document's number; two separate copies, or two different types, are defects. The document body contains no inline `<svg>` tag: diagrams are referenced as images, so an inline `<svg>` in the body is a defect. Every diagram stays within the 12-primary-node limit; more than 12 primary nodes in one diagram is a defect — the content must be split into several diagrams. **A diagram marked `未通过校验` in the approved change list is exempt from the triple and two-line requirements**: it must be absent from `diagrams/` (including its `.json` source IR — an orphan IR with no placeholder note is a defect), and its section must carry the fixed placeholder line (`> ⚠️ 占位：…未通过校验…`) instead. A missing triple with no placeholder line remains a defect |
     | Diagram change-list coverage | The approved change list enumerates every diagram this write will create or re-render, named by its triple base (`<document number>-<diagram name>.<diagram type>`) with the flow it belongs to, and **accounts one-to-one for the confirmed Diagram Planning Gate plan**; a diagram file written outside the change list is a defect, and so is a diagram in the list that the confirmed plan never contained (or a confirmed plan entry that never reached the list). A diagram that fails geometric validation does not enter the finished product and is instead marked in the change list with its status and reason |
     | Interface-contract structure **(interface contract)** | Level-2 headings number **11** — `## 总则` (unnumbered) plus `## 1.` through `## 10.`; sections 1–7 each carry all three parts, in order — `x.1` 清单表 (the list table) → `x.2` 逐项契约 (the per-item contract) → `x.3` 该类规则 (the family's rules). A section 1–7 missing any of the three parts and carrying no `不适用：<reason>` declaration for that part is a defect. **A family the system does not use at all may instead carry a single section-level `不适用：<reason>` in place of all three parts** — that is the shape both the interface-contract template and the published spec mandate for a wholly-absent family, and it is **not** a defect (do not demand `x.1`/`x.2`/`x.3` from a family the project does not use). |
