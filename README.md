@@ -86,22 +86,29 @@ brainstorming-archify/
 │   ├── module-doc-template.md         功能模块模板（7 节）
 │   └── interface-contract-template.md 接口契约模板（`## 总则` + `## 1.`–`## 10.`）
 ├── scripts/                           可执行脚本与绘图内核
-│   ├── install.mjs                    一键安装（Node ≥ 18 硬门 + 备份 + 装后自检）
+│   ├── install.mjs                    一键安装（Node ≥ 18 硬门 + 备份 + 装后自检 + 部署命令适配器）
+│   ├── task-state/                    讨论状态库的两个命令（state.yaml 唯一写入口 + 只读恢复）
+│   │   ├── change-state.mjs           init / file / advance / reopen / show
+│   │   ├── resume-state.mjs           只读：中断/重启后恢复讨论（--json 对齐 ssf resume）
+│   │   └── state-yaml.mjs             state.yaml 的形状锁定序列化/解析（零依赖）
 │   ├── sync-upstream.sh               仓库维护工具：与 superpowers 比对 skill/SKILL.md
 │   └── diagram-engine/                裁剪后的绘图内核（搬运自 archify，非独立技能）
 │       ├── bin/render.mjs             唯一入口：render / validate / doctor
 │       ├── renderers/ schemas/ assets/ svg/ lib/   渲染器、JSON schema、交互页模板等
 │       ├── test/                      内核自带的上游回归集（不进安装）
 │       └── UPSTREAM.md                内核与上游的关系、被删清单、回归判定（第 1、3 节）
+├── commands/                          CodeBuddy 命令适配器源文件（安装时重写路径后部署）
+│   └── bsa/resume.md                  `/bsa:resume`：读 state.yaml 恢复讨论
 ├── tests/                             本技能自己的测试面（不进安装）
-├── specs/                             已发布规格基线（design-doc-guardrails / design-doc-templates / diagram-engine / skill-packaging）
+├── specs/                             已发布规格基线（design-doc-guardrails / design-doc-templates / diagram-engine / skill-packaging / task-split）
 ├── changes/                           spec-superflow 变更工作区（gitignore）
 ├── MAINTAINING.md                     维护者手册（不进安装）
 ├── README.md
 └── LICENSE
 ```
 
-**装成什么形态**——`skill/` 内文件**平铺**到技能根，`templates/` 与 `scripts/` **整目录**复制：
+**装成什么形态**——`skill/` 内文件**平铺**到技能根，`templates/` 与 `scripts/` **整目录**复制；
+命令适配器另部署到 CodeBuddy 命令目录：
 
 ```
 ~/.codebuddy/skills/brainstorming-archify/
@@ -110,11 +117,16 @@ brainstorming-archify/
 ├── templates/                     ← 三套模板
 └── scripts/
     ├── install.mjs
+    ├── task-state/                ← 讨论状态库两个命令（随 scripts/ 整目录进来）
     └── diagram-engine/            ← 唯一入口 bin/render.mjs
+
+~/.codebuddy/commands/bsa/resume.md   ← 命令适配器（源文件 commands/bsa/resume.md，
+                                        __BSA_ROOT__ 重写为上面的技能根）→ /bsa:resume
 ```
 
-`tests/`、内核回归集 `scripts/diagram-engine/test/`、`scripts/sync-upstream.sh` 与 `MAINTAINING.md`
-**都不进安装**：前三者是仓库自测面与维护工具，安装后没有对应物；`MAINTAINING.md` 是给维护者的。
+`tests/`、内核回归集 `scripts/diagram-engine/test/`、`scripts/sync-upstream.sh`、`commands/` 与 `MAINTAINING.md`
+**都不进安装**：前三者是仓库自测面与维护工具，安装后没有对应物；`commands/` 只以**重写后的单文件**
+形态进命令目录，源目录本身不复制；`MAINTAINING.md` 是给维护者的。
 
 **依赖分两层**——这是最容易被误读的一点：
 
@@ -137,6 +149,36 @@ brainstorming-archify/
 | 绘图规划 Gate + 三件套 | 出图前先确认「要哪些图 / 各是什么图类型 / 落在哪一节」；确认后由内核一次产出 `.json`（源 IR）/ `.svg`（静态图）/ `.html`（交互版）三件套 |
 | 依赖分层 | 文档纯 Markdown 零运行时；出图需 Node ≥ 18，不满足则留占位、不阻塞落盘 |
 | 可同步上游 | `SKILL.md` 保留英文原文便于逐句 diff；内核按 commit 比对并跑回归集判回归 |
+| 讨论状态落库 | `.brainstorming-archify/state.yaml` 是**进度锚点**：explore → draft → confirm → closed 四态 + 文件三态，`change-state.mjs` 是唯一写入口，`/bsa:resume` 读它恢复中断/跨天的讨论 |
+| 任务拆分 | 全部文档确认后生成 `specs/design/task.md`：框架 → 模块 → 具体功能三层，每任务一行（勾选框 + 概要 + 依赖 + 四段式 AI 提示词），带依赖校验 |
+
+## 讨论状态与任务拆分
+
+一个系统的设计可能讨论好几天、随时被打断。**进度不写在会话记忆里，落在
+`<项目根>/.brainstorming-archify/state.yaml`**：`specs/design/` 答「讨论了什么」，
+它答「进行到哪了」（`.brainstorming-archify/change-lists/` 仍是落盘授权的审计流水，不是进度）。
+
+```
+explore ──→ draft ──→ confirm ──→ closed
+纯讨论     草稿落盘    全部确认     task.md 已生成
+           人工校验中  只差 task.md
+```
+
+- 文件三态：`discussing`（讨论中）/ `landed`（已落盘待校验）/ `confirmed`（人类已确认）。
+- **`change-state.mjs` 是 state.yaml 的唯一写入口**（`init` / `file` / `advance` / `reopen` / `show`），
+  `resume-state.mjs` 只读。正向推进只能走一步且校验前置条件；回退必须 `--reason`。
+- **重开**：closed/confirm/draft 之后新增或修改模块——`reopen <文件> --reason "<原因>"` 只把点名文件
+  翻回 `discussing`、整体回 `explore`，未点名的确认文件不动；重开会作废 task.md，重新收口前必须
+  重新生成（`advance closed --task-md` 校验文件比最后一次重开更新）。
+- **中断/重启后恢复**：跑 `/bsa:resume`（或 `node scripts/task-state/resume-state.mjs --json`）——
+  它报告当前状态、每个文件什么状态、下一步干什么；有 blocker（如登记的文件已不在盘上）就停下修，
+  不猜。命令适配器口径对齐 spec-superflow 的 `ssf:resume`：只消费状态输出，禁直接改 state.yaml。
+
+**全部确认后生成 `specs/design/task.md`**——从框架到模块到具体功能拆分实现任务：每个任务一行，
+第一列勾选框，然后简短概要、依赖（前置任务号）、详细的 AI 实现提示词（固定四段：
+`[实现的功能]`—`[任务实现的要求]`—`[实现的约束]`—`[验收标准]`）；生成时过一遍依赖校验
+（不得前向/自依赖、同文件无先后、功能任务的模块任务须在前、依赖 ID 必须存在），结论写进
+task.md 的「依赖校验」小节。它随设计文档一起交接，实现由下游流程负责。
 
 ## 安装
 
@@ -161,6 +203,7 @@ node scripts/install.mjs
 |------|------|
 | `node scripts/install.mjs --dry-run` | 只列出将写入的文件与目标路径，不改文件系统；该模式**同样受 Node 主版本硬门约束** |
 | `node scripts/install.mjs --target <dir>` | 指定**技能安装目录**（默认 `~/.codebuddy/skills/brainstorming-archify`）；传的是技能目录本身，不会自动追加 `brainstorming-archify/` |
+| `node scripts/install.mjs --commands-dir <dir>` | 指定 **CodeBuddy 命令目录**（默认 `~/.codebuddy/commands`）；命令适配器 `bsa/resume.md` 部署在这里，目录下其他命令原样保留、重复安装幂等 |
 | `node scripts/install.mjs --help` | 打印用法 |
 
 ### 其他安装方式
@@ -183,6 +226,9 @@ ls ~/.codebuddy/skills/brainstorming-archify/
 
 node ~/.codebuddy/skills/brainstorming-archify/scripts/diagram-engine/bin/render.mjs doctor
 # 期望：11 项检查全部 [ok]，退出码 0；需 Node ≥ 18
+
+ls ~/.codebuddy/commands/bsa/resume.md
+# 期望：命令适配器在盘上（/bsa:resume 可用）
 ```
 
 安装是否完整，**以 `doctor` 是否以退出码 0 结束为准**（用安装脚本时它已自动跑过一次并把结果打进安装输出）。

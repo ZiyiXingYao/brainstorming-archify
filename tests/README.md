@@ -14,8 +14,9 @@ tests/
 │   └── sample-lifecycle.json
 ├── render.smoke.test.mjs         冒烟：渲染五类图，校验三件套（独立脚本，原生 assert）
 ├── render.entry.test.mjs         入口契约：透传子命令 / 参数校验 / 失败不留半成品 / 原子提交 / 两轮降级
-├── install.test.mjs              安装脚本：版本硬门 / 备份与备份冲突守卫 / 平铺与整目录规则 / 装后 doctor / 用法错误
-├── doc-consistency.test.mjs      文档一致性：SKILL.md 关键约定、模板配图章节、改名残留、接口契约文件名一致、接口契约数据类型与命名规范、跨模块矩阵签名与占位扫描判据、状态取值单一权威、内核文档无已删命令、架构 14 节与运行/部署视图
+├── task-state.test.mjs           讨论状态库：四态推进与前置条件 / reopen 只翻点名文件 / closed 后 task.md 作废 / 原子写 / YAML 往返 / resume 只读与 blockers
+├── install.test.mjs              安装脚本：版本硬门 / 备份与备份冲突守卫 / 平铺与整目录规则 / 命令适配器部署（bsa/resume.md 重写、保留其他命令、幂等）/ 装后 doctor / 用法错误
+├── doc-consistency.test.mjs      文档一致性：SKILL.md 关键约定、模板配图章节、改名残留、接口契约文件名一致、接口契约数据类型与命名规范、跨模块矩阵签名与占位扫描判据、状态取值单一权威、内核文档无已删命令、架构 14 节与运行/部署视图、讨论状态库与任务拆分口径、三份模板文件头无状态行
 ├── engine.test.mjs               把内核回归集接进本入口：唤起 scripts/diagram-engine/test/run-valid.mjs 并断言全过
 └── README.md                     本文件
 ```
@@ -25,7 +26,7 @@ tests/
 ```bash
 # 全部：一条命令覆盖「仓库测试 + 绘图内核回归集」
 node --test tests/*.test.mjs
-# → 59 个用例，0 失败（含 engine.test.mjs 唤起的内核 24 文件 / 360 用例）
+# → 95 个用例，0 失败（含 engine.test.mjs 唤起的内核 24 文件 / 360 用例）
 
 # 只跑冒烟（独立脚本）
 node tests/render.smoke.test.mjs
@@ -56,6 +57,17 @@ node tests/render.smoke.test.mjs
 非法 IR 非零退出且目标目录不新增任何产物；**失败时既有同名文件不被覆盖、不残留 staging/backup 目录**；
 成功路径不留残留；`<basename>.json` 与输入 IR 同路径时允许；**两轮降级**——同一目标连续两次未改善以退出码 3 停下。
 
+### `task-state.test.mjs`（`node:test`）
+
+讨论状态库 `.brainstorming-archify/state.yaml` 的两个命令。`change-state.mjs`：`init` 建库与重复
+init 拒绝；`file` 三态登记与非法值／非法路径退出码 2；`advance` 的前置条件（→`draft` 需全 landed、
+→`confirm` 需全 confirmed、→`closed` 需 `--task-md` 指向的文件存在）缺条件退出码 1 且不改盘；同态推进
+空操作；回退必须 `--reason`；**reopen 只翻点名文件**回 `discussing`、整体回 `explore`、未点名文件不动；
+**closed 后重开时旧 task.md 不重生成无法再次收口**（mtime 不晚于重开即拒）；原子写盘（目标不可用时
+失败且不留 `.tmp` 半成品）；中文路径与含冒号/引号/反斜杠理由的 YAML 往返。`resume-state.mjs`：
+**只读**（跑完 state.yaml 一字节不变）、从子目录向上发现项目根、`--json` 输出形状与四态 `next_action`、
+blockers（无 state.yaml、登记文件已不在盘上）、closed 态指向 reopen、文本输出含 State/Next 两行。
+
 ### `install.test.mjs`（`node:test`）
 
 安装脚本的四道行为约束逐条锁死：版本硬门（Node < 18 → 退出码 1 且**一个文件都不写**）；
@@ -63,7 +75,10 @@ node tests/render.smoke.test.mjs
 **`tests/`、内核回归集与 `sync-upstream.sh` 都不进安装**）；目标已存在时产出
 `brainstorming-archify.bak-<时间戳>` 且既有内容完整保留，**备份目标已被占用时拒绝静默覆盖**；
 装后自检输出（断言里带检查项数，避免自检判定退化后用例仍绿）；已安装副本可独立跑 `doctor`；
-用法错误退出码 2。
+用法错误退出码 2。**命令适配器**（`commands/bsa/resume.md` → `<命令目录>/bsa/resume.md`，即
+`/bsa:resume`）：dry-run 列清单但不落盘；实装后占位符 `__BSA_ROOT__` 重写为本次技能根且禁改 state.yaml
+的口径在盘上；**命令目录下其他命令（如 `ssf/resume.md`）逐字节保留**；重复安装幂等。
+所有实装用例都传 `--commands-dir <临时目录>`，**不触碰真实的 `~/.codebuddy`**。
 
 ### `doc-consistency.test.mjs`（`node:test`）
 
