@@ -34,6 +34,8 @@
  *      的「用途」段语义、§10 先给跨模块/单模块的判定规则。
  *   ⑮ dry-run 第三轮复测的修法：整族不适用在技能自审与接口契约模板正文三处一致；
  *      §10 用「单模块功能流程」并与「纯模块内部实现级流程」区分；§7 点明「模块是设计划分、进程是运行单元」。
+ *   ⑯ dry-run 第四轮复测的修法：`meta.output` 写成**必填**（五类 schema 都要求，旧口径「optional」不得残留）；
+ *      接口契约第 1–7 节的三级小节计数随整族不适用而变（`在用族数 × 3`）。
  *
  * 只用 Node 内置模块，不依赖 node_modules。
  */
@@ -465,6 +467,14 @@ test('dry-run 第三轮复测的修法已落盘（整族不适用三处一致 / 
   assert.match(arch, /不是\*\*模块模板所说的「纯模块内部\*\*实现级\*\*流程」/, '§10 应点明与「纯模块内部实现级流程」的区别');
   // 进程 ≠ 模块
   assert.match(arch, /模块是设计划分、进程是运行单元/, '§7 应点明模块与进程不是一回事');
+});
+
+test('dry-run 第四轮复测的修法已落盘（meta.output 必填 / 三级小节计数随整族不适用）', () => {
+  const skill = read(SKILL);
+  const contract = read('templates/interface-contract-template.md');
+  assert.match(skill, /`output` — \*\*required\*\*/, 'meta.output 应写必填');
+  assert.doesNotMatch(skill, /`output`, `viewBox` — optional output name/, '不得残留 output 可选的旧口径');
+  assert.match(contract, /在用族数 × 3/, '第 1–7 节三级小节计数应随整族不适用而变');
 });
 
 /* ---------------------------------------------------------------------------

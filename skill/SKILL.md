@@ -803,7 +803,7 @@ the document saying why, and mark that state in the change list. This degradatio
 ### Shared IR structure and `meta` fields
 
 Each diagram schema requires `schema_version`, `diagram_type`, `meta` (with
-`title`), and its structural arrays; `segments`, `activations` and `cards` are
+`title` and `output`), and its structural arrays; `segments`, `activations` and `cards` are
 optional. Every level sets `additionalProperties: false`, so unknown fields are
 **rejected** rather than silently ignored — do not invent fields. Consult
 `scripts/diagram-engine/schemas/<type>.schema.json` and
@@ -826,7 +826,9 @@ Shared `meta` fields:
   existing files keep validating, but the renderer ignores it. Do not author it.
 - `legend` — `mode` is `auto` (default), `all` or `hidden`, with optional
   per-kind `label` / `visible` overrides. Keys are renderer-owned (below).
-- `output`, `viewBox` — optional output name and explicit canvas.
+- `output` — **required**: a portable POSIX-relative `.html` path (for example
+  `reports/diagram.html`); every diagram schema lists it as required, so omitting
+  it fails schema validation. `viewBox` — optional explicit canvas.
 
 ### Architecture diagrams
 
