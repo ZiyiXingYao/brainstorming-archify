@@ -147,6 +147,16 @@ rm -rf /tmp/sp
 
 48. （新增）架构模板新增 4+1 视图模型中的**运行视图**与**部署视图**，架构模板由 **12 节改为 14 节**：在全局功能流程（§10）之后、关键决策记录之前插入 **§11 运行视图**（运行起来有哪些进程、每个进程有哪些线程、进程与线程之间的关系——含进程清单、线程模型、进程与线程关系三部分）与 **§12 部署视图**（部署目录结构、如何部署、有哪些文件组成——含部署目录结构、部署方式、文件组成三部分），原 §11 关键决策记录、§12 待定问题与风险顺延为 **§13、§14**；**两节不要求配图**（以叙述与表格承载，缺图不判缺陷；确实不适用时保留标题写 `不适用：<原因>`）。技能把两节并入设计呈现覆盖清单、架构层提问清单与自审的**模板合规项**（**自审仍 15 项**，只扩写既有第 1 项，不新增条目）；审查提示词新增两节判据（含「不因其缺图报缺陷」的校准条）。README 的章节数与章节清单、`tests/doc-consistency.test.mjs` 的断言同批改到 14 节。
 
+**（新增）讨论状态库与任务拆分**
+
+49. （新增）新增整节 `## Discussion State`（置于 `## The Persist Gate` 之前）：讨论进度落在 `<项目根>/.brainstorming-archify/state.yaml`——它是**进度锚点**（`specs/design/` 答「讨论了什么」、它答「进行到哪了」）；第 45 条里「`specs/design/` 是恢复对话的唯一锚点」的表述**以本条为准收窄为内容锚点**，`change-lists/` 保持第 45 条的定性（落盘授权的审计流水、不是进度记录）。四级状态机 `explore → draft → confirm → closed`（正向只能走一步、回退必须 `--reason`）与文件三态 `discussing / landed / confirmed`（`confirmed` 蕴含 `landed`）成表；每个时点该跑哪条命令逐条列出（开轮 `init` / `file … discussing` / `reopen`、落盘后同批 `file … landed` 与 `advance draft`、人类批准后 `file … confirmed` 与 `advance confirm`、`confirm` 后生成 task.md 再 `advance closed --task-md`）；**`state.yaml` 只能由 `scripts/task-state/change-state.mjs` 编辑**，`resume-state.mjs` 只读。`## Checklist` 增加**第 0 步**（开库与按讨论进展登记文件，既有步号不重排）；`## Writing the Design Document` 第 5 步补「同批标记 landed」；`## Process Flow` 图补四个节点与边（标记 landed→advance draft、标记 confirmed→advance confirm、生成 task.md、advance closed）；`## User Review Gate` 补「批准记进 state.yaml 而非文档、部分批准只标那些、要改就 reopen」；`## Handoff to a Downstream Process` 交接集纳入 `specs/design/task.md`；`## Terminal State` 由「不创建实现计划」改为「确认文档 + task.md 即终点、不进入实现」（第 3 条的「删除终态衔接 writing-plans」与第 10 条的 Scope 声明**不退回**——task.md 是交接物、不是实现计划，实现仍归下游）。
+
+50. （新增）新增整节 `## Implementation Task Split`（置于 `## User Review Gate` 与 `## Terminal State` 之间）：全部登记文件 `confirmed` 后生成 `specs/design/task.md`，从**框架 → 模块 → 具体功能**三层拆分；每个任务一行——第一列**勾选框**（`- [ ]`）、简短**概要**、**依赖**（前置任务号或 `无`）、详细 **AI 实现提示词**（固定四段 `[实现的功能]`—`[任务实现的要求]`—`[实现的约束]`—`[验收标准]`，自包含、引用具体章节而非重述）；任务 ID `T-01` 起按执行序编号；**依赖校验四条规则**（不得前向/自依赖、两个任务改同一文件须有明确先后、功能任务的模块任务必须列在它之前、依赖 ID 必须存在）与文末**「依赖校验」小节**（逐条规则报「无冲突」或具体违例；清单与校验小节互相矛盾即缺陷）；task.md 是**整体重生成**的一次性产物，**不受「序号追加不重排」管辖**，重开即作废（重新收口前必须重新生成）。审查提示词同步：路由表加 `specs/design/task.md`（无模板、按新增的 `Task split` 判据行审）、Purpose 与分批说明纳入 task.md（搭载最后一批）、新增 `Task split` 判据行（三层层级与顺序、行结构四段式、ID 编制、提示词引用具体章节、依赖校验小节与四规则）。
+
+51. （新增）三份模板**文件头删除「状态」行**（`> **状态**：草稿 / 已确认 —— …`）：文件讨论状态的唯一权威是 `state.yaml`，文档头再写一份就是会对不上的双权威。文件头保留 `最近更新` / `参与` / `来源`（模块文档与接口契约另留 `对应架构`），「增量只刷新最近更新」口径不变。**不删**（不同概念）：架构模板 §6.2 的 `设计状态` 列（模块设计存在性：待设计/已设计）与 §7 接口矩阵四档状态（接口依赖状态）。README 的「引用与元信息」硬规则同步改写；`specs/design-doc-templates` 基线中「文件头元信息（状态／……）」的表述经本变更的 delta 更新。
+
+52. （新增）安装器扩展为**同批部署 CodeBuddy 命令适配器**：仓库新增源文件 `commands/bsa/resume.md`（占位符 `__BSA_ROOT__`），安装时重写为实际技能根并部署到 `<命令目录>/bsa/resume.md`，即 **`/bsa:resume`**；新增 `--commands-dir` 选项（默认 `~/.codebuddy/commands`）。命令目录下**其他命令原样保留**、重复安装**幂等**、只碰自己那份；适配器正文口径对齐 spec-superflow 的 `ssf:resume`：只跑 `resume-state.mjs --json`，只消费 `state`/`files`/`blockers`/`next_action`，有 blocker 即停并展示修复命令，否则按 `next_action`（含 `load` 列表）加载技能文件继续讨论，**禁直接改 state.yaml**。README 的仓库布局、安装形态、可选参数表与验证安装节同步；`tests/install.test.mjs` 新增 4 个用例（dry-run 列清单、实装重写路径、保留其他命令、幂等）。
+
 ### 上游二：archify（绘图内核）
 
 `scripts/diagram-engine/` 是 [archify](https://github.com/tt-a1i/archify) 出图技能包的**裁剪副本**：按「只保留 5 类图渲染能力」删掉了全部与 5 类图无关的子命令（compare / deliver / finalize / preview / migrate / inspect / check / visual-check / browser-check / guide / brands / examples / demo / recover-output）、`--repo-root` 溯源能力、`examples/`、`references/` 与上游 `SKILL.md`，把入口 `archify.mjs`（6936 行）裁成内部驱动 `render-driver.mjs`（只留 `render`／`validate`／`doctor`），并以本仓库新增的 `render.mjs` 作为唯一对外入口；品牌解析收窄为「只认内置 canonical ID、不联网」。逐项改动与被删清单见 `scripts/diagram-engine/UPSTREAM.md` 第 1 节。
@@ -164,6 +174,13 @@ node scripts/diagram-engine/test/run-valid.mjs
 它只跑**在裁剪后成立的那个子集**（当前为上游全绿 18 + 本地 6 = 24 个文件、360 个用例，退出码 `0` = 全过；上游 18 个由 3.0.1 整包逐文件**串行**实测筛出，本地 6 个含 CSS 抽取、主题变量解析、图名派生、驱动 CLI 面、环境自检与品牌边界）。哪些上游检查项被排除、为什么排除，逐条登记在 `scripts/diagram-engine/UPSTREAM.md` 第 3、4 节。
 
 **注意：`./scripts/sync-upstream.sh` 只覆盖 `superpowers`，不覆盖 archify**——它比对的是 `skill/SKILL.md`，与绘图内核无关；同步 archify 需按上面的基准 tag / commit 手工比对。
+
+**讨论状态库（`scripts/task-state/`）的维护说明**：
+
+- `change-state.mjs` 是 `.brainstorming-archify/state.yaml` 的**唯一写入口**，`resume-state.mjs` **只读**——改状态机行为时两条都要动，且不得给 resume 加写能力。
+- 状态文件的读写走 `state-yaml.mjs` 的**形状锁定** YAML 子集（仓库零依赖）：改形状时发射与解析必须同批改，并用 `tests/task-state.test.mjs` 的往返用例兜底；遇非法形状**失败关闭**，不猜语义。
+- 回归入口：`node --test tests/task-state.test.mjs`（覆盖四态推进与前置条件、reopen 只翻点名文件、closed 后 task.md 作废、原子写、YAML 往返、resume 只读与 blockers）。
+- 命令适配器 `commands/bsa/resume.md` 由 `scripts/install.mjs` 重写 `__BSA_ROOT__` 后部署到 `~/.codebuddy/commands/bsa/resume.md`；改适配器内容后重跑安装即生效，**不要手工编辑部署后的副本**（下次安装会被覆盖）。
 
 ## 2. 后续变更登记
 
@@ -247,6 +264,28 @@ F3–F8 修完后用新项目**盲测复跑**一次，仍判 `有需猜`（无�
 以上六处各补机械断言（用例 58→59）。
 
 > **结论（2026-10-12）**：连续 **6 轮**换项目盲测，**每轮都判 `无阻塞`**（技能可端到端走完、真渲染、自审/审查/用户门都成立）；摩擦集中在**文档精度的长尾**——每个新项目会翻出不同的边角，不是收敛到 0。已按轮次清掉 F1–F8 + 复测 1–6 轮共约 20 处真问题，均配机械断言（59 用例）。**"无阻塞" 是本技能可达到的稳定态；"零摩擦" 不可达**，余项按此登记。
+
+### 2026-10-12 讨论状态库 + 任务拆分 dry-run（报表导出服务）结论
+
+`add-discussion-state-and-task-split` 变更的 dry-run（报表导出服务：HTTP API 进程 + 定时导出 Worker，Redis 锁/计数、MySQL 报表定义、MQ 导出完成事件，三模块、二轮增至四模块）结论 **`无阻塞`**（4 需猜 + 6 体验）。场景结论全部属实：
+
+1. **状态机两轮全干净**：`explore → draft → confirm → closed`，reopen 后再走一遍到 closed；无命令行为异常，正向一步限制、回退需 `--reason`、closed 需 `--task-md` 均按文档生效。
+2. **中断/重启**：draft 态全新跑 `resume-state.mjs --json`，输出 state + 逐文件状态 + 带具体命令的 next_action，足以直接续跑、无需猜测。
+3. **reopen 语义**：`reopen 01 00 05 --reason …` 后仅这 3 个翻 `discussing`，未点名的 02/03/04 保持 `confirmed`，整体回 `explore`，新文件 05 被登记——与技能声称一致。
+4. **过期 task.md 拒绝**：reopen 后未重新生成即 `advance closed` 被拒（exit 1，mtime 不晚于最后重开）；重新生成后同命令成功。
+5. **task.md 可产出性**：三层（框架 3 / 模块 4 / 功能 5）、复选框行、四段式提示词、依赖校验节均可按 Implementation Task Split 单独产出。
+
+**本次引入并已修**（各配断言，用例 95→97）：
+
+| 编号 | 问题 | 修法 |
+|------|------|------|
+| F1 | 「Two file statuses」计数词与三态枚举矛盾 | 改 Three；断言不得残留 Two |
+| F5 | reopen 对**未登记新文件**会先登记再翻转，文档未写 | Discussion State 的 reopen 条补明文；task-state 测试锁行为 |
+| F6 | Scope 禁「任务清单」却要求 task.md 带 `[验收标准]`，例外未写明 | Scope 补「唯一明文例外是 `specs/design/task.md`」；断言 Scope 含该例外 |
+| F7 | 框架任务「one task per seam」的 seam 无判据 | 补「seam 即枚举的那些项；不能独立实现验证的项并入首个使其有意义的任务」 |
+| F8 | 依赖校验「同文件」规则没说「只读」能否免 ordering | 补「只读他方写入的文件无需 ordering，但提示词约束段须声明」 |
+
+**登记未修**：F2（sequence spread 下标签盒宽 vs desktop-readability 双约束在 5 参与者 + 长标签时无交集，出路是去掉 sublabel，repair order 未覆盖——几何问题，不可断言，可在引擎测试记禁用 sublabel 的回归）；F3（`validate` 传错图类型输出 schema 噪音而非用法级提示——先前就有，可断言）；F4（架构 §7 状态枚举表/填表规则是否随产物落盘需推断——先前就有，可断言）；F9（explore 态 resume 不知讨论层进度——设计使然， explore 进度锚在对话里）。
 
 ### `backfill-run-valid-cases` 的现状重估（2026-10-12）
 

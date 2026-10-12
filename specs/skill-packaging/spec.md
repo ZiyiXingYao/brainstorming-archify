@@ -45,33 +45,26 @@
 绘图内核的环境自检。安装源 SHALL 取自重排后的三处目录：`skill/` 内文件**平铺**复制到目标根，
 `templates/` 与 `scripts/` 整目录复制到目标下的同名目录。
 
-#### Scenario: 环境不满足
+安装 SHALL 同批把 **CodeBuddy 命令适配器**部署到 `<命令目录>/bsa/resume.md`（`--commands-dir` 可覆盖，
+默认 `<家目录>/.codebuddy/commands`）：源文件为仓库 `commands/bsa/resume.md`，其中 `__BSA_ROOT__`
+占位符 SHALL 在部署时重写为本次安装的技能根绝对路径。命令目录下的**其他命令 SHALL 原样保留**；
+重复安装 SHALL 幂等（只覆盖适配器自己那一份，不备份、不报错）。
 
-- **WHEN** 当前 Node 主版本低于出图所需的最低版本（18）
-- **THEN** 脚本以非零退出码结束，明确说明所需版本与当前版本，且不写入任何文件
-
-#### Scenario: 目标目录已存在
-
-- **WHEN** 目标技能目录已存在
-- **THEN** 脚本先把既有目录整体备份为 `brainstorming-archify.bak-<时间戳>`，再写入新内容，不就地覆盖
-
-#### Scenario: 安装后的目录形态
+#### Scenario: 安装后命令可用
 
 - **WHEN** 安装在环境满足的条件下完成
-- **THEN** 目标根下有平铺的 `SKILL.md` 与 `design-doc-reviewer-prompt.md`，
-  以及 `templates/`、`scripts/` 两个目录；`scripts/diagram-engine/` 在其下
+- **THEN** `<命令目录>/bsa/resume.md` 存在，内容中已无 `__BSA_ROOT__` 占位符，且指向本次安装的技能根
+  （`resume-state.mjs` 与 `change-state.mjs` 的绝对路径）；`/bsa:resume` 命令可用
 
-#### Scenario: 安装后自检
+#### Scenario: 命令目录里有别人的命令
 
-- **WHEN** 文件写入完成
-- **THEN** 脚本自动对**已安装副本**执行一次绘图内核的环境自检，自检通过才报告安装成功；
-  自检失败时以非零退出码结束并说明失败原因
+- **WHEN** 命令目录下已存在其他命令（如 `ssf/resume.md`）后再次安装
+- **THEN** 其他命令文件逐字节保留，只有 `bsa/resume.md` 被刷新
 
-#### Scenario: 预演模式
+#### Scenario: 预演列出命令适配器
 
-- **WHEN** 以预演模式运行脚本
-- **THEN** 脚本列出将写入的文件与目标路径，但不创建目录、不修改文件系统；
-  预演模式同样受 Node 主版本硬门约束
+- **WHEN** 以 `--dry-run` 运行安装器
+- **THEN** 输出除技能清单外还列出命令适配器的「源文件 → 目标路径」，且不创建命令目录
 
 ### Requirement: 绘图内核的环境自检
 

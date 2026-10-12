@@ -64,7 +64,12 @@ human-readable design documents.
   substance — a descriptively named functional point carrying a stable
   reference label such as `FP-1` is a cross-reference aid, not spec-mode
   content, and a reference site may cite that label alone once the name
-  is defined)
+  is defined). **The one sanctioned exception is `specs/design/task.md`**:
+  the implementation task list this skill generates once every document
+  is confirmed (see **Implementation Task Split**) is a task list whose
+  tasks carry acceptance criteria by design — it is the handoff artifact,
+  not a spec-mode byproduct, and the ban above applies to every other
+  document.
 
 **Where the output goes:** your human partner hands the design documents
 to a separate process (for example spec-superflow). This skill is not
@@ -207,6 +212,14 @@ that path's gates before implementation.
 Classify first, announce the path, then create a task for each item on
 your path and complete them in order.
 
+**Step 0 on every path — open the discussion state.** If the project has
+no `.brainstorming-archify/state.yaml`, run `change-state.mjs init` (the
+library starts in `explore`). As each document enters the discussion,
+register it with `file <path> discussing`; a later round that touches
+already-registered files opens with `reopen <paths> --reason "<topic>"`.
+The state machine, the four states and the file statuses are defined in
+**Discussion State** below; the commands are the only way that file changes.
+
 **Spike:**
 0. **Establish shared understanding** — identify the intended outcome, who it is for, and what success looks like; when that is missing, ask one focused question, then write back a short note your human partner can correct before proposing features or an approach.
 1. **Explore project context** — enough to frame the probe
@@ -257,9 +270,13 @@ digraph brainstorming {
     "Change List gate: user approves?" [shape=diamond];
     "Render the diagram triples" [shape=box];
     "Write or merge docs" [shape=box];
+    "Mark documents landed; advance draft" [shape=box];
     "Self-review (fix inline)" [shape=box];
     "Subagent review" [shape=box];
     "User reviews doc?" [shape=diamond];
+    "Mark approved documents confirmed; advance confirm" [shape=box];
+    "Generate specs/design/task.md" [shape=box];
+    "Advance closed (--task-md)" [shape=box];
     "Done" [shape=doublecircle];
 
 "Classify: spike / bounded / architectural" -> "Establish shared understanding";
@@ -283,11 +300,15 @@ digraph brainstorming {
     "Change List gate: user approves?" -> "Render the diagram triples" [label="yes"];
     "Change List gate: user approves?" -> "Read templates; read specs/design" [label="no, revise the list"];
     "Render the diagram triples" -> "Write or merge docs";
-    "Write or merge docs" -> "Self-review (fix inline)";
+    "Write or merge docs" -> "Mark documents landed; advance draft";
+    "Mark documents landed; advance draft" -> "Self-review (fix inline)";
     "Self-review (fix inline)" -> "Subagent review";
     "Subagent review" -> "User reviews doc?";
     "User reviews doc?" -> "Write or merge docs" [label="issues found"];
-    "User reviews doc?" -> "Done" [label="approved"];
+    "User reviews doc?" -> "Mark approved documents confirmed; advance confirm" [label="approved"];
+    "Mark approved documents confirmed; advance confirm" -> "Generate specs/design/task.md";
+    "Generate specs/design/task.md" -> "Advance closed (--task-md)";
+    "Advance closed (--task-md)" -> "Done";
 }
 ```
 
@@ -309,10 +330,11 @@ nothing at all when the project has no document set yet — while an architectur
 change produces or extends the full set.
 
 **Terminal states are path-bound.** Spike: the terminal state is a
-reported recommendation. Bounded and Architectural: the terminal state
-is an approved set of design documents — or no file at all when your
-human partner declines the Persist Gate. This skill never continues into
-implementation.
+reported recommendation. Bounded and Architectural: the terminal state is
+an approved set of design documents plus the generated `specs/design/task.md`
+— or no file at all when your human partner declines the Persist Gate.
+This skill still never continues into implementation: `task.md` is the
+handoff artifact, and implementing it belongs to a downstream process.
 
 ## The Process
 
@@ -409,6 +431,79 @@ chunk by asking what's wrong or missing. This is the working form of
 - Explore the current structure before proposing changes. Follow existing patterns.
 - Where existing code has problems that affect the work (e.g., a file that's grown too large, unclear boundaries, tangled responsibilities), include targeted improvements as part of the design - the way a good developer improves code they're working in.
 - Don't propose unrelated refactoring. Stay focused on what serves the current goal.
+
+## Discussion State
+
+A design discussion may span days and be interrupted at any point. The
+progress lives in **`<project root>/.brainstorming-archify/state.yaml`** —
+it is the **progress anchor**: `specs/design/` answers *what was discussed*,
+this file answers *where the discussion stands*. After an interruption or
+a restart, run `resume-state.mjs` (or the `/bsa:resume` command) and
+continue from what it reports. The `.brainstorming-archify/change-lists/`
+directory stays what it was — the audit trail of what each persist was
+authorised to write, not a progress record.
+
+**state.yaml is edited only through `change-state.mjs`.** Never write it by
+hand, and never let a subagent touch it; `resume-state.mjs` is read-only.
+
+**Four overall states**, in order:
+
+| State | Meaning | Entry precondition |
+|---|---|---|
+| `explore` | Pure discussion — nothing has landed | `init`, or any `reopen` |
+| `draft` | Drafts are on disk, the human is verifying | every registered file is `landed` (a `confirmed` file counts) |
+| `confirm` | Everything is confirmed — only `task.md` is left | every registered file is `confirmed` |
+| `closed` | `task.md` has been generated; the round is done | `specs/design/task.md` exists and is newer than the last reopen |
+
+Forward moves go **one step at a time**; moving backwards requires
+`--reason`. Three file statuses: `discussing` (in discussion),
+`landed` (written to disk, awaiting verification), `confirmed` (the human
+approved it).
+
+**The commands** (run from anywhere inside the project; `--root <dir>`
+overrides discovery):
+
+```
+node <skill-root>/scripts/task-state/change-state.mjs init
+node <skill-root>/scripts/task-state/change-state.mjs file <path> <discussing|landed|confirmed>
+node <skill-root>/scripts/task-state/change-state.mjs advance <explore|draft|confirm|closed> [--reason "<原因>"] [--task-md specs/design/task.md]
+node <skill-root>/scripts/task-state/change-state.mjs reopen <path>... --reason "<原因>"
+node <skill-root>/scripts/task-state/change-state.mjs show [--json]
+node <skill-root>/scripts/task-state/resume-state.mjs [--json]
+```
+
+**When to move the state:**
+
+- **A round opens** — `init` once per project when no library exists yet;
+  then, as each document enters the discussion, `file <path> discussing`.
+  A later round that touches registered files (or adds new ones) opens with
+  `reopen <paths> --reason "<topic>"`: only the named files flip back to
+  `discussing`, files nobody named keep their status, and the overall state
+  returns to `explore`. Naming a file that is **not registered yet**
+  registers it as `discussing` first — that is how a new module joins a
+  library that already exists.
+- **After the Change List Gate approves a persist** — in the same batch as
+  the documents, mark every document that persist wrote with
+  `file <path> landed`. When every registered file is `landed`, run
+  `advance draft`.
+- **At the User Review Gate** — when the human approves a document, mark it
+  `file <path> confirmed`. When every registered file is `confirmed`, run
+  `advance confirm`.
+- **At `confirm`** — generate `specs/design/task.md` per **Implementation
+  Task Split** below, then `advance closed --task-md specs/design/task.md`.
+  The `--task-md` check refuses a stale file: a reopen invalidates the old
+  task list, so re-generating it is mandatory before closing again.
+- **A revision arrives** — if the human asks for changes after documents
+  landed or were confirmed, `reopen` the affected files with the reason and
+  walk the cycle again. Documents nobody asked to change are not re-reviewed.
+
+The documents themselves carry **no status line** in their header any more —
+the state library is the single authority, so a header that also said
+"草稿 / 已确认" would be a second source that can silently disagree. The
+header keeps `最近更新` / `参与` / `来源` (and `对应架构` on module documents).
+The architecture template's §6.2 `设计状态` column and the §7 interface-matrix
+statuses are **different concepts** — a module's design existence and an
+interface dependency's state — and stay where they are.
 
 ## The Persist Gate
 
@@ -1006,10 +1101,11 @@ Legend keys: `start`, `active`, `waiting`, `decision`, `success`, `failure`,
 
 This skill ends at the persisted document set under `specs/design/`:
 `01-架构设计.md`, one document per designed module, `00-接口契约.md` when its
-mechanical trigger fires, and the diagram triples under
-`specs/design/diagrams/`. Because every document references its diagrams by a
-path relative to itself, that one directory is self-contained — **it** is the
-thing that gets handed over, not an individual file.
+mechanical trigger fires, `specs/design/task.md` once every document is
+confirmed, and the diagram triples under `specs/design/diagrams/`. Because
+every document references its diagrams by a path relative to itself, that one
+directory is self-contained — **it** is the thing that gets handed over, not
+an individual file.
 
 **This skill never invokes a downstream process.** Whether anything is handed
 over, and to what, is your human partner's decision; when they ask, name the
@@ -1150,7 +1246,10 @@ reading time.
    keep its heading and write `不适用：<reason>`.
 5. **Write to** `<project-root>/specs/design/<NN>-<name>.md` — the path is
    relative to the project root, not to the current working directory.
-   Create `specs/design/` first if it does not exist.
+   Create `specs/design/` first if it does not exist. In the same batch,
+   mark every document this persist wrote with
+   `change-state.mjs file <path> landed`; when every registered file is
+   `landed`, run `advance draft` (see **Discussion State**).
    - `01-架构设计.md` is fixed for the architecture document
    - The interface contract document is `specs/design/00-接口契约.md` — that
      file name is fixed, and its `00-` is a fixed literal prefix. It sits
@@ -1332,19 +1431,102 @@ cross-document checks still have their reference.
 Wait for the response. If they request changes, make them and re-run
 self-review. Once they approve, stop.
 
+**Record the approval in the state library, not in the documents.** For each
+document they approved, run `change-state.mjs file <path> confirmed`. When
+every registered file is `confirmed`, run `advance confirm` and generate
+`specs/design/task.md` per **Implementation Task Split** below, then
+`advance closed --task-md specs/design/task.md`. If they approved only some
+documents, mark only those; the rest keep their status and the overall state
+stays where it is. A later request to revise an approved document is a
+`reopen` of that file with the reason — it flips back to `discussing` and
+the cycle walks again, while documents nobody asked to change are not
+re-reviewed.
+
+## Implementation Task Split
+
+Once every registered document is `confirmed` (the library sits in
+`confirm`), write **`specs/design/task.md`** — the implementation task list
+that splits the confirmed design from **framework** down to **modules** down
+to **individual features**. It is a managed part of the design set: the
+subagent review covers it, and it is part of what gets handed over. It is
+**not** governed by the "append, never renumber" rule — it is regenerated
+whole from the confirmed design, and a reopen invalidates it (the old file
+must be regenerated before the round can close again).
+
+**The three tiers, in this order:**
+
+1. **Framework tasks** — the engineering skeleton the design implies:
+   build and dependency setup, the directory layout from the architecture
+   document's file-tree section, shared infrastructure (configuration,
+   logging, error types, storage and cache clients, message-channel
+   clients), and the process and thread wiring from the runtime view. The
+   **seams** are those items — one task per item that can be implemented and
+   verified on its own; items that cannot stand alone (a client with nothing
+   to configure it yet) merge into the task that first makes them meaningful.
+   One task per seam, not one per file.
+2. **Module tasks** — one per module in the architecture document's module
+   list, in dependency order: the module's internal structure, its classes
+   from the module document's class list, and its side of every interface
+   it owns.
+3. **Feature tasks** — one per functional flow (or per functional point
+   that does not map onto a single flow), each landing inside its module
+   and exercising the cross-module interfaces that flow uses.
+
+**Every task is one row with this exact shape** — a checkbox first, then a
+short summary, the dependencies, and the AI implementation prompt:
+
+```markdown
+- [ ] **T-03 通信模块：Redis 客户端与 key 命名落地**
+  - 概要：按 §6.2 模块清单与接口契约 Redis 节实现通信模块的缓存客户端，key 一律走总则命名规范。
+  - 依赖：T-01（工程骨架）、T-02（配置与日志）
+  - AI 实现提示词：
+    - [实现的功能] 实现通信模块的 Redis 客户端封装……
+    - [任务实现的要求] 覆盖接口契约 2.2 节列出的每个 key……遵循 §8.1 核心类清单里的类名与签名……
+    - [实现的约束] 不引入架构文档未列出的依赖；key 命名遵守总则（实体级 `<系统>:<域>:<实体>:<用途>:{实体标识}`，全局/聚合级四段式）……不得改动其他模块的文件……
+    - [验收标准] `node --test` 全绿；key 命名可用机械核对；接口矩阵中本模块负责的行全部翻到 `已落地`……
+```
+
+The prompt must be **self-contained and detailed** — an engineer (human or
+AI) who has read the design documents must be able to implement the task
+from the prompt plus those documents alone, without re-deriving decisions
+the design already made. Reference concrete sections (`§6.2`, `§7`, `§8.1`,
+the contract's `x.2` items) instead of restating them.
+
+**Dependency verification — run it before writing the file.** The task list
+is invalid if any of these holds, and the check's conclusion is written into
+a **依赖校验** section at the end of `task.md`:
+
+- a task depends on a task that comes later in the list, or on itself;
+- two tasks modify the same file without an explicit ordering between them
+  — a task that only **reads** a file another task writes needs no ordering,
+  but its prompt must say so under `[实现的约束]`;
+- a feature task's module task is not complete (a feature task may only
+  depend on module tasks listed before it);
+- a task's dependencies name an ID that does not exist.
+
+Number tasks `T-01`, `T-02`, … in execution order; the `依赖` column names
+predecessor IDs, or `无`. The verification section states, per rule above,
+either "无冲突" or the concrete violations found — a list that ships with
+unverified dependencies is a defect, and so is a verification section that
+claims a pass the list contradicts.
+
 ## Terminal State
 
-This skill **ends here**.
+This skill **ends here** — at the confirmed design documents plus the
+generated `specs/design/task.md`, with the state library in `closed`.
 
 - Do not invoke any further skill
-- Do not create an implementation plan or start implementing
+- Do not start implementing — `task.md` is the handoff artifact, and
+  implementing it belongs to a downstream process
 - **Committing is the repository's convention, not this skill's decision.**
   If the project has a standing rule requiring a commit after file changes
   (a project instruction file, or an established convention), commit the
   documents you wrote and the entries you changed, using that project's
   message format. If there is no such convention, say the working tree is
-  left as-is and why.
-- You may tell your human partner: "These documents can be handed to spec-superflow for the next stage."
+  left as-is and why. `.brainstorming-archify/state.yaml` is a process
+  artifact like `change-lists/`; whether it is committed follows the same
+  project convention.
+- You may tell your human partner: "These documents and the task list can be handed to spec-superflow for the next stage."
 - **If, before the Persist Gate, they ask you to hand the work to a
   downstream process right away**, say plainly that this skill finishes at
   the documents and that the handoff becomes possible once they exist. Do not

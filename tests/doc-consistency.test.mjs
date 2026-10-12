@@ -36,6 +36,9 @@
  *      §10 用「单模块功能流程」并与「纯模块内部实现级流程」区分；§7 点明「模块是设计划分、进程是运行单元」。
  *   ⑯ dry-run 第四轮复测的修法：`meta.output` 写成**必填**（五类 schema 都要求，旧口径「optional」不得残留）；
  *      接口契约第 1–7 节的三级小节计数随整族不适用而变（`在用族数 × 3`）。
+ *   ⑰ 讨论状态库与任务拆分：SKILL 含四级状态机与「state.yaml 只准 change-state.mjs 编辑」口径、
+ *      Terminal State 改为「确认文档 + task.md 即终点」、含 Implementation Task Split 的三层拆分与
+ *      四段式提示词；审查提示词含 Task split 判据；三份模板文件头无「状态」行；命令适配器源文件在位。
  *
  * 只用 Node 内置模块，不依赖 node_modules。
  */
@@ -615,4 +618,113 @@ test('两份配图模板都声明提示块不得原样留在产物里', () => {
     assert.match(template, /不得把说明段原样留在产物里/, `${rel} 应含提示块的处置声明`);
     assert.match(template, /「图示与出图约定」整块属提示/, `${rel} 应点名配图约定整块属提示`);
   }
+});
+
+test('SKILL.md 含讨论状态库口径：四态、唯一切换入口与 reopen', () => {
+  const skill = read(SKILL);
+  for (const state of ['explore', 'draft', 'confirm', 'closed']) {
+    assert.ok(skill.includes(`\`${state}\``), `SKILL 应含状态 ${state}`);
+  }
+  assert.match(skill, /\.brainstorming-archify\/state\.yaml/, 'SKILL 应点名 state.yaml 落点');
+  assert.match(
+    skill,
+    /state\.yaml is edited only through `change-state\.mjs`/,
+    'SKILL 应钉住 state.yaml 只准 change-state.mjs 编辑',
+  );
+  assert.match(skill, /resume-state\.mjs/, 'SKILL 应提到只读恢复命令');
+  assert.match(skill, /reopen <path>\.\.\. --reason/, 'SKILL 应给出 reopen 用法');
+  assert.match(
+    skill,
+    /--task-md <路径>|--task-md specs\/design\/task\.md/,
+    'SKILL 应说明 closed 必须带 --task-md',
+  );
+});
+
+test('SKILL.md 的 Implementation Task Split：三层、勾选框列与四段式提示词', () => {
+  const skill = read(SKILL);
+  assert.match(skill, /## Implementation Task Split/, 'SKILL 应有 Implementation Task Split 节');
+  assert.match(skill, /框架\*\*（|Framework tasks|framework tasks/i, 'SKILL 应写框架层拆分');
+  assert.match(skill, /specs\/design\/task\.md/, 'SKILL 应点名 task.md 落点');
+  assert.match(skill, /a checkbox first|- \[ \] \*\*T-03/, 'SKILL 应给出勾选框在首列的任务行示例');
+  for (const part of ['[实现的功能]', '[任务实现的要求]', '[实现的约束]', '[验收标准]']) {
+    assert.ok(skill.includes(part), `SKILL 的四段式提示词应含「${part}」`);
+  }
+  assert.match(skill, /依赖校验/, 'SKILL 应要求依赖校验小节');
+  assert.match(skill, /depends on a task that comes later|forward or self dependency|前向|依赖排在它之后/, 'SKILL 应列出前向/自依赖禁令');
+});
+
+test('Terminal State 改为「确认文档 + task.md 即终点」，不得残留旧口径', () => {
+  const skill = read(SKILL);
+  assert.doesNotMatch(skill, /Do not create an implementation plan/, '不得残留「不创建实现计划」的旧口径');
+  assert.match(skill, /task\.md` is the\s+handoff artifact/, 'Terminal State 应把 task.md 定为交接物');
+  assert.match(skill, /## Implementation Task Split/, 'Terminal State 应引用任务拆分节');
+});
+
+test('Process Flow 图含状态推进与 task.md 节点', () => {
+  const skill = read(SKILL);
+  for (const node of [
+    'Mark documents landed; advance draft',
+    'Mark approved documents confirmed; advance confirm',
+    'Generate specs/design/task.md',
+    'Advance closed (--task-md)',
+  ]) {
+    assert.ok(skill.includes(`"${node}"`), `Process Flow 应含节点「${node}」`);
+  }
+});
+
+test('审查提示词含 task.md 判据', () => {
+  const prompt = read('skill/design-doc-reviewer-prompt.md');
+  assert.match(prompt, /Task split \*\*\(task\.md\)\*\*/, '审查提示词应有 Task split 判据行');
+  assert.match(prompt, /specs\/design\/task\.md/, '审查提示词应点名 task.md 路由');
+  for (const part of ['[实现的功能]', '[任务实现的要求]', '[实现的约束]', '[验收标准]']) {
+    assert.ok(prompt.includes(part), `Task split 判据应含「${part}」`);
+  }
+});
+
+test('三份模板文件头无「状态」行，README 无旧元信息表述', () => {
+  for (const rel of [ARCH_TEMPLATE, MODULE_TEMPLATE, 'templates/interface-contract-template.md']) {
+    const template = read(rel);
+    assert.doesNotMatch(template, /^\> \*\*状态\*\*：/m, `${rel} 文件头不得再有状态行`);
+    assert.match(template, /\*\*最近更新\*\*/, `${rel} 应保留最近更新行`);
+  }
+  const readme = read('README.md');
+  assert.doesNotMatch(readme, /「状态」新建为「草稿」/, 'README 不得残留旧状态口径');
+  assert.match(readme, /文件头不再写「状态」|\.brainstorming-archify\/state\.yaml/, 'README 应说明状态改记 state.yaml');
+  // 不同概念的两处状态必须保留
+  assert.match(read(ARCH_TEMPLATE), /设计状态/, '架构模板 §6.2 设计状态列应保留');
+  assert.match(read(ARCH_TEMPLATE), /状态枚举（四档，权威定义）/, '架构模板 §7 矩阵状态枚举应保留');
+});
+
+test('命令适配器源文件在位：占位符与禁改口径', () => {
+  const src = read('commands/bsa/resume.md');
+  assert.match(src, /__BSA_ROOT__/, '适配器源文件应含 __BSA_ROOT__ 占位符');
+  assert.match(src, /不得直接修改 `\.brainstorming-archify\/state\.yaml`/, '适配器应禁直接改 state.yaml');
+  assert.match(src, /resume-state\.mjs.*--json/s, '适配器应指示跑 resume-state --json');
+});
+
+test('dry-run 状态库复测的修法已落盘（F1 计数词 / F5 reopen 登记 / F6 Scope 例外）', () => {
+  const skill = read(SKILL);
+  // F1：「Two file statuses」计数词与三态枚举矛盾
+  assert.doesNotMatch(skill, /Two file statuses/, '不得残留「Two file statuses」的计数错误');
+  assert.match(skill, /Three file statuses/, '应写 Three file statuses');
+  // F5：reopen 对未登记新文件的行为要写明（先登记再翻转）
+  assert.match(
+    skill,
+    /Naming a file that is \*\*not registered yet\*\*[\s\S]*registers it as `discussing` first/,
+    '应写明 reopen 未登记文件会先登记为 discussing',
+  );
+  // F6：Scope 的 spec-mode 禁令要为 task.md 留明文例外
+  const scope = /## Scope\n([\s\S]*?)\n## /.exec(skill)?.[1] ?? '';
+  assert.match(
+    scope,
+    /sanctioned exception is `specs\/design\/task\.md`/,
+    'Scope 应写明 task.md 是 spec-mode 禁令的唯一明文例外',
+  );
+  // F7/F8 的口径补强
+  assert.match(skill, /\*\*seams\*\* are those items/, '框架任务的 seam 应有判据');
+  assert.match(
+    skill,
+    /only \*\*reads\*\* a file another task writes needs no ordering/,
+    '同文件规则应说明「只读」无需 ordering',
+  );
 });
