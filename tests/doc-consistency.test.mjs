@@ -28,6 +28,8 @@
  *      顺延为 §13、§14；技能与审查提示词同步提到两节。
  *   ⑫ 首条消息恰含三项（可跳过语 + 分类宣告 + 一个开放问题），且「单层提问」的例外明确包含首条消息；
  *      接口契约的按需产出判定以「本次设计覆盖的系统」为基准，不得残留无基准的旧口径。
+ *   ⑬ dry-run 摩擦 F3–F8 的修法：§8.1 核心类判定含「触发入口」承担者、架构模板有配图口径速查、
+ *      总则命名规范含 Redis 全局/聚合 key 形态、SKILL 含台账去重口径与两轮台账前置、平台提问上限口径。
  *
  * 只用 Node 内置模块，不依赖 node_modules。
  */
@@ -411,6 +413,24 @@ test('首条消息与分类宣告已和解，且接口契约判定基准已定�
     /If the project has \*\*any one\*\* of the seven interface families/,
     '不得残留无基准的旧口径',
   );
+});
+
+test('dry-run 摩擦 F3–F8 的修法已落盘', () => {
+  const arch = read(ARCH_TEMPLATE);
+  const contract = read('templates/interface-contract-template.md');
+  const skill = read(SKILL);
+  // F3：§8.1 核心类判定含「触发入口」承担者
+  assert.match(arch, /作为第 10 节某条流程\*\*触发入口\*\*的承担者/, 'F3：§8.1 应含触发入口承担者');
+  // F5：架构模板顶部配图口径速查
+  assert.match(arch, /配图口径速查/, 'F5：架构模板应有配图口径速查');
+  // F4：总则命名规范含 Redis 全局/聚合 key 形态
+  assert.match(contract, /全局／聚合级/, 'F4：总则命名规范应含 Redis 全局/聚合 key 形态');
+  // F6：台账按去重后的三件套记
+  assert.match(skill, /deduplicated triple/, 'F6：SKILL 应含台账去重口径');
+  // F7：台账口径前置到 hard gate 开头
+  assert.match(skill, /The two-round ledger is maintained only by `render`/, 'F7：台账口径应前置');
+  // F8：平台提问上限口径
+  assert.match(skill, /If the platform's per-call limit is unknown/, 'F8：应补平台提问上限口径');
 });
 
 /* ---------------------------------------------------------------------------

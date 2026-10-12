@@ -369,7 +369,7 @@ chunk by asking what's wrong or missing. This is the working form of
 - If the project is too large for a single design, help the user decompose it into functional modules: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first module through the normal design flow. `01-架构设计.md` stays global and accumulates every module's architecture-level content; each module's detail goes in its own `<NN>-<模块名>.md`. There is only ever one architecture document.
 - For appropriately-scoped projects, ask questions to refine the idea one **layer** at a time
 - Prefer multiple choice questions when possible, but open-ended is fine too
-- **One layer per message.** Never mix two layers' questions in the same message or the same structured-question call. Within the current layer you may ask several questions at once, up to your platform's per-call limit for the question tool; if a layer needs more, send another message for that same layer. "One message" means one user-facing message whose content is the question — do not bundle other material into it. The classification announcement the Checklist requires may share a message with the first message's single open question or with the current layer's questions; those are the only exceptions. The "nothing else" requirement is strict only for the three gates — Persist, Change List and User Review — each of which gets a message of its own.
+- **One layer per message.** Never mix two layers' questions in the same message or the same structured-question call. Within the current layer you may ask several questions at once, up to your platform's per-call limit for the question tool; if a layer needs more, send another message for that same layer. "One message" means one user-facing message whose content is the question — do not bundle other material into it. The classification announcement the Checklist requires may share a message with the first message's single open question or with the current layer's questions; those are the only exceptions. If the platform's per-call limit is unknown, ask one question per message rather than guessing at a batch size. The "nothing else" requirement is strict only for the three gates — Persist, Change List and User Review — each of which gets a message of its own.
 - Ask the clarifying questions in **three layers**. The five steps named throughout this skill — **functional points → module division → core classes → file tree → flows** — are the order the *design* is built in; the three layers are the order the *questions* are asked, mapped onto them as: the functional-point layer covers step 1; the architecture layer covers steps 2–4 plus the architecture-level skeleton of step 5; the module layer covers the module-level detail of step 5.
   - **Functional-point layer** — ask until **every** functional point is captured: which functional points does the system offer? For each, what need it serves, for whom, its input and its observable result, and its boundary (what it deliberately does not do). Which are goals and which are explicit non-goals?
   - **Architecture layer** — ask until **every** functional point and **every** functional flow is captured: how is the system cut into modules, and *why* that way (the seams, the alternative divisions rejected)? Which modules depend on which, and how strongly? Which cross-module interfaces are needed, and what does the calling side expect of each signature? Which classes are the core classes that chain the functional flows together? What do the module folders and core files look like? How does it *run* — which processes, each with which threads, and how do they interact? How is it *deployed* — the deployment directory structure, the deployment steps, and the files the deployment is made of? Deliberately defer the details — they belong to the module layer.
@@ -749,6 +749,11 @@ through the image reference and the interactive page through the link.
 
 ### The validation hard gate
 
+**The two-round ledger is maintained only by `render`.** Running `validate` in a
+loop never yields the exit-3 stop signal, so if you repair through `validate` you
+must keep the error-level count yourself. Read the details below before you
+iterate.
+
 Before it produces a diagram, the kernel runs the renderer's geometry validation
 (node overlap, an edge passing through an unrelated node, occluded relationship
 labels). A diagram that fails validation **is not produced**, and an existing
@@ -772,7 +777,7 @@ re-present the list, and persist nothing until it is approved again. (A
 `未通过校验` mark that predates any render comes from the pre-gate `validate`
 instead; both use the same mark.)
 
-**Scope of that ledger — read this before iterating.** The two-round ledger is
+**Why the ledger's owner matters.** The two-round ledger is
 kept by `render`, not by `validate`. Running `validate` repeatedly never produces
 the stop signal or the exit code 3, so if you iterate with `validate` instead of
 `render`, **you** must keep the same count yourself and stop when the error-level
@@ -1047,6 +1052,9 @@ The change list states:
   by its triple base (`<document number>-<diagram name>.<diagram type>`, all
   three artifacts under `specs/design/diagrams/`) with the flow or section it
   belongs to (per Rule 7 and **Diagrams in the Design Documents**), or `无`.
+  Record the ledger once per **deduplicated triple** — a flow reused across the
+  architecture and its module documents shares one triple, so list it once and
+  name all its referencing sections, not once per reference.
   This column also restates the confirmed **Diagram Planning Gate** plan, and
   lists any diagram this persist expected to create or re-render but which
   failed validation and is kept as a placeholder, marked `未通过校验` with its
