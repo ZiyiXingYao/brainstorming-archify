@@ -41,7 +41,7 @@
 | 来源 | 取的是什么 | 以什么形态并入 | 基准坐标 | 许可 |
 |---|---|---|---|---|
 | [superpowers](https://github.com/obra/superpowers) 的 `brainstorming` 技能 | **对话式设计流程骨架**——路径分类、提问与收敛、设计呈现、自审与用户审查 | **改造副本**：`skill/SKILL.md` 保留英文原文，便于与上游逐句 diff 与同步 | `v6.4.1`（commit `5bf4e78`） | MIT，Copyright (c) 2025 Jesse Vincent |
-| [archify](https://github.com/tt-a1i/archify) 出图技能包 | **绘图内核**——架构图 / 工作流图 / 时序图 / 数据流图 / 生命周期图五类图的渲染、校验与自检 | **裁剪副本**：只保留 5 类图渲染能力，删掉 10 个子命令、`--repo-root` 溯源能力与 `examples/` 等目录 | commit `5289f6867f048a7450ec5718f58459613a84cf41`（技能包 `2.17.0-dev.1`；该仓库无稳定 tag，基准按 commit 固定） | MIT（Copyright (c) 2026 tt-a1i (Archify) 与 Copyright (c) 2025 Cocoon AI）；内联字体 JetBrains Mono 依 SIL OFL 1.1 |
+| [archify](https://github.com/tt-a1i/archify) 出图技能包 | **绘图内核**——架构图 / 工作流图 / 时序图 / 数据流图 / 生命周期图五类图的渲染、校验与自检 | **裁剪副本**：只保留 5 类图渲染能力，删掉全部与 5 类图无关的子命令、`--repo-root` 溯源能力与 `examples/`、`references/` 等目录 | `v3.0.1`（commit `2ab3cae`；技能包版本 `3.0.1`） | MIT（Copyright (c) 2026 tt-a1i (Archify) 与 Copyright (c) 2025 Cocoon AI）；内联字体 JetBrains Mono 依 SIL OFL 1.1 |
 
 两处需要特别说清的地方：
 
@@ -63,9 +63,9 @@
 |---|---|---|---|
 | **本仓库 / 本技能的发布版本** | **`v0.1.0`**（2026-09-22） | 这个仓库与它导出的技能的版本，由 git tag 与 [GitHub Release](https://github.com/ZiyiXingYao/brainstorming-archify/releases) 承载；本 README 顶部与本节是它的文字出处 | 每次发版 |
 | 技能文本上游基准 | `v6.4.1`（commit `5bf4e78`） | `skill/SKILL.md` 所同步的 superpowers 坐标 | 同步 superpowers 时 |
-| 绘图内核上游基准 | commit `5289f6867f048a7450ec5718f58459613a84cf41`（技能包 `2.17.0-dev.1`） | 内核搬运自 archify 的坐标 | 搬运新内核时 |
+| 绘图内核上游基准 | `v3.0.1`（commit `2ab3cae`；技能包版本 `3.0.1`） | 内核搬运自 archify 的坐标 | 搬运新内核时 |
 
-**`scripts/diagram-engine/skill-release.json` 里的 `2.17.0-dev.1` 不是本仓库版本。** 那是**上游
+**`scripts/diagram-engine/skill-release.json` 里的 `3.0.1` 不是本仓库版本。** 那是**上游
 archify 技能包**的发布清单（含它自己的 `skillId`、更新通道与仓库地址），随内核一起逐字节搬进来、
 保留上游可追溯性；改它会让内核与上游对不上号。
 

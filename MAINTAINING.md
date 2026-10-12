@@ -22,7 +22,7 @@
 | 对象 | 上游仓库 | 基准坐标 | 同步方式 |
 |------|---------|---------|---------|
 | `skill/SKILL.md` 等技能文本 | [superpowers](https://github.com/obra/superpowers) | `v6.4.1`（commit `5bf4e78`） | `./scripts/sync-upstream.sh` 看 diff 后按《需要重放的改动清单》重放 |
-| `scripts/diagram-engine/` | [archify](https://github.com/tt-a1i/archify) | commit `5289f6867f048a7450ec5718f58459613a84cf41`（技能包 `2.17.0-dev.1`） | **无脚本**，按 commit 手工比对 + 跑 `test/run-valid.mjs` 判回归（见下文） |
+| `scripts/diagram-engine/` | [archify](https://github.com/tt-a1i/archify) | `v3.0.1`（commit `2ab3cae`；技能包版本 `3.0.1`） | **无脚本**，按 tag / commit 手工比对 + 跑 `test/run-valid.mjs` 判回归（见下文） |
 
 `./scripts/sync-upstream.sh` **只覆盖 `superpowers`**：它比对的是 `skill/SKILL.md`，与绘图内核无关。
 
@@ -133,9 +133,9 @@ rm -rf /tmp/sp
 
 ### 上游二：archify（绘图内核）
 
-`scripts/diagram-engine/` 是 [archify](https://github.com/tt-a1i/archify) 出图技能包的**裁剪副本**：按「只保留 5 类图渲染能力」删掉了 10 个子命令、`--repo-root` 溯源能力、`examples/` 等目录，把入口 `archify.mjs` 裁成内部驱动 `render-driver.mjs`（2139 → 562 行）、把 `design-diagrams.mjs` 改造为唯一入口 `render.mjs`。逐项改动与被删清单见 `scripts/diagram-engine/UPSTREAM.md` 第 1 节。
+`scripts/diagram-engine/` 是 [archify](https://github.com/tt-a1i/archify) 出图技能包的**裁剪副本**：按「只保留 5 类图渲染能力」删掉了全部与 5 类图无关的子命令（compare / deliver / finalize / preview / migrate / inspect / check / visual-check / browser-check / guide / brands / examples / demo / recover-output）、`--repo-root` 溯源能力、`examples/`、`references/` 与上游 `SKILL.md`，把入口 `archify.mjs`（6936 行）裁成内部驱动 `render-driver.mjs`（只留 `render`／`validate`／`doctor`），并以本仓库新增的 `render.mjs` 作为唯一对外入口；品牌解析收窄为「只认内置 canonical ID、不联网」。逐项改动与被删清单见 `scripts/diagram-engine/UPSTREAM.md` 第 1 节。
 
-**上游基准**：`tt-a1i/archify` @ commit `5289f6867f048a7450ec5718f58459613a84cf41`（技能包版本 `2.17.0-dev.1`；`skill-release.json` 的 `channel` 是 `development`，该仓库**无稳定 tag**，因此基准按 commit 固定，不按 tag 或 `latest`）。
+**上游基准**：`tt-a1i/archify` @ `v3.0.1`（commit `2ab3cae`；技能包版本 `3.0.1`，`skill-release.json` 的 `channel` 已是 `stable`）。
 
 **许可证归属**：archify 本体为 MIT（版权方与全文见 `scripts/diagram-engine/LICENSE`）；内联字体 **JetBrains Mono** 依 SIL Open Font License 1.1 授权，完整授权文本随包存放在 `scripts/diagram-engine/assets/JetBrainsMono-OFL.txt`；第三方商标与图标归属见 `scripts/diagram-engine/THIRD_PARTY_NOTICES.md`。
 
@@ -145,9 +145,9 @@ rm -rf /tmp/sp
 node scripts/diagram-engine/test/run-valid.mjs
 ```
 
-它只跑**在裁剪后成立的那个子集**（当前为上游 7 + 本地 6 = 13 个文件，退出码 `0` = 全过；本地 6 个含驱动 CLI 面、环境自检与品牌边界三组新增用例）。哪些上游检查项被排除、为什么排除（三类成因），逐条登记在 `scripts/diagram-engine/UPSTREAM.md` 第 3 节。
+它只跑**在裁剪后成立的那个子集**（当前为上游全绿 18 + 本地 6 = 24 个文件、360 个用例，退出码 `0` = 全过；上游 18 个由 3.0.1 整包逐文件**串行**实测筛出，本地 6 个含 CSS 抽取、主题变量解析、图名派生、驱动 CLI 面、环境自检与品牌边界）。哪些上游检查项被排除、为什么排除，逐条登记在 `scripts/diagram-engine/UPSTREAM.md` 第 3、4 节。
 
-**注意：`./scripts/sync-upstream.sh` 只覆盖 `superpowers`，不覆盖 archify**——它比对的是 `skill/SKILL.md`，与绘图内核无关；同步 archify 需按上面的基准 commit 手工比对。
+**注意：`./scripts/sync-upstream.sh` 只覆盖 `superpowers`，不覆盖 archify**——它比对的是 `skill/SKILL.md`，与绘图内核无关；同步 archify 需按上面的基准 tag / commit 手工比对。
 
 ## 2. 后续变更登记
 
@@ -228,7 +228,7 @@ git push origin --delete v0.1.0   # 再删远端 tag
 # 改完 → 提交推送 → 重新打 tag → 重新 create release（URL 不变）
 ```
 
-**版本号不写进 `scripts/diagram-engine/skill-release.json`**——那里的 `2.17.0-dev.1` 是上游 archify
+**版本号不写进 `scripts/diagram-engine/skill-release.json`**——那里的 `3.0.1` 是上游 archify
 技能包的版本，改它会让内核与上游对不上号。
 
 

@@ -5,7 +5,8 @@
  * A `brand` value must resolve to a bundled canonical ID (its id, title, or an
  * alias). An HTTP(S) URL — including one whose host belongs to a known brand —
  * and a pinned `{ url, sha256 }` object are both rejected with a
- * `brand/unsupported-url` diagnostic.
+ * `brand/unsupported-url` diagnostic. No network request is reachable from this
+ * module.
  *
  * The upstream fetch machinery (DNS resolution, pinned-socket HTTP, favicon
  * discovery, image sniffing) was removed together with the `--repo-root`
@@ -14,8 +15,7 @@
 
 import { BRAND_MARKS } from './generated-brand-marks.mjs';
 import { throwDiagnosticError } from './diagnostics.mjs';
-import { minimumNodeTextWidth } from './text-fit.mjs';
-import { esc } from './utils.mjs';
+import { esc, textUnits } from './utils.mjs';
 
 const COLLECTIONS = Object.freeze({
   architecture: 'components',
@@ -150,7 +150,7 @@ export function brandLabelFitWidth(node, width) {
 export function brandTopRailProblem(node, width, minimumFontSize, subject = 'Node') {
   if (!brandMarkFor(node)) return null;
   const available = width - BRAND_RAIL_WIDTH;
-  const required = minimumNodeTextWidth(node.label, minimumFontSize);
+  const required = textUnits(node.label) * minimumFontSize * 0.6;
   if (available >= required) return null;
   return `${subject} "${node.id}" brand top rail leaves ${Math.max(0, available)}px for its label, but `
     + `"${node.label}" needs ~${Math.ceil(required)}px at the ${minimumFontSize}px legible minimum — widen the node or shorten the label.`;

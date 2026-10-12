@@ -719,15 +719,17 @@ Shared `meta` fields:
 
 - `title` — required, one concise title; let the diagram carry the explanation.
 - `subtitle` — omit unless explicitly asked; never restate the title.
-- `locale` — `en` or `zh-CN`; selects renderer-owned viewer UI only (it never
-  translates authored strings). Omit for English.
+- `locale` — `en` and `zh-CN` ship built in; any other well-formed language tag
+  needs a matching `meta.translations` message catalog, or the renderer falls
+  back to English and says so. It selects renderer-owned viewer UI only (it
+  never translates authored strings). Omit for English.
 - `animation` — `trace` opts into a finite, reader-controlled trace; static is
   the default.
 - `visual_preset` — omit to open in `classic`; `signal-flow`, `blueprint` or
   `editorial` only on explicit request.
 - `quality_profile` — `standard` or `showcase` (see the shared constraints).
-- `views` — up to five curated story chapters; each has a unique `id`, a
-  reader-facing `label`, and a non-empty `focus` list of existing node IDs.
+- `views` — **retired**: the schemas still accept the old guided-view shape so
+  existing files keep validating, but the renderer ignores it. Do not author it.
 - `legend` — `mode` is `auto` (default), `all` or `hidden`, with optional
   per-kind `label` / `visible` overrides. Keys are renderer-owned (below).
 - `output`, `viewBox` — optional output name and explicit canvas.
@@ -801,6 +803,14 @@ obvious from the endpoints.
 Legend keys: `emphasis`, `security`, `dashed`, `database`, `default`.
 
 ### Lifecycle diagrams
+
+**Start new lifecycle diagrams on `schema_version: 2`** (one row per lane on a
+shared column grid); the geometry described below is the fixed three-band
+`schema_version: 1` layout, which existing sources keep. To move a v1 document to
+v2, set `schema_version: 2`, re-place lower-lane `col` values on the shared grid
+(v1 column `N` sat under main column `N + 2`), and drop the v1 canvas coordinates
+(`viewBox`, `via`, `channelX`, `channelY`, `labelAt`). There is no `migrate`
+subcommand — author v2 directly.
 
 Main phases use columns `0..4`; event and terminal bands use columns `0..2`, and
 event/terminal column `N` aligns to the same x coordinate as main column `N + 2`.
