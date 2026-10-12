@@ -744,6 +744,24 @@ test('活文件无「每次落盘一份」旧口径（MAINTAINING 的历史条�
   }
 });
 
+test('轮次文件的创建时机与变更清单门不矛盾（F1 修法）', () => {
+  const skill = read(SKILL);
+  assert.match(
+    skill,
+    /This gate governs design documents, not process bookkeeping/,
+    '变更清单门应明确只管设计文档、不管流程簿记',
+  );
+  assert.match(skill, /maintained as the\s+discussion proceeds, including during `explore`/, '应说明簿记在 explore 期间即维护');
+  assert.match(skill, /No design document is written before that approval/, 'Writing 第 3 步应改为「设计文档」而非「任何文件」');
+  assert.doesNotMatch(skill, /Nothing is written before that approval/, '不得残留「批准前什么都不写」的旧口径');
+});
+
+test('轮次文件形状被机械校验（F2 修法）', () => {
+  const skill = read(SKILL);
+  assert.match(skill, /each a markdown heading, in this order/, 'SKILL 应说明五小节是 markdown 标题');
+  assert.match(skill, /the `change-list`\s+command checks for them/, 'SKILL 应说明 change-list 命令会校验');
+});
+
 test('dry-run 状态库复测的修法已落盘（F1 计数词 / F5 reopen 登记 / F6 Scope 例外）', () => {
   const skill = read(SKILL);
   // F1：「Two file statuses」计数词与三态枚举矛盾

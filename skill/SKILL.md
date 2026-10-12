@@ -1132,10 +1132,20 @@ fired, and handing the set over does not require re-deriving it.
 
 ## Change List Gate
 
-An approved design does not authorise writing files. Before any file is
-created or modified, present a change list and wait for an explicit yes. (The one
-exception is named in the Diagram Planning Gate: the source IR is written before
-this gate because `validate` must read it from disk — nothing else is.)
+An approved design does not authorise writing files. Before any **design
+document** is created or modified, present a change list and wait for an
+explicit yes. (The one exception is named in the Diagram Planning Gate: the
+source IR is written before this gate because `validate` must read it from
+disk — nothing else is.)
+
+**This gate governs design documents, not process bookkeeping.** The two files
+under `<project root>/.brainstorming-archify/` that record the discussion —
+`state.yaml` and **the round's change-list file** — are maintained as the
+discussion proceeds, including during `explore` and before this gate opens;
+that is what makes an interruption recoverable. Creating or appending to them
+is **not** what this gate authorises or forbids. It is their *design-document*
+content that the gate protects: the change-list file's persist-authorisation
+block is written only after the gate is approved.
 The change list states:
 
 - **New files** — path, and which template each follows
@@ -1214,7 +1224,9 @@ at `<project root>/.brainstorming-archify/change-lists/<UTC timestamp>-<subject 
 **round's start** and the subject slug is the **round's topic**, under the same
 rule as diagram-name slugs (ASCII letters, digits and `-` only; no CJK). Because
 it is per round rather than per persist, the file is a **living record** and
-carries five sections, in this order:
+carries five sections, each a markdown heading, in this order (the `change-list`
+command checks for them when the pointer is set — a round file without them
+fails, because recovery would have nothing to read):
 
 1. **Round header** — the topic, the start timestamp, the participants, and the
    note that `state.yaml` points here.
@@ -1284,7 +1296,10 @@ reading time.
    Protocol, Rule 1. Then decide the write set: what is new, what is
    merged, and which entries change in each document.
 3. **Present the change list and get approval** — per the Change List
-   Gate. Nothing is written before that approval.
+   Gate. No design document is written before that approval (the round
+   file's own discussion record and decision entries are bookkeeping and
+   are not gated; its persist-authorisation block is added in this same
+   batch, after approval).
 4. **Fill each template exactly** — keep every section, in order. Do not
    add, remove, or rename sections. For a section that does not apply,
    keep its heading and write `不适用：<reason>`.

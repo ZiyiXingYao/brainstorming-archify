@@ -78,12 +78,31 @@ function backdate(full, ms) {
 /** 轮次 change-list 文件所在目录（相对项目根）。 */
 const CL_DIR = '.brainstorming-archify/change-lists';
 
-/** 造一个轮次 change-list 文件并返回其相对路径。 */
+/** 造一个轮次 change-list 文件（含五个小节标题）并返回其相对路径。 */
 function makeRoundFile(root, name = '20261012T120000Z-report-export.md') {
   const rel = `${CL_DIR}/${name}`;
   const full = path.join(root, rel);
   fs.mkdirSync(path.dirname(full), { recursive: true });
-  fs.writeFileSync(full, '# 讨论轮次：报表导出\n');
+  fs.writeFileSync(full, [
+    '# 讨论轮次：报表导出',
+    '',
+    '## 轮次头',
+    '- 主题：报表导出',
+    '',
+    '## 讨论记录',
+    '（问答要点）',
+    '',
+    '## 重要决策',
+    '（尚未落进设计文档的决策）',
+    '',
+    '## 文件修改台账',
+    '| 文档 | 最近更新 | 参与 | 来源 |',
+    '|---|---|---|---|',
+    '',
+    '## 落盘授权',
+    '（每次落盘一段）',
+    '',
+  ].join('\n'));
   return rel;
 }
 
@@ -512,6 +531,23 @@ test('change-list：文件不存在时拒绝', () => {
   const r = runChange(root, ['change-list', `${CL_DIR}/20261012T120000Z-nope.md`]);
   assert.equal(r.status, 1);
   assert.match(r.stderr, /不存在/);
+});
+
+test('change-list：轮次文件缺小节标题时拒绝（恢复内容要有着落）', () => {
+  const root = tmpProject();
+  runChange(root, ['init']);
+  const rel = `${CL_DIR}/20261012T120000Z-thin.md`;
+  const full = path.join(root, rel);
+  fs.mkdirSync(path.dirname(full), { recursive: true });
+  fs.writeFileSync(full, '# 讨论轮次\n\n## 讨论记录\n只有一节\n');
+  const r = runChange(root, ['change-list', rel]);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /五个|5 个|轮次头/);
+  assert.doesNotMatch(readState(root), /20261012T120000Z-thin/, '被拒时不得写指针');
+
+  // 空文件同样拒绝
+  fs.writeFileSync(full, '');
+  assert.equal(runChange(root, ['change-list', rel]).status, 1);
 });
 
 test('change-list：讨论未完成（draft/confirm）不能换文件', () => {

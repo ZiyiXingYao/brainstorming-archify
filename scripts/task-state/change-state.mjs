@@ -187,6 +187,35 @@ function preconditionError(action, offenders) {
   );
 }
 
+/** 轮次记录文件的五个小节（形状校验用；markdown 标题，级别不限）。 */
+const ROUND_SECTIONS = [
+  '轮次头', '讨论记录', '重要决策', '文件修改台账', '落盘授权',
+];
+
+/**
+ * 校验轮次记录文件至少含五个 markdown 标题（轮次头 + 四个记录小节）。
+ * 这不是格式洁癖：恢复靠的就是这几节里的讨论记录、决策与台账，文件没形状就等于没记录。
+ */
+function checkRoundFileShape(full, rel) {
+  let text;
+  try {
+    text = fs.readFileSync(full, 'utf8');
+  } catch (error) {
+    throw new StateError(`读不出 change-list 文件 ${rel}：${error instanceof Error ? error.message : String(error)}`);
+  }
+  if (text.trim() === '') {
+    throw new StateError(`change-list 文件是空的：${rel}。轮次记录至少要有五个小节：${ROUND_SECTIONS.join(' / ')}。`);
+  }
+  const headings = text.match(/^#{1,6} /gm) ?? [];
+  if (headings.length < ROUND_SECTIONS.length) {
+    throw new StateError(
+      `change-list 文件形状不合轮次记录：${rel} 只有 ${headings.length} 个 markdown 标题，`
+      + `至少要 ${ROUND_SECTIONS.length} 个（${ROUND_SECTIONS.join(' / ')}）。`
+      + '恢复时靠这几节找讨论记录、重要决策与文件修改台账——缺了就恢复不出内容。',
+    );
+  }
+}
+
 /**
  * 设置当前轮次的 change-list 文件（state.yaml 里唯一的 change_list 指针）。
  * 切到**不同**文件只在「还没有当前文件」或「当前 set_at 早于最后一次 reopen」时允许。
@@ -221,6 +250,7 @@ function cmdChangeList(root, relPath) {
   if (!fs.existsSync(path.join(root, norm))) {
     throw new StateError(`change-list 文件不存在：${norm}。先在轮次开始时创建它（轮次记录），再设置指针。`);
   }
+  checkRoundFileShape(path.join(root, norm), norm);
   state.change_list = { path: norm, set_at: nowIso() };
   writeStateFile(root, state);
   process.stdout.write(`当前 change-list：${norm}\n`);
@@ -292,6 +322,7 @@ function cmdAdvance(root, target, { taskMd, reason }) {
       if (!fs.existsSync(path.join(root, cl))) {
         throw new StateError(`不能推进到 closed：当前 change-list 文件不在盘上（${cl}）。`);
       }
+      checkRoundFileShape(path.join(root, cl), cl);
       state.task_md = { path: taskMd, generated_at: nowIso() };
     }
   } else {
