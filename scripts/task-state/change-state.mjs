@@ -16,8 +16,9 @@
  * 子命令：
  *   init                                       建库（已存在即拒绝，不覆盖）
  *   file <path> <discussing|landed|confirmed>  登记 / 更新一个文件的状态
+ *   change-list <path>                         设置**当前轮次**的 change-list 文件（唯一指针）
  *   advance <explore|draft|confirm|closed>     推进（正向只能走一步；回退必须 --reason）
- *                                              closed 额外要求 --task-md <path>
+ *                                              closed 额外要求 --task-md <path> 与已设 change-list
  *   reopen <path>... --reason "<原因>"         重开：点名文件翻回 discussing（未点名的不动），
  *                                              整体退回 explore，记一条重开事件
  *   show [--json]                              打印当前状态（只读）
@@ -26,6 +27,10 @@
  *   - state.yaml 只允许由本命令编辑（SKILL.md 与文件头注释同此口径）；
  *   - 每次写入都是原子写（临时文件 + rename），失败不留半成品；
  *   - 退出码：0 = 成功；1 = 状态/环境错误（含前置条件不满足）；2 = 用法错误。
+ *
+ * change-list 指针的切换规则（用户裁定）：一个讨论没完成（draft/confirm/closed 且未重开）时
+ * MUST NOT 换文件；只有 reopen 开了新轮次（或还没有当前文件）才能指向新文件。
+ * 指向同一个文件（轮内追加）随时允许。
  *
  * 项目根定位：--root <dir> 显式指定；否则从 cwd 向上找含 `.brainstorming-archify/state.yaml`
  * 的目录（init 时向上找含 `.brainstorming-archify/` 或直接用 cwd）。
@@ -38,6 +43,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
   STATES,
   FILE_STATUSES,
+  CHANGE_LIST_DIR,
   StateYamlError,
   assertCleanValue,
   readStateFile,
@@ -47,12 +53,14 @@ import {
 const USAGE = `用法：
   node scripts/task-state/change-state.mjs [--root <项目根>] init
   node scripts/task-state/change-state.mjs [--root <项目根>] file <路径> <discussing|landed|confirmed>
+  node scripts/task-state/change-state.mjs [--root <项目根>] change-list <路径>
   node scripts/task-state/change-state.mjs [--root <项目根>] advance <explore|draft|confirm|closed> [--task-md <路径>] [--reason "<原因>"]
   node scripts/task-state/change-state.mjs [--root <项目根>] reopen <路径>... --reason "<原因>"
   node scripts/task-state/change-state.mjs [--root <项目根>] show [--json]
 
 状态机：explore → draft → confirm → closed（正向只能走一步，回退必须 --reason）。
-reopen 只翻点名文件回 discussing、整体回 explore；closed 下重开会作废 task.md。`;
+reopen 只翻点名文件回 discussing、整体回 explore；closed 下重开会作废 task.md。
+change-list 只记当前轮次那一个文件；讨论未完成不能换文件，reopen 开了新轮次才能换。`;
 
 class UsageError extends Error {}
 class StateError extends Error {}
@@ -145,6 +153,7 @@ function cmdInit(root) {
   const full = writeStateFile(root, {
     state: 'explore',
     files: [],
+    change_list: { path: '', set_at: '' },
     reopens: [],
     log: [],
     task_md: { path: '', generated_at: '' },
@@ -176,6 +185,46 @@ function preconditionError(action, offenders) {
     `不能推进到 ${action}：${offenders.map((f) => `${f.path}（${f.status}）`).join('、')}。`
     + '请先把这些文件推到目标状态。',
   );
+}
+
+/**
+ * 设置当前轮次的 change-list 文件（state.yaml 里唯一的 change_list 指针）。
+ * 切到**不同**文件只在「还没有当前文件」或「当前 set_at 早于最后一次 reopen」时允许。
+ */
+function cmdChangeList(root, relPath) {
+  checkDocPath(relPath);
+  const norm = relPath.replace(/^\.\//, '');
+  const dirPrefix = `${CHANGE_LIST_DIR}/`;
+  if (!norm.startsWith(dirPrefix)) {
+    throw new UsageError(`change-list 文件必须位于 ${dirPrefix} 下：${relPath}`);
+  }
+  const state = readStateFile(root);
+  if (!state) throw new StateError('state.yaml 不存在，先跑 init');
+  const current = state.change_list?.path ?? '';
+  if (current === norm) {
+    process.stdout.write(`当前 change-list 已是该文件（轮内追加无需重设）：${norm}\n`);
+    return 0;
+  }
+  if (current) {
+    const lastReopen = state.reopens[state.reopens.length - 1];
+    const setMs = Date.parse(state.change_list.set_at);
+    const reopenMs = lastReopen ? Date.parse(lastReopen.at) : Number.NaN;
+    const newRoundStarted = Number.isFinite(reopenMs) && Number.isFinite(setMs) && reopenMs > setMs;
+    if (!newRoundStarted) {
+      throw new StateError(
+        `讨论未完成，不能切换 change-list 文件（当前：${current}）。`
+        + '该轮结束（closed）后 reopen 开了新轮次，才能指向新的 change-list 文件；'
+        + '同一轮里请继续追加到当前文件。',
+      );
+    }
+  }
+  if (!fs.existsSync(path.join(root, norm))) {
+    throw new StateError(`change-list 文件不存在：${norm}。先在轮次开始时创建它（轮次记录），再设置指针。`);
+  }
+  state.change_list = { path: norm, set_at: nowIso() };
+  writeStateFile(root, state);
+  process.stdout.write(`当前 change-list：${norm}\n`);
+  return 0;
 }
 
 function cmdAdvance(root, target, { taskMd, reason }) {
@@ -232,6 +281,17 @@ function cmdAdvance(root, target, { taskMd, reason }) {
           );
         }
       }
+      // 收口要求本轮有唯一的 change-list 文件（轮次记录）且在盘上
+      const cl = state.change_list?.path ?? '';
+      if (!cl) {
+        throw new StateError(
+          '不能推进到 closed：还没有设置当前 change-list 文件。'
+          + '每轮开始时应创建轮次记录文件并跑 change-list <路径>。',
+        );
+      }
+      if (!fs.existsSync(path.join(root, cl))) {
+        throw new StateError(`不能推进到 closed：当前 change-list 文件不在盘上（${cl}）。`);
+      }
       state.task_md = { path: taskMd, generated_at: nowIso() };
     }
   } else {
@@ -287,6 +347,7 @@ function cmdShow(root, json) {
       ok: true,
       state: state.state,
       files: state.files,
+      change_list: state.change_list,
       reopens: state.reopens.length,
       task_md: state.task_md,
     }, null, 2)}\n`);
@@ -298,6 +359,7 @@ function cmdShow(root, json) {
     `State: ${state.state}`,
     `Files: ${state.files.length}（${Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(' / ') || '无'}）`,
     ...state.files.map((f) => `  ${f.status}\t${f.path}`),
+    `ChangeList: ${state.change_list?.path || '（未设置）'}`,
     `Reopens: ${state.reopens.length}`,
     ...(state.task_md.path ? [`Task.md: ${state.task_md.path}（${state.task_md.generated_at}）`] : []),
   ].join('\n') + '\n');
@@ -375,6 +437,10 @@ export function run(argv = process.argv.slice(2)) {
     if (sub === 'file') {
       if (positional.length !== 3) throw new UsageError('file 需要两个参数：<路径> <状态>。');
       return cmdFile(projectRoot, positional[1], positional[2]);
+    }
+    if (sub === 'change-list') {
+      if (positional.length !== 2) throw new UsageError('change-list 需要一个参数：<路径>。');
+      return cmdChangeList(projectRoot, positional[1]);
     }
     if (sub === 'advance') {
       if (positional.length !== 2) throw new UsageError('advance 需要一个参数：<目标状态>。');

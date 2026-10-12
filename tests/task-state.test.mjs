@@ -75,6 +75,26 @@ function backdate(full, ms) {
   fs.utimesSync(full, new Date(t), new Date(t));
 }
 
+/** 轮次 change-list 文件所在目录（相对项目根）。 */
+const CL_DIR = '.brainstorming-archify/change-lists';
+
+/** 造一个轮次 change-list 文件并返回其相对路径。 */
+function makeRoundFile(root, name = '20261012T120000Z-report-export.md') {
+  const rel = `${CL_DIR}/${name}`;
+  const full = path.join(root, rel);
+  fs.mkdirSync(path.dirname(full), { recursive: true });
+  fs.writeFileSync(full, '# 讨论轮次：报表导出\n');
+  return rel;
+}
+
+/** 开一轮：建 change-list 文件并把指针指过去（走 closed 的前置）。 */
+function openRound(root, name) {
+  const rel = makeRoundFile(root, name);
+  const r = runChange(root, ['change-list', rel]);
+  if (r.status !== 0) throw new Error(`openRound 失败：${r.stderr}`);
+  return rel;
+}
+
 // ---------------------------------------------------------------------------
 // init
 // ---------------------------------------------------------------------------
@@ -193,6 +213,7 @@ test('advance confirm：需全部登记文件 confirmed', () => {
 test('advance closed：需 --task-md 且文件存在', () => {
   const root = tmpProject();
   runChange(root, ['init']);
+  openRound(root);
   runChange(root, ['file', ARCH, 'confirmed']);
   runChange(root, ['advance', 'draft']);
   runChange(root, ['advance', 'confirm']);
@@ -239,6 +260,7 @@ test('advance 回退到更早状态：必须带 --reason', () => {
 test('reopen：只翻点名文件回 discussing，整体回 explore，未点名文件不动', () => {
   const root = tmpProject();
   runChange(root, ['init']);
+  openRound(root);
   runChange(root, ['file', ARCH, 'confirmed']);
   runChange(root, ['file', MOD_A, 'confirmed']);
   runChange(root, ['advance', 'draft']);
@@ -280,6 +302,7 @@ test('reopen：缺 --reason 拒绝；重开既有 confirmed 文件也只翻它�
 test('closed 后重开：旧 task.md 不重生成则无法再次收口', () => {
   const root = tmpProject();
   runChange(root, ['init']);
+  openRound(root);
   runChange(root, ['file', ARCH, 'confirmed']);
   runChange(root, ['advance', 'draft']);
   runChange(root, ['advance', 'confirm']);
@@ -414,6 +437,7 @@ test('resume-state blocker：登记为 landed/confirmed 的文件在盘上已不
 test('resume-state：closed 态的 next_action 指向 reopen', () => {
   const root = tmpProject();
   runChange(root, ['init']);
+  openRound(root);
   runChange(root, ['file', ARCH, 'confirmed']);
   runChange(root, ['advance', 'draft']);
   runChange(root, ['advance', 'confirm']);
@@ -446,4 +470,149 @@ test('resume-state：文本输出含 State 与 Next 两行（对齐 ssf resume �
   assert.match(r.stdout, /^State: explore$/m);
   assert.match(r.stdout, /^Next: /m);
 });
+
+// ---------------------------------------------------------------------------
+// change-list（当前轮次文件指针）
+// ---------------------------------------------------------------------------
+
+test('change-list：首轮可设当前指针，show --json 能看到', () => {
+  const root = tmpProject();
+  runChange(root, ['init']);
+  const rel = makeRoundFile(root);
+  const r = runChange(root, ['change-list', rel]);
+  assert.equal(r.status, 0, r.stderr);
+  const out = JSON.parse(runChange(root, ['show', '--json']).stdout);
+  assert.equal(out.change_list.path, rel);
+  assert.match(readState(root), /change_list:/);
+});
+
+test('change-list：重复设同一文件是空操作（追加场景）', () => {
+  const root = tmpProject();
+  runChange(root, ['init']);
+  const rel = makeRoundFile(root);
+  runChange(root, ['change-list', rel]);
+  const before = readState(root);
+  assert.equal(runChange(root, ['change-list', rel]).status, 0);
+  assert.equal(readState(root), before, '同一文件重复设置不应改盘');
+});
+
+test('change-list：路径必须在 .brainstorming-archify/change-lists/ 下', () => {
+  const root = tmpProject();
+  runChange(root, ['init']);
+  land(root, 'specs/design/01-架构设计.md');
+  const r = runChange(root, ['change-list', 'specs/design/01-架构设计.md']);
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /change-lists/);
+  assert.equal(runChange(root, ['change-list', '/etc/passwd']).status, 2);
+});
+
+test('change-list：文件不存在时拒绝', () => {
+  const root = tmpProject();
+  runChange(root, ['init']);
+  const r = runChange(root, ['change-list', `${CL_DIR}/20261012T120000Z-nope.md`]);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /不存在/);
+});
+
+test('change-list：讨论未完成（draft/confirm）不能换文件', () => {
+  const root = tmpProject();
+  runChange(root, ['init']);
+  const first = makeRoundFile(root, '20261012T120000Z-round1.md');
+  runChange(root, ['change-list', first]);
+  land(root, ARCH);
+  runChange(root, ['file', ARCH, 'landed']);
+  runChange(root, ['advance', 'draft']);
+
+  const second = makeRoundFile(root, '20261012T130000Z-round2.md');
+  const before = readState(root);
+  const r = runChange(root, ['change-list', second]);
+  assert.equal(r.status, 1, 'draft 态换文件必须被拒');
+  assert.match(r.stderr, /讨论未完成|不能切换/);
+  assert.equal(readState(root), before, '被拒时不得改盘');
+
+  runChange(root, ['file', ARCH, 'confirmed']);
+  runChange(root, ['advance', 'confirm']);
+  assert.equal(runChange(root, ['change-list', second]).status, 1, 'confirm 态换文件同样被拒');
+});
+
+test('change-list：closed 后未 reopen 不能换文件；reopen 后可以', () => {
+  const root = tmpProject();
+  runChange(root, ['init']);
+  const first = makeRoundFile(root, '20261012T120000Z-round1.md');
+  runChange(root, ['change-list', first]);
+  land(root, ARCH);
+  runChange(root, ['file', ARCH, 'landed']);
+  runChange(root, ['advance', 'draft']);
+  runChange(root, ['file', ARCH, 'confirmed']);
+  runChange(root, ['advance', 'confirm']);
+  land(root, TASK_MD);
+  runChange(root, ['advance', 'closed', '--task-md', TASK_MD]);
+
+  const second = makeRoundFile(root, '20261012T140000Z-round2.md');
+  assert.equal(runChange(root, ['change-list', second]).status, 1, 'closed 未 reopen 不能换');
+
+  assert.equal(runChange(root, ['reopen', MOD_B, '--reason', '新增模块']).status, 0);
+  assert.equal(runChange(root, ['change-list', second]).status, 0, 'reopen 后可换新文件');
+  const out = JSON.parse(runChange(root, ['show', '--json']).stdout);
+  assert.equal(out.change_list.path, second);
+});
+
+test('advance closed：必须先设当前 change-list 文件', () => {
+  const root = tmpProject();
+  runChange(root, ['init']);
+  land(root, ARCH);
+  runChange(root, ['file', ARCH, 'landed']);
+  runChange(root, ['advance', 'draft']);
+  runChange(root, ['file', ARCH, 'confirmed']);
+  runChange(root, ['advance', 'confirm']);
+  land(root, TASK_MD);
+  const before = readState(root);
+  const r = runChange(root, ['advance', 'closed', '--task-md', TASK_MD]);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /change-list/);
+  assert.equal(readState(root), before);
+
+  const rel = makeRoundFile(root);
+  runChange(root, ['change-list', rel]);
+  assert.equal(runChange(root, ['advance', 'closed', '--task-md', TASK_MD]).status, 0);
+});
+
+test('resume-state：输出 change_list；当前文件缺失时 blocker', () => {
+  const root = tmpProject();
+  runChange(root, ['init']);
+  const rel = makeRoundFile(root);
+  runChange(root, ['change-list', rel]);
+
+  const out = JSON.parse(runResume(root, ['--json']).stdout);
+  assert.equal(out.change_list.path, rel);
+  assert.ok(
+    (out.next_action.load ?? []).some((p) => p.includes(rel)),
+    'next_action.load 应含当前 change-list 文件',
+  );
+
+  fs.rmSync(path.join(root, rel));
+  const out2 = JSON.parse(runResume(root, ['--json']).stdout);
+  assert.equal(out2.ok, false);
+  assert.ok(out2.blockers.some((b) => String(b.message ?? b).includes(rel)), '应报当前 change-list 文件缺失');
+});
+
+test('resume-state：reopen 后当前指针陈旧时提示开新轮文件', () => {
+  const root = tmpProject();
+  runChange(root, ['init']);
+  const first = makeRoundFile(root, '20261012T120000Z-round1.md');
+  runChange(root, ['change-list', first]);
+  land(root, ARCH);
+  runChange(root, ['file', ARCH, 'landed']);
+  runChange(root, ['advance', 'draft']);
+  runChange(root, ['file', ARCH, 'confirmed']);
+  runChange(root, ['advance', 'confirm']);
+  land(root, TASK_MD);
+  runChange(root, ['advance', 'closed', '--task-md', TASK_MD]);
+  runChange(root, ['reopen', MOD_B, '--reason', '新增模块']);
+
+  const out = JSON.parse(runResume(root, ['--json']).stdout);
+  assert.equal(out.state, 'explore');
+  assert.match(out.next_action.reason, /change-list|轮次|新轮/, '应提示开新轮文件');
+});
+
 

@@ -8,12 +8,17 @@
  * `.brainstorming-archify/state.yaml` 的项目根（可显式传 --root）。
  *
  * 输出（--json）形状对齐 `ssf resume` 的 Change / State / Next 三要素：
- *   { ok, project_root, state, files, next_action: {reason, command?, load?}, blockers }
+ *   { ok, project_root, state, files, change_list: {path, set_at},
+ *     next_action: {reason, command?, load?}, blockers }
+ *
+ * `change_list` 是当前轮次的轮次记录文件（discussion record / decisions / ledger /
+ * persist authorisations）——恢复现场 = state.yaml + 这个文件；`next_action.load` 会把它列进去。
  *
  * blockers（有 blocker 时 ok=false，调用方应停下并展示修复命令，不许猜）：
  *   - NO_STATE_FILE  找不到 state.yaml
  *   - INVALID_STATE  state.yaml 形状 / 取值非法
  *   - FILE_MISSING   登记为 landed/confirmed 的文件在盘上已不存在
+ *   - CHANGE_LIST_MISSING  当前 change-list 文件不在盘上（恢复用的轮次记录丢了）
  *
  * next_action 按四态给下一步：
  *   explore  继续讨论（纯讨论，无产物落盘）
@@ -49,33 +54,43 @@ function findRoot(explicit) {
   }
 }
 
-function nextActionFor(state) {
+function nextActionFor(state, { changeList = '', changeListStale = false } = {}) {
+  const load = ['SKILL.md'];
+  if (changeList) load.push(changeList);
   switch (state) {
     case 'explore':
+      if (changeListStale) {
+        return {
+          reason: '新轮次已开（reopen）：创建本轮的 change-list 轮次记录文件（讨论记录 / 重要决策 / 文件修改台账 / 落盘授权），再跑 change-list <路径> 把指针指过去。',
+          command: `node "${CHANGE_STATE}" change-list .brainstorming-archify/change-lists/<UTC 时间戳>-<主题 slug>.md`,
+          load,
+        };
+      }
       return {
-        reason: '讨论进行中（explore：纯讨论，还没有产物落盘）。按 SKILL.md 的流程继续提问与收敛。',
-        load: ['SKILL.md'],
+        reason: '讨论进行中（explore：纯讨论，还没有设计文档落盘）。按 SKILL.md 的流程继续提问与收敛；'
+          + '重要决策先记进当前 change-list 文件，避免会话中断后丢失。',
+        load,
       };
     case 'draft':
       return {
         reason: '草稿已落盘（draft）：等待人工校验。逐份文档请人类过目，通过一条就把那条标记为 confirmed。',
         command: `node "${CHANGE_STATE}" file <路径> confirmed`,
-        load: ['SKILL.md'],
+        load,
       };
     case 'confirm':
       return {
         reason: '全部已确认（confirm）：只差生成实现任务清单。按 SKILL.md 的 Implementation Task Split 生成 specs/design/task.md，然后收口。',
         command: `node "${CHANGE_STATE}" advance closed --task-md specs/design/task.md`,
-        load: ['SKILL.md'],
+        load,
       };
     case 'closed':
       return {
-        reason: '已收口（closed）：没有进行中的讨论。要新增或修改模块，用 reopen 重开点名文件（其余确认文件不动）。',
+        reason: '已收口（closed）：没有进行中的讨论。要新增或修改模块，用 reopen 重开点名文件（其余确认文件不动），并为本轮创建新的 change-list 文件。',
         command: `node "${CHANGE_STATE}" reopen <路径> --reason "<原因>"`,
-        load: ['SKILL.md'],
+        load,
       };
     default:
-      return { reason: `未知状态 ${state}`, load: ['SKILL.md'] };
+      return { reason: `未知状态 ${state}`, load };
   }
 }
 
@@ -88,6 +103,7 @@ function summarize(root) {
       project_root: root,
       state: null,
       files: [],
+      change_list: null,
       next_action: {
         reason: '找不到 .brainstorming-archify/state.yaml——这个项目还没有初始化讨论状态。',
         command: `node "${CHANGE_STATE}" init`,
@@ -109,14 +125,29 @@ function summarize(root) {
       }
     }
   }
+  // 当前轮次的 change-list 文件是恢复用的记录，缺失即 blocker
+  const changeList = state.change_list?.path ?? '';
+  if (changeList && !fs.existsSync(path.join(root, changeList))) {
+    blockers.push({
+      code: 'CHANGE_LIST_MISSING',
+      message: `当前 change-list 文件在盘上已不存在：${changeList}。恢复用的轮次记录丢了——请确认它被移到哪了，并重建后跑 change-list 重新指向。`,
+    });
+  }
+  const lastReopen = state.reopens[state.reopens.length - 1];
+  const changeListStale = Boolean(
+    changeList
+    && lastReopen
+    && Date.parse(lastReopen.at) > Date.parse(state.change_list.set_at),
+  );
   return {
     ok: blockers.length === 0,
     project_root: root,
     state: state.state,
     files: state.files,
+    change_list: state.change_list ?? { path: '', set_at: '' },
     reopens: state.reopens.length,
     task_md: state.task_md.path ? state.task_md : null,
-    next_action: nextActionFor(state.state),
+    next_action: nextActionFor(state.state, { changeList, changeListStale }),
     blockers,
   };
 }
@@ -130,6 +161,7 @@ function printText(summary) {
     `State: ${summary.state ?? 'none'}`,
     `Files: ${files.length}（${Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(' / ') || '无'}）`,
     ...files.map((f) => `  ${f.status}\t${f.path}`),
+    `ChangeList: ${summary.change_list?.path || '（未设置）'}`,
     summary.blockers.length === 0
       ? 'Blockers: none'
       : `Blockers: ${summary.blockers.map((b) => b.message).join('; ')}`,
@@ -166,6 +198,7 @@ export function run(argv = process.argv.slice(2)) {
       project_root: null,
       state: null,
       files: [],
+      change_list: null,
       next_action: {
         reason: '找不到含 .brainstorming-archify/state.yaml 的项目根（已从当前目录向上找到文件系统根）。',
         command: `node "${CHANGE_STATE}" init`,
@@ -193,6 +226,7 @@ export function run(argv = process.argv.slice(2)) {
         project_root: root,
         state: null,
         files: [],
+        change_list: null,
         next_action: {
           reason: 'state.yaml 读不出来：形状或取值非法。它只允许由 change-state.mjs 编辑——请检查有没有被手工改坏。',
           command: `node "${CHANGE_STATE}" show`,
