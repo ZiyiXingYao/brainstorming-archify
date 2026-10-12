@@ -82,8 +82,9 @@ test('--dry-run：列出清单但不落盘', () => {
 test('实装形态：skill/ 平铺到根，templates/ 与 scripts/ 整目录，并跑过自检', () => {
   const parent = tmpDir('install-real-');
   const target = path.join(parent, 'brainstorming-archify');
+  const commandsDir = path.join(parent, 'commands');
   try {
-    const result = runInstall(['--target', target]);
+    const result = runInstall(['--target', target, '--commands-dir', commandsDir]);
     assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
 
     // 平铺
@@ -118,11 +119,12 @@ test('实装形态：skill/ 平铺到根，templates/ 与 scripts/ 整目录，�
 test('目标已存在：先整体备份，既有内容完整保留在备份里', () => {
   const parent = tmpDir('install-backup-');
   const target = path.join(parent, 'brainstorming-archify');
+  const commandsDir = path.join(parent, 'commands');
   try {
     fs.mkdirSync(target, { recursive: true });
     fs.writeFileSync(path.join(target, 'PREVIOUS.md'), 'OLD-CONTENT');
 
-    const result = runInstall(['--target', target]);
+    const result = runInstall(['--target', target, '--commands-dir', commandsDir]);
     assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
 
     const backups = fs.readdirSync(parent).filter((name) => name.startsWith('brainstorming-archify.bak-'));
@@ -133,6 +135,72 @@ test('目标已存在：先整体备份，既有内容完整保留在备份里',
     assert.equal(fs.readFileSync(backedUp, 'utf8'), 'OLD-CONTENT');
     // 新装内容应就位
     assert.ok(fs.existsSync(path.join(target, 'SKILL.md')));
+  } finally {
+    fs.rmSync(parent, { recursive: true, force: true });
+  }
+});
+
+test('--commands-dir 缺值退出码 2', () => {
+  const result = runInstall(['--commands-dir']);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /--commands-dir 需要一个目录参数/);
+});
+
+test('命令适配器：dry-run 列出 bsa\/resume.md 但不落盘', () => {
+  const parent = tmpDir('install-cmd-dry-');
+  const target = path.join(parent, 'brainstorming-archify');
+  const commandsDir = path.join(parent, 'commands');
+  try {
+    const result = runInstall(['--dry-run', '--target', target, '--commands-dir', commandsDir]);
+    assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
+    assert.match(result.stdout, /commands\/bsa\/resume\.md/);
+    assert.ok(!fs.existsSync(commandsDir), '--dry-run 不应创建命令目录');
+  } finally {
+    fs.rmSync(parent, { recursive: true, force: true });
+  }
+});
+
+test('命令适配器：实装部署 bsa\/resume.md 且 __BSA_ROOT__ 重写为技能根', () => {
+  const parent = tmpDir('install-cmd-real-');
+  const target = path.join(parent, 'brainstorming-archify');
+  const commandsDir = path.join(parent, 'commands');
+  try {
+    const result = runInstall(['--target', target, '--commands-dir', commandsDir]);
+    assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
+    const deployed = path.join(commandsDir, 'bsa', 'resume.md');
+    assert.ok(fs.existsSync(deployed), '应部署 bsa/resume.md');
+    const body = fs.readFileSync(deployed, 'utf8');
+    assert.ok(!body.includes('__BSA_ROOT__'), '占位符必须全部重写');
+    assert.ok(body.includes(`node "${path.join(target, 'scripts', 'task-state', 'resume-state.mjs')}"`),
+      `适配器应指向本次安装的技能根\n${body}`);
+    assert.match(body, /不得直接修改 `\.brainstorming-archify\/state\.yaml`/);
+  } finally {
+    fs.rmSync(parent, { recursive: true, force: true });
+  }
+});
+
+test('命令适配器：命令目录下其他命令原样保留，重复安装幂等', () => {
+  const parent = tmpDir('install-cmd-keep-');
+  const target = path.join(parent, 'brainstorming-archify');
+  const commandsDir = path.join(parent, 'commands');
+  try {
+    // 别人的命令 + 自己的一份旧适配器
+    fs.mkdirSync(path.join(commandsDir, 'ssf'), { recursive: true });
+    fs.writeFileSync(path.join(commandsDir, 'ssf', 'resume.md'), 'SSF-RESUME');
+    fs.mkdirSync(path.join(commandsDir, 'bsa'), { recursive: true });
+    fs.writeFileSync(path.join(commandsDir, 'bsa', 'resume.md'), 'STALE');
+
+    assert.equal(runInstall(['--target', target, '--commands-dir', commandsDir]).status, 0);
+    assert.equal(fs.readFileSync(path.join(commandsDir, 'ssf', 'resume.md'), 'utf8'), 'SSF-RESUME',
+      '其他命令必须原样保留');
+    const first = fs.readFileSync(path.join(commandsDir, 'bsa', 'resume.md'), 'utf8');
+    assert.notEqual(first, 'STALE', '旧适配器应被刷新');
+
+    // 重复安装（目标已存在 → 走备份分支）后命令目录依旧正确
+    assert.equal(runInstall(['--target', target, '--commands-dir', commandsDir]).status, 0);
+    assert.equal(fs.readFileSync(path.join(commandsDir, 'ssf', 'resume.md'), 'utf8'), 'SSF-RESUME');
+    assert.equal(fs.readFileSync(path.join(commandsDir, 'bsa', 'resume.md'), 'utf8'), first,
+      '重复安装的适配器内容应一致（幂等）');
   } finally {
     fs.rmSync(parent, { recursive: true, force: true });
   }
@@ -157,8 +225,9 @@ test('备份目标已存在时拒绝覆盖，不静默吞掉既有备份', async
 test('已安装副本可独立跑 doctor', () => {
   const parent = tmpDir('install-doctor-');
   const target = path.join(parent, 'brainstorming-archify');
+  const commandsDir = path.join(parent, 'commands');
   try {
-    assert.equal(runInstall(['--target', target]).status, 0);
+    assert.equal(runInstall(['--target', target, '--commands-dir', commandsDir]).status, 0);
     const entry = path.join(target, 'scripts', 'diagram-engine', 'bin', 'render.mjs');
     const result = spawnSync(process.execPath, [entry, 'doctor'], { encoding: 'utf8' });
     assert.equal(result.status, 0, `安装副本的 doctor 应通过\n${result.stdout}${result.stderr}`);
