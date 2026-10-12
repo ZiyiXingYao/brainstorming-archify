@@ -30,6 +30,8 @@
  *      接口契约的按需产出判定以「本次设计覆盖的系统」为基准，不得残留无基准的旧口径。
  *   ⑬ dry-run 摩擦 F3–F8 的修法：§8.1 核心类判定含「触发入口」承担者、架构模板有配图口径速查、
  *      总则命名规范含 Redis 全局/聚合 key 形态、SKILL 含台账去重口径与两轮台账前置、平台提问上限口径。
+ *   ⑭ dry-run 复测的修法：审查提示词允许家族整节不适用（`section-level 不适用`）、总则给出 Redis 全局 key
+ *      的「用途」段语义、§10 先给跨模块/单模块的判定规则。
  *
  * 只用 Node 内置模块，不依赖 node_modules。
  */
@@ -367,7 +369,7 @@ test('占位形态与序号口径只有一种说法', () => {
   }
   assert.match(
     read(ARCH_TEMPLATE),
-    /即使按规定登记在本文档第 10 节，也用该模块的序号/,
+    /单模块流程用\*\*该模块\*\*的序号/,
     '序号应取归属文档（单模块功能流程用该模块的序号）',
   );
   assert.match(read('skill/design-doc-reviewer-prompt.md'), /豁免|exempt/, '审查提示词应豁免占位图');
@@ -431,6 +433,22 @@ test('dry-run 摩擦 F3–F8 的修法已落盘', () => {
   assert.match(skill, /The two-round ledger is maintained only by `render`/, 'F7：台账口径应前置');
   // F8：平台提问上限口径
   assert.match(skill, /If the platform's per-call limit is unknown/, 'F8：应补平台提问上限口径');
+});
+
+test('dry-run 复测暴露的修法已落盘（整族不适用 / Redis 全局 key 段义 / 单模块流程序号）', () => {
+  const contract = read('templates/interface-contract-template.md');
+  const reviewer = read('skill/design-doc-reviewer-prompt.md');
+  const arch = read(ARCH_TEMPLATE);
+  // 整族不适用：审查提示词允许 section-level 不适用（与模板/规格一致）
+  assert.match(
+    reviewer,
+    /single section-level `不适用：<reason>` in place of all three parts/,
+    '审查提示词应允许家族整节不适用',
+  );
+  // Redis 全局 key 的「用途」段语义
+  assert.match(contract, /「用途」段写该 key 承担的机制或角色/, '总则应给全局 key 的「用途」段语义');
+  // 单模块流程序号的判定规则（先判是否跨模块）
+  assert.match(arch, /先判是否跨模块/, '§10 应先给跨模块/单模块的判定规则');
 });
 
 /* ---------------------------------------------------------------------------
