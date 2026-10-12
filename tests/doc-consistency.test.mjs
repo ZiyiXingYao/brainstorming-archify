@@ -484,8 +484,19 @@ test('dry-run 第五轮复测的修法已落盘（编排类算核心类 / 集合
   assert.match(arch, /任一跳点名的承担类都算/, '§8.1 应说明调用链任一跳的承担类都算');
   assert.match(arch, /集合级比对/, '§7 的逐字一致应是集合级比对');
   assert.match(skill, /The Persist Gate does not wait for design approval/, 'SKILL 应说明落盘门不等设计批准');
-  assert.match(contract, /兑换计数写/, '总则应给出全局级计数的例子（用途段口径统一）');
+  assert.match(contract, /ticket:dispatch:counter:incr/, '总则应给出全局级计数的例子（用途段口径统一）');
   assert.match(skill, /need to equal the triple's/, 'meta.output 应说明不必与三件套同名');
+});
+
+test('dry-run 第六轮复测的修法已落盘（实体级锁示例 / MQ 方向粒度 / 审查集合级 / 审查命名含全局级 / 两门独立）', () => {
+  const skill = read(SKILL);
+  const reviewer = read('skill/design-doc-reviewer-prompt.md');
+  const contract = read('templates/interface-contract-template.md');
+  assert.match(contract, /ticket:dispatch:ticket:lock:\{ticketId\}/, '总则应给实体级锁的例子');
+  assert.match(contract, /不要因为「都在本服务内」/, 'MQ 方向应说明两端可以是本服务的模块');
+  assert.match(reviewer, /rows as a set/, '审查的矩阵比对应是集合级');
+  assert.match(reviewer, /global\/aggregate `<系统>:<域>:<实体>:<用途>`/, '审查的命名标准应含全局级形态');
+  assert.match(skill, /the two gates are independent/, '流程图边应点明两门独立');
 });
 
 /* ---------------------------------------------------------------------------

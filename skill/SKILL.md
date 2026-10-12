@@ -273,7 +273,7 @@ digraph brainstorming {
     "Propose 2-3 approaches" -> "Present design sections";
     "Present design sections" -> "User approves design?";
     "User approves design?" -> "Present design sections" [label="no, revise"];
-    "User approves design?" -> "Persist Gate: write the doc?" [label="yes"];
+    "User approves design?" -> "Persist Gate: write the doc?" [label="yes — or as soon as the conclusion is statable; the two gates are independent"];
     "Persist Gate: write the doc?" -> "Stop here (no file)" [label="no"];
     "Persist Gate: write the doc?" -> "Read templates; read specs/design" [label="yes"];
     "Read templates; read specs/design" -> "Diagram Planning Gate: user confirms the plan?";
