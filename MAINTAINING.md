@@ -143,6 +143,10 @@ rm -rf /tmp/sp
    - front-matter `description` 仍按第 38 条；**不予采纳** v7 把适用范围扩到「软件之外（一场演讲、一门生意、一次装修）」的措辞——本技能落点是 `specs/design/` 下的设计文档。
    - **未采纳 v7 版式**：v7 把 `Checklist`／`Process Flow`／`The Persist Gate`／`Incremental Persist Protocol`／`Diagrams`／`Change List Gate`／`Self-Review`／`User Review Gate` 等本库机制整节删除，本库沿用自有版本，不随上游删除。
 
+**（新增）4+1 视图**
+
+48. （新增）架构模板新增 4+1 视图模型中的**运行视图**与**部署视图**，架构模板由 **12 节改为 14 节**：在全局功能流程（§10）之后、关键决策记录之前插入 **§11 运行视图**（运行起来有哪些进程、每个进程有哪些线程、进程与线程之间的关系——含进程清单、线程模型、进程与线程关系三部分）与 **§12 部署视图**（部署目录结构、如何部署、有哪些文件组成——含部署目录结构、部署方式、文件组成三部分），原 §11 关键决策记录、§12 待定问题与风险顺延为 **§13、§14**；**两节不要求配图**（以叙述与表格承载，缺图不判缺陷；确实不适用时保留标题写 `不适用：<原因>`）。技能把两节并入设计呈现覆盖清单、架构层提问清单与自审的**模板合规项**（**自审仍 15 项**，只扩写既有第 1 项，不新增条目）；审查提示词新增两节判据（含「不因其缺图报缺陷」的校准条）。README 的章节数与章节清单、`tests/doc-consistency.test.mjs` 的断言同批改到 14 节。
+
 ### 上游二：archify（绘图内核）
 
 `scripts/diagram-engine/` 是 [archify](https://github.com/tt-a1i/archify) 出图技能包的**裁剪副本**：按「只保留 5 类图渲染能力」删掉了全部与 5 类图无关的子命令（compare / deliver / finalize / preview / migrate / inspect / check / visual-check / browser-check / guide / brands / examples / demo / recover-output）、`--repo-root` 溯源能力、`examples/`、`references/` 与上游 `SKILL.md`，把入口 `archify.mjs`（6936 行）裁成内部驱动 `render-driver.mjs`（只留 `render`／`validate`／`doctor`），并以本仓库新增的 `render.mjs` 作为唯一对外入口；品牌解析收窄为「只认内置 canonical ID、不联网」。逐项改动与被删清单见 `scripts/diagram-engine/UPSTREAM.md` 第 1 节。

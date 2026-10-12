@@ -24,6 +24,8 @@
  *      架构模板 §7 要求同一写集内双方已落盘时不得停留 `待提供`；技能自审第 2 项与审查提示词把占位扫描
  *      限定为需作者填写的正文占位符（排除行内反引号字面规范、`不适用：<原因>` 原文、模板「使用说明」块），
  *      接口契约模板「使用说明」块声明整块不随产物落盘。
+ *   ⑪ 架构模板新增 4+1 视图中的运行视图（§11）与部署视图（§12），原关键决策记录、待定问题与风险
+ *      顺延为 §13、§14；技能与审查提示词同步提到两节。
  *
  * 只用 Node 内置模块，不依赖 node_modules。
  */
@@ -365,6 +367,30 @@ test('占位形态与序号口径只有一种说法', () => {
     '序号应取归属文档（单模块功能流程用该模块的序号）',
   );
   assert.match(read('skill/design-doc-reviewer-prompt.md'), /豁免|exempt/, '审查提示词应豁免占位图');
+});
+
+test('架构模板为 14 节，且含运行视图与部署视图', () => {
+  const arch = read(ARCH_TEMPLATE);
+  const headings = [...arch.matchAll(/^## (\d+)\. /gm)].map((m) => Number(m[1]));
+  assert.deepEqual(
+    headings,
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+    '架构模板应有 14 个带号二级节，且顺序为 1..14',
+  );
+  assert.match(arch, /^## 11\. 运行视图/m, '第 11 节应为运行视图');
+  assert.match(arch, /^## 12\. 部署视图/m, '第 12 节应为部署视图');
+  assert.match(arch, /^## 13\. 关键决策记录/m, '关键决策记录应顺延为第 13 节');
+  assert.match(arch, /^## 14\. 待定问题与风险/m, '待定问题与风险应顺延为第 14 节');
+  // 运行视图讲进程 / 线程；部署视图讲部署目录结构 / 部署方式 / 文件组成
+  assert.match(arch, /进程/, '运行视图应讲进程');
+  assert.match(arch, /线程/, '运行视图应讲线程');
+  assert.match(arch, /部署目录结构/, '部署视图应讲部署目录结构');
+  assert.match(arch, /文件组成/, '部署视图应讲文件组成');
+  // 技能与审查提示词同步（技能与提示词为英文，模板为中文）
+  assert.match(read(SKILL), /runtime view/i, 'SKILL 应提到运行视图（runtime view）');
+  assert.match(read(SKILL), /deployment view/i, 'SKILL 应提到部署视图（deployment view）');
+  assert.match(read('skill/design-doc-reviewer-prompt.md'), /运行视图/, '审查提示词应含运行视图判据');
+  assert.match(read('skill/design-doc-reviewer-prompt.md'), /部署视图/, '审查提示词应含部署视图判据');
 });
 
 /* ---------------------------------------------------------------------------
