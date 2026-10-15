@@ -936,3 +936,57 @@ test('lifecycle 只接受 schema_version 3', () => {
   assert.match(skill, /The kernel\naccepts \*\*only\*\* `3`/, '应写明内核只接受 3');
 });
 
+// --- dry-run（设备报修工单系统）抓到的摩擦的修法 ------------------------------------
+
+test('同名流程两处各画一层：SKILL 不再说「共用一份图」，且写明单模块例外', () => {
+  const skill = read(SKILL);
+  assert.doesNotMatch(skill, /One flow, one file/, '不应再残留「One flow, one file」');
+  assert.doesNotMatch(skill, /uses \*\*one\*\* diagram triple/, '不应再说两处共用一组三件套');
+  assert.match(skill, /\*\*One flow, two layers — never one shared file\.\*\*/, '应改为「两处各画一层、绝不共用一个文件」');
+  assert.match(skill, /\*\*One exception, and it inverts the ownership\.\*\*/, '应写明单模块功能流程的归属例外');
+  assert.match(skill, /the module's\n`0N-…​\.sequence`/, '应写明两处各取本文档序号');
+});
+
+test('模块 §1.2 与 §5 的功能点对应按「模块那一跳」对齐，不要求集合相等', () => {
+  const body = read(MODULE_TEMPLATE);
+  assert.match(body, /\*\*按「模块那一跳」对齐，不要求集合相等\*\*/, '应明确不要求集合相等');
+  assert.match(body, /MUST \*\*不\*\*出现在本子节/, '应写明不属于本模块的功能点不得抄进本子节');
+  assert.doesNotMatch(body, /也必须在本子节里有对应行/, '旧的「反向也必须有对应行」口径应删除');
+});
+
+test('SKILL 提醒 role 等枚举逐类型不同，须读各自 schema', () => {
+  const skill = read(SKILL);
+  assert.match(skill, /Enumerated edge fields differ per type/, '应提醒枚举逐类型不同');
+  assert.match(skill, /`workflow` accepts `main` \/ `branch` \/ `async` \/ `return` \//, '应给出 workflow 的 role 取值');
+  assert.match(skill, /while `flowchart` accepts `main` \/ `branch` \/ `loop` \/ `exception`/, '应给出 flowchart 的 role 取值');
+});
+
+test('SKILL 写明 change-list 等命令的路径是项目内相对路径', () => {
+  const skill = read(SKILL);
+  assert.match(skill, /Every `<path>` argument is a path relative to the project\nroot, never absolute/, '应写明路径口径');
+  assert.match(skill, /Being able to run the command from any\nsubdirectory does not change what the path is relative to\./, '应点明「可任意目录执行」不等于路径相对 cwd');
+});
+
+test('架构模板写明 §7 的状态枚举表与填表规则属产物', () => {
+  const body = read(ARCH_TEMPLATE);
+  assert.match(body, /整块属于产物，必须原样保留在落盘的 `01-架构设计\.md` 里/, '应写明该块随产物落盘');
+});
+
+test('SKILL 为 flowchart 写明结构校验与「没有几何旋钮」', () => {
+  const skill = read(SKILL);
+  assert.match(skill, /### Flowchart diagrams/, '应有 flowchart 的专节');
+  assert.match(skill, /Structure is validated, not repaired\./, '应写明结构是校验而非修补');
+  assert.match(skill, /There are no per-node geometry knobs and no label-routing controls\./, '应写明没有几何旋钮');
+  assert.match(skill, /do not\s+apply here/, '应点明 repair order 里挪标签/改路由的步骤对本类型不适用');
+  assert.match(skill, /### Erd, class, tree, timeline and waterfall diagrams/, '应说明其余类型的作者口径');
+});
+
+test('SKILL 写明 boundary 只能圈住自己的成员', () => {
+  assert.match(
+    read(SKILL),
+    /\*\*A boundary must enclose only its own members\.\*\*/,
+    '应写明 boundary 的几何约束',
+  );
+});
+
+

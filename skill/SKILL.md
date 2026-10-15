@@ -463,7 +463,12 @@ Forward moves go **one step at a time**; moving backwards requires
 approved it).
 
 **The commands** (run from anywhere inside the project; `--root <dir>`
-overrides discovery):
+overrides discovery). **Every `<path>` argument is a path relative to the project
+root, never absolute** — `change-state.mjs` rejects an absolute path or one that
+escapes the project, so pass
+`.brainstorming-archify/change-lists/20260922T112442Z-order.md`, not
+`/tmp/proj/.brainstorming-archify/…`. Being able to run the command from any
+subdirectory does not change what the path is relative to.
 
 ```
 node <skill-root>/scripts/task-state/change-state.mjs init
@@ -834,13 +839,21 @@ Output placement is a hard rule, not a preference:
   When two derived names collide, append `-2`, `-3`, … and **report both sides of
   the collision** — never rename silently.
 
-**One flow, one file.** A flow name that appears in both the architecture
-document and a module document uses **one** diagram triple, because the two must
-use the same diagram type; sharing the files removes the risk of copies drifting
-apart. The number prefix comes from the **owning** document — a cross-module flow
-belongs to the architecture document (`01-`), a purely intra-module flow to its
-module document's number. When the second document would write the same diagram,
-it references the existing triple instead of producing its own.
+**One flow, two layers — never one shared file.** A flow name that appears in both
+the architecture document and a module document is drawn **twice, once per layer**:
+the architecture's section 10 draws the cross-module call order and the module's
+section 5 draws that module's own implementation steps. Each takes **its own
+document's number** — the architecture's `01-…​.sequence`, the module's
+`0N-…​.sequence` — so the two file names never collide, and neither document
+references the other's file as its own diagram. A module diagram that merely
+restates the architecture one is a defect.
+
+**One exception, and it inverts the ownership.** A **single-module** functional
+flow (its cross-module hops are one at most and the other participants are
+external systems, not modules of this system) has only one layer to draw: its
+diagram belongs to the **module** document, and the architecture's section 10
+**references that file** instead of drawing its own. It is still registered in
+section 10 under the same name — registration and drawing are different things.
 
 ### How the document references it
 
@@ -1013,6 +1026,13 @@ Component types: `frontend`, `backend`, `database`, `cloud`, `security`,
 Legend keys: `frontend`, `backend`, `database`, `cloud`, `security`,
 `messagebus`, `external`.
 
+**A boundary must enclose only its own members.** The geometry check fails when a
+component that the boundary does not list as a member ends up inside its frame —
+so a node you meant to sit outside a trust, process or deployment boundary has to
+be placed *away* from it, not merely omitted from the `boundaries` entry. When a
+boundary relayouts, re-check which nodes it now covers; adding components is the
+usual trigger.
+
 ### Workflow diagrams
 
 Lanes express responsibility or phase; columns `0..5` express logical
@@ -1082,6 +1102,43 @@ and a transition below 32px is its own failure, so re-validate after widening.
 Legend keys: `start`, `active`, `waiting`, `decision`, `success`, `failure`,
 `neutral`, `external`.
 
+### Flowchart diagrams
+
+A **program flowchart** — one function's control flow: terminals, steps, labelled
+decision branches, loops and exception paths. Use it only where the type router
+binds it (a module's §3.N function description).
+
+- **Structure is validated, not repaired.** Exactly one `start` terminal; at
+  least one `end`; every node reachable from `start`; every `decision` with **at
+  least two outgoing edges, each carrying a `label`**. Violating any of these
+  fails the render with a named diagnostic and writes nothing.
+- **Layout is rank by rank.** Nodes are placed in rows by distance from `start`;
+  a back edge (a loop) travels the outer lane, a forward edge that skips ranks
+  takes the other. You do not author coordinates.
+- **There are no per-node geometry knobs and no label-routing controls.** Unlike
+  architecture and workflow, this type has no `pos`, `layout`, `via`, `labelAt`,
+  `labelDx`, `labelDy`, `labelSegment`, `channelX` or per-node `width`. So the
+  repair-order steps that tell you to move a label or reroute an edge **do not
+  apply here** — do not go looking for those fields. The levers you actually have
+  are: **fewer nodes per rank**, **shorter labels**, **less branching in one
+  diagram** (split a sprawling function into two diagrams rather than compressing
+  it), and introducing an explicit merge step instead of letting several edges
+  land on the same node from far apart.
+- **Node order in the IR is meaningful.** Ranks are ordered by the order you
+  declare nodes in, so moving a node in the file moves it in the picture. Change
+  the order when the *reading* order is wrong (a later step appearing left of an
+  earlier one) — not as a way to shop for a passing render; if a layout only
+  passes after a reshuffle, the topology is too dense and should be split.
+
+### Erd, class, tree, timeline and waterfall diagrams
+
+These five exist for the data-model document and for authoring outside this
+skill. This skill uses **`erd` and `class`** (in the data-model document) and
+never authors `tree` / `timeline` / `waterfall` from the design flow. Author
+them from `schemas/<type>.schema.json` the same way as every other type: read the
+type's own schema for its structural arrays and enums rather than carrying
+another type's vocabulary across.
+
 ### Shared authoring constraints
 
 - **At most 12 primary nodes per diagram.** Complex content must be split into
@@ -1117,6 +1174,15 @@ Legend keys: `start`, `active`, `waiting`, `decision`, `success`, `failure`,
   accepts differs per type — read the `route` property in
   `schemas/<diagram type>.schema.json` rather than guessing, because a wrong
   value fails schema validation. Reach for it in repair-order step ④.
+- **Enumerated edge fields differ per type — read the schema, do not carry one
+  type's vocabulary to another.** `edges[].role` is **not** the same list
+  everywhere: `workflow` accepts `main` / `branch` / `async` / `return` /
+  `error`, while `flowchart` accepts `main` / `branch` / `loop` / `exception`.
+  The same goes for `route` (above) and for every other `enum` in the type's
+  schema. Copying the value that worked in one diagram into another is the
+  single most common schema failure; read `schemas/<diagram type>.schema.json`
+  first. The type router table lists each type's **structural arrays** only —
+  it deliberately does not restate field enums, because the schemas own them.
 - **Desktop readability is a hard check, not a taste rule.** The viewer's desktop
   reader gives a diagram 930px of width (a 960px reader minus 30px of chrome) and
   scales the whole viewBox by `min(1, 930 / meta.viewBox[0])`. So the **smallest
