@@ -398,11 +398,6 @@ function nodeShape(box) {
 
 function renderNode(box) {
   const { node } = box;
-  // 判断与 io 的视觉形状不是矩形，故在其下方垫一块同尺寸的隐形盒，
-  // 让产物的节点几何仍可被构图检查读到（不遮住任何东西）。
-  const measure = node.kind === 'decision' || node.kind === 'io'
-    ? `<rect x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height}" class="fc-measure"/>`
-    : '';
   const labelY = node.sublabel ? box.y + box.height / 2 - 4 : box.y + box.height / 2 + 4.5;
   const label = `            <text x="${round(box.x + box.width / 2)}" y="${round(labelY)}" class="t-primary fc-label" font-size="${layout.labelFont}" text-anchor="middle">${esc(node.label)}</text>`;
   const sublabel = node.sublabel
@@ -413,21 +408,17 @@ function renderNode(box) {
     : '';
   return `          <g ${focusNodeAttrs(node.id, node.label, { kind: node.kind, sublabel: node.sublabel, tag: node.tag }, locale)}>
             ${focusNodeTitle(node.label, { kind: node.kind, sublabel: node.sublabel, tag: node.tag })}
-${measure ? `${measure}\n` : ''}            ${nodeShape(box)}${brand}
+            ${nodeShape(box)}${brand}
 ${label}${sublabel}
           </g>`;
 }
 
-function labelAnchor(points, edge) {
+function labelAnchor(points) {
   const [a, b] = points;
-  if (edge.role === 'branch' || edge.label) {
-    // 分支标签放在第一段中点，沿段方向偏移，避免压线
-    const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
-    const vertical = Math.abs(a[0] - b[0]) < 0.5;
-    return vertical ? [mid[0] + 8, mid[1]] : [mid[0], mid[1] - 7];
-  }
+  // 标签放在第一段中点，沿段方向偏移，避免压线
   const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
-  return [mid[0] + 8, mid[1] - 5];
+  const vertical = Math.abs(a[0] - b[0]) < 0.5;
+  return vertical ? [mid[0] + 8, mid[1]] : [mid[0], mid[1] - 7];
 }
 
 function renderEdge({ edge, points, back }) {
@@ -438,7 +429,7 @@ function renderEdge({ edge, points, back }) {
   const cls = `a-${variant} fc-edge fc-edge-${role}`;
   const pathTag = `          <path ${focusEdgeAttrs(edge.from, edge.to, edge.label, undefined, edge.id)} data-composition-points="${routePointsValue(points)}" data-edge-role="${role}" d="${pathData(points)}" class="${cls}"${animateAttr(diagram.meta, 'edge', 0)} stroke-width="${EDGE_STROKE[role] || 1.5}"${dash} marker-end="url(#${marker})"/>`;
   if (!edge.label) return pathTag;
-  const [lx, ly] = labelAnchor(points, edge);
+  const [lx, ly] = labelAnchor(points);
   const width = Math.ceil(labelWidth(edge.label, layout.edgeFont) + 12);
   const mask = `          <rect x="${round(lx - width / 2)}" y="${round(ly - 10)}" width="${width}" height="15" rx="3" class="fc-edge-label-plate"/>`;
   const text = `          <text x="${round(lx)}" y="${round(ly + 1.5)}" class="t-secondary fc-edge-label" font-size="${layout.edgeFont}" text-anchor="middle">${esc(edge.label)}</text>`;
@@ -467,7 +458,6 @@ ${renderDefinitions()}
           svg[data-flowchart-ui] .fc-loop { stroke: var(--text-muted); stroke-dasharray: 6 4; }
           svg[data-flowchart-ui] .fc-exception { stroke: var(--failure-stroke, var(--arrow)); stroke-dasharray: 6 4; }
           svg[data-flowchart-ui] .fc-label { font-weight: 600; }
-          svg[data-flowchart-ui] .fc-measure { fill: none; stroke: none; }
           svg[data-flowchart-ui] .fc-edge-label-plate { fill: var(--mask); stroke: none; }
         </style>
 
