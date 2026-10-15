@@ -8,40 +8,6 @@ HTML 页，并作为内部能力被 `brainstorming-archify` **直接调用**（�
 
 ## Requirements
 
-### Requirement: 十一类图的渲染能力内置
-
-绘图内核 SHALL 在自身目录（`scripts/diagram-engine/`）内携带**十一类**图的渲染器、schema
-与交互页模板：
-
-- 上游 archify 十类——架构图（`architecture`）、工作流图（`workflow`）、时序图（`sequence`）、
-  数据流图（`dataflow`）、生命周期图（`lifecycle`）、实体关系图（`erd`）、类图（`class`）、
-  树形图（`tree`）、时间线图（`timeline`）、瀑布图（`waterfall`）；
-- 本仓库自建的程序流程图（`flowchart`：起止端子、处理、判断分支、循环、异常路径）。
-
-渲染过程 MUST NOT 依赖内核目录之外的任何服务或网络；内核 MUST NOT 被声明为独立技能，
-也 MUST NOT 携带第二份技能文档。
-
-#### Scenario: 离线渲染十一类图
-
-- **WHEN** 在无网络环境下依次渲染十一类图各一份合法 IR
-- **THEN** 十一类图均产出 SVG，且过程中不发起网络请求、不读取内核目录以外的路径
-
-#### Scenario: 请求不存在的图类型
-
-- **WHEN** 请求的图类型不属于上述十一类
-- **THEN** 渲染以非零退出码失败，并指出支持的类型清单，不产出任何文件
-
-#### Scenario: 程序流程图拒绝结构不合规的 IR
-
-- **WHEN** 一份 `flowchart` IR 没有唯一的起始端子、存在从起始端子不可达的节点、
-  某个判断节点的出边少于两条、或某条判断分支缺少条件标签
-- **THEN** 渲染以非零退出码失败并逐条指出原因，不产出任何文件
-
-#### Scenario: 内核目录内不存在第二份技能文档
-
-- **WHEN** 列出 `scripts/diagram-engine/` 的全部文件
-- **THEN** 其中没有 `SKILL.md`，也没有任何以技能文档形态描述内核的文件
-
 ### Requirement: 类型化 JSON IR 是图的唯一输入
 
 每张图 SHALL 由一份符合对应 schema 的类型化 JSON IR 唯一决定；作者 SHALL NOT 在 IR 中规划坐标，
@@ -304,6 +270,40 @@ schema-version 的 `migrate` 子命令——迁移 SHALL 由作者直接改写 I
 
 - **WHEN** 以 `migrate` 调用内核入口
 - **THEN** 以非零退出码失败并指出该子命令不存在
+
+### Requirement: 十一类图的渲染能力内置
+
+绘图内核 SHALL 在自身目录（`scripts/diagram-engine/`）内携带**十一类**图的渲染器、schema
+与交互页模板：
+
+- 上游 archify 十类——架构图（`architecture`）、工作流图（`workflow`）、时序图（`sequence`）、
+  数据流图（`dataflow`）、生命周期图（`lifecycle`）、实体关系图（`erd`）、类图（`class`）、
+  树形图（`tree`）、时间线图（`timeline`）、瀑布图（`waterfall`）；
+- 本仓库自建的程序流程图（`flowchart`：起止端子、处理、判断分支、循环、异常路径）。
+
+渲染过程 MUST NOT 依赖内核目录之外的任何服务或网络；内核 MUST NOT 被声明为独立技能，
+也 MUST NOT 携带第二份技能文档。
+
+#### Scenario: 离线渲染十一类图
+
+- **WHEN** 在无网络环境下依次渲染十一类图各一份合法 IR
+- **THEN** 十一类图均产出 SVG，且过程中不发起网络请求、不读取内核目录以外的路径
+
+#### Scenario: 请求不存在的图类型
+
+- **WHEN** 请求的图类型不属于上述十一类
+- **THEN** 渲染以非零退出码失败，并指出支持的类型清单，不产出任何文件
+
+#### Scenario: 程序流程图拒绝结构不合规的 IR
+
+- **WHEN** 一份 `flowchart` IR 没有唯一的起始端子、存在从起始端子不可达的节点、
+  某个判断节点的出边少于两条、或某条判断分支缺少条件标签
+- **THEN** 渲染以非零退出码失败并逐条指出原因，不产出任何文件
+
+#### Scenario: 内核目录内不存在第二份技能文档
+
+- **WHEN** 列出 `scripts/diagram-engine/` 的全部文件
+- **THEN** 其中没有 `SKILL.md`，也没有任何以技能文档形态描述内核的文件
 
 ### Requirement: 自建类型的接线完整性
 
