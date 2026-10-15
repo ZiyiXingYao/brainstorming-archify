@@ -19,7 +19,7 @@
  *     brainstorming-archify/
  *     ├── SKILL.md                        ← skill/ 内文件**平铺**到目标根
  *     ├── design-doc-reviewer-prompt.md
- *     ├── templates/                      ← 整目录复制（三份设计文档模板）
+ *     ├── templates/                      ← 整目录复制（四份设计文档模板）
  *     └── scripts/                        ← 整目录复制
  *         ├── install.mjs
  *         ├── sync-upstream.sh

@@ -382,18 +382,19 @@ test('占位形态与序号口径只有一种说法', () => {
   assert.match(read('skill/design-doc-reviewer-prompt.md'), /豁免|exempt/, '审查提示词应豁免占位图');
 });
 
-test('架构模板为 14 节，且含运行视图与部署视图', () => {
+test('架构模板为 15 节，且含业务编排流程、运行视图与部署视图', () => {
   const arch = read(ARCH_TEMPLATE);
   const headings = [...arch.matchAll(/^## (\d+)\. /gm)].map((m) => Number(m[1]));
   assert.deepEqual(
     headings,
-    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
-    '架构模板应有 14 个带号二级节，且顺序为 1..14',
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+    '架构模板应有 15 个带号二级节，且顺序为 1..15',
   );
-  assert.match(arch, /^## 11\. 运行视图/m, '第 11 节应为运行视图');
-  assert.match(arch, /^## 12\. 部署视图/m, '第 12 节应为部署视图');
-  assert.match(arch, /^## 13\. 关键决策记录/m, '关键决策记录应顺延为第 13 节');
-  assert.match(arch, /^## 14\. 待定问题与风险/m, '待定问题与风险应顺延为第 14 节');
+  assert.match(arch, /^## 11\. 业务编排流程/m, '第 11 节应为业务编排流程');
+  assert.match(arch, /^## 12\. 运行视图/m, '第 12 节应为运行视图');
+  assert.match(arch, /^## 13\. 部署视图/m, '第 13 节应为部署视图');
+  assert.match(arch, /^## 14\. 关键决策记录/m, '关键决策记录应顺延为第 14 节');
+  assert.match(arch, /^## 15\. 待定问题与风险/m, '待定问题与风险应顺延为第 15 节');
   // 运行视图讲进程 / 线程；部署视图讲部署目录结构 / 部署方式 / 文件组成
   assert.match(arch, /进程/, '运行视图应讲进程');
   assert.match(arch, /线程/, '运行视图应讲线程');
@@ -788,3 +789,150 @@ test('dry-run 状态库复测的修法已落盘（F1 计数词 / F5 reopen 登�
     '同文件规则应说明「只读」无需 ordering',
   );
 });
+
+// --- 图类型 ↔ 章节绑定（变更 diagram-type-by-section）--------------------------------
+
+const DATA_MODEL_TEMPLATE = 'templates/data-model-doc-template.md';
+const REVIEWER = 'skill/design-doc-reviewer-prompt.md';
+const CONTRACT_TEMPLATE = 'templates/interface-contract-template.md';
+
+test('图类型由章节决定：技能声明该口径，且「按流程性质选」零残留', () => {
+  const skill = read(SKILL);
+  assert.match(
+    skill,
+    /The section decides the type — never the nature of the flow/,
+    'SKILL 应声明「章节决定图类型，不得按流程性质自选」',
+  );
+  assert.match(skill, /Do not pick a type because a flow "feels like"/, 'SKILL 应明说不得凭感觉选型');
+  for (const rel of [SKILL, ARCH_TEMPLATE, MODULE_TEMPLATE]) {
+    const body = read(rel);
+    assert.doesNotMatch(body, /按其流程性质选定|按流程性质选/, `${rel} 不应残留「按流程性质选图类型」`);
+    assert.doesNotMatch(body, /五类中选定|五类图/, `${rel} 不应残留「五类图」口径`);
+  }
+});
+
+test('技能的路由表覆盖四份文档的章节 ↔ 图类型', () => {
+  const skill = read(SKILL);
+  for (const [needle, why] of [
+    [/architecture \| §6\.3 module dependency \| `architecture`/, '架构 §6.3 绑 architecture'],
+    [/architecture \| §10 global functional flows, each \| `sequence`/, '架构 §10 绑 sequence'],
+    [/architecture \| §11 business orchestration \| `workflow`/, '架构 §11 绑 workflow'],
+    [/architecture \| §12 runtime view \| `architecture`/, '运行视图绑 architecture'],
+    [/module \| §5 end-to-end flows, each \| `sequence`/, '模块 §5 绑 sequence'],
+    [/module \| §3\.N class detailed design — function descriptions \| `flowchart`/, '模块功能描述绑 flowchart'],
+    [/module \| §6 module entity state machine \| `lifecycle`/, '模块 §6 绑 lifecycle'],
+    [/data-model \| §2 domain class \/ §3 entity-relationship \/ §4 data flow \/ §5 core entity state machine/, '第四份文档四节绑四类'],
+  ]) {
+    assert.match(skill, needle, `SKILL 路由表缺少：${why}`);
+  }
+  assert.match(skill, /A function gets a `flowchart` when it is \*\*important\*\*/, 'SKILL 应写死 flowchart 的「重要∩复杂」判据');
+});
+
+test('架构模板 15 节：新增业务编排流程、运行视图配图、后续顺延', () => {
+  const body = read(ARCH_TEMPLATE);
+  for (const heading of [
+    '## 10. 全局功能流程',
+    '## 11. 业务编排流程',
+    '## 12. 运行视图',
+    '## 13. 部署视图',
+    '## 14. 关键决策记录',
+    '## 15. 待定问题与风险',
+  ]) {
+    assert.ok(body.includes(heading), `架构模板缺少 ${heading}`);
+  }
+  assert.match(body, /本节的每条编排都要配一张[^\n]*\.workflow/, '§11 应要求每条编排配工作流图');
+  assert.match(body, /本视图必须配一张[^\n]*\.architecture/, '§12 运行视图应要求配架构图');
+  assert.match(body, /本视图\*\*不要求配图\*\*；确实不适用时（例如没有独立部署形态的库）/, '§13 部署视图仍不要求配图');
+  assert.doesNotMatch(body, /本视图\*\*不要求配图\*\*，用叙述与表格承载/, '运行视图不应再声明「不要求配图」');
+});
+
+test('架构模板 §10 固定时序图，§8.2/§8.3 改引用类图且旧口径零残留', () => {
+  const body = read(ARCH_TEMPLATE);
+  assert.match(body, /图类型固定为时序图/, '§10 应写死时序图');
+  assert.match(body, /本节只回答「谁调用谁、什么顺序、每步返回什么」/, '§10 应说明它回答什么');
+  assert.match(body, /引用该文档 §2 领域类图/, '§8.2 应改为引用第四份文档的类图');
+  assert.doesNotMatch(body, /不做类图/, '不应再残留「不做类图」的豁免口径');
+  assert.doesNotMatch(body, /用文字或 mermaid 图表达/, '不应再以文字或 mermaid 作为类关系的终态');
+});
+
+test('模块模板 8 节：函数流程图判据、状态机新节、后续顺延', () => {
+  const body = read(MODULE_TEMPLATE);
+  for (const heading of [
+    '## 5. 端到端业务流程',
+    '## 6. 本模块实体状态机',
+    '## 7. 关键决策记录',
+    '## 8. 待定问题与风险',
+  ]) {
+    assert.ok(body.includes(heading), `模块模板缺少 ${heading}`);
+  }
+  assert.match(body, /\*\*重要∩复杂\*\*/, '§3.N 应写死「重要∩复杂」判据');
+  assert.match(body, /≥2 个条件分支/, '判据应含分支数量');
+  assert.match(body, /当该函数是\*\*本模块独有\*\*/, '应写明模块独有函数的时序图例外');
+  assert.match(body, /图类型固定为 `sequence`/, '§5 应写死时序图');
+  assert.match(body, /每条状态机都要配一张[^\n]*\.lifecycle/, '§6 应要求每条状态机配生命周期图');
+});
+
+test('模块模板不再要求同名流程跨文档共用同一组三件套', () => {
+  const body = read(MODULE_TEMPLATE);
+  assert.doesNotMatch(body, /引用同一个图文件|共用一份图|引用\*\*同一组三件套\*\*/, '应删除「同名共用一份图」的旧口径');
+  assert.match(body, /各画自己那一层/, '应改为「各画自己那一层」');
+  assert.doesNotMatch(body, /图类型 MUST 与架构总纲第 10 节同名流程\*\*一致\*\*/, '不应再要求两处图类型一致');
+});
+
+test('实体与数据设计模板存在、八节齐备、条件必出且四张图只画关键子集', () => {
+  assert.ok(fs.existsSync(path.join(ROOT, DATA_MODEL_TEMPLATE)), '缺少第四份模板');
+  const body = read(DATA_MODEL_TEMPLATE);
+  for (const heading of [
+    '## 1. 数据模式总览',
+    '## 2. 领域类图',
+    '## 3. 实体关系图',
+    '## 4. 数据流图',
+    '## 5. 核心实体状态机',
+    '## 6. 数据生命周期与保留',
+    '## 7. 关键决策记录',
+    '## 8. 待定问题与风险',
+  ]) {
+    assert.ok(body.includes(heading), `第四份模板缺少 ${heading}`);
+  }
+  assert.match(body, /命中 MySQL \/ Redis \/ MQ 任一类持久化接口/, '应写明条件必出的机械判据');
+  assert.match(body, /整份缺席/, '应写明不命中时整份缺席是合法形态');
+  assert.match(body, /只画\*\*架构总纲第 8\.1 节核心类清单\*\*/, '领域类图应写死取子判据');
+  assert.match(body, /图未覆盖全部类 \/ 全部表/, '应写明不得因图不全判缺陷');
+  for (const type of ['.class.svg', '.erd.svg', '.dataflow.svg', '.lifecycle.svg']) {
+    assert.ok(body.includes(type), `第四份模板缺少 ${type} 的引用骨架`);
+  }
+});
+
+test('审查提示词：章节↔图类型一致、第四份文档路由、类图旧豁免口径零残留', () => {
+  const body = read(REVIEWER);
+  assert.match(body, /Every diagram's type must equal the one its own section binds/, '审查应核章节↔图类型一致');
+  assert.match(body, /02-实体与数据设计\.md/, '审查应含第四份文档');
+  assert.match(body, /Data-model document \*\*\(data model\)\*\*/, '审查应有第四份文档的判据行');
+  assert.match(body, /those two sections must reference the\s+domain class diagram/, '审查应要求 §8.2/§8.3 引用类图');
+  assert.doesNotMatch(body, /do not report these three\s+sections as missing an SVG diagram/, '旧的类图豁免口径应删除');
+  assert.doesNotMatch(body, /These two sections do\s+\*\*not\*\* require diagrams/, '「运行/部署都不要求配图」的旧口径应删除');
+  assert.match(body, /a runtime view with no diagram and no `不适用` reason is a defect/, '审查应把运行视图缺图判为缺陷');
+  assert.match(body, /whose number is \*\*03 or above\*\*/, '审查路由应把模块序号改为 03+');
+});
+
+test('文档编号：02- 是固定前缀，模块序号为 03+', () => {
+  for (const rel of [SKILL, REVIEWER, CONTRACT_TEMPLATE, DATA_MODEL_TEMPLATE]) {
+    const body = read(rel);
+    assert.doesNotMatch(body, /模块文档.{0,6}`02\+`|模块文档为 `02\+`|modules are `02\+`/, `${rel} 不应再写「模块为 02+」`);
+  }
+  assert.match(read(SKILL), /the module documents are `03\+`/, 'SKILL 应写明模块为 03+');
+  assert.match(read(CONTRACT_TEMPLATE), /各模块文档为 `03\+`/, '接口契约模板应写明模块为 03+');
+});
+
+test('接口契约仍不配图，并指向第四份文档的 ER 图', () => {
+  const body = read(CONTRACT_TEMPLATE);
+  assert.match(body, /本文件不配图/, '接口契约应保持不配图');
+  assert.match(body, /02-实体与数据设计\.md/, '接口契约应指明 ER 图在第四份文档');
+});
+
+test('lifecycle 只接受 schema_version 3', () => {
+  const skill = read(SKILL);
+  assert.doesNotMatch(skill, /Start new lifecycle diagrams on `schema_version: 2`/, '不应再写「新图用 2」');
+  assert.match(skill, /The kernel\naccepts \*\*only\*\* `3`/, '应写明内核只接受 3');
+});
+
