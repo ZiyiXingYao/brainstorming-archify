@@ -8,7 +8,7 @@
  *
  * 做什么
  * ------
- * 读取 `tests/fixtures/` 下五类图各一份样例 IR，逐份调用内核唯一入口
+ * 读取 `tests/fixtures/` 下十一类图各一份样例 IR，逐份调用内核唯一入口
  * `scripts/diagram-engine/bin/render.mjs render <type> <ir> <outdir>`，并断言：
  *
  *   1. `<basename>.json` / `<basename>.svg` / `<basename>.html` 三件套全部生成；
@@ -21,7 +21,7 @@
  * ----
  *   node tests/render.smoke.test.mjs
  *
- * 退出码：0 = 五个用例全部通过；1 = 有用例失败。
+ * 退出码：0 = 全部用例通过；1 = 有用例失败。
  */
 
 import assert from 'node:assert/strict';
@@ -35,13 +35,19 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
 const RENDER = path.join(ROOT, 'scripts', 'diagram-engine', 'bin', 'render.mjs');
 
-/** 五类图各一份样例。 */
+/** 十一类图各一份样例。 */
 const CASES = Object.freeze([
   ['architecture', 'sample-architecture.json'],
   ['workflow', 'sample-workflow.json'],
   ['sequence', 'sample-sequence.json'],
   ['dataflow', 'sample-dataflow.json'],
   ['lifecycle', 'sample-lifecycle.json'],
+  ['erd', 'sample-erd.json'],
+  ['class', 'sample-class.json'],
+  ['tree', 'sample-tree.json'],
+  ['timeline', 'sample-timeline.json'],
+  ['waterfall', 'sample-waterfall.json'],
+  ['flowchart', 'sample-flowchart.json'],
 ]);
 
 /**
@@ -110,7 +116,7 @@ function checkCase([type, fixture]) {
 }
 
 let failures = 0;
-console.log('绘图内核冒烟测试：五类图各渲染一次，校验三件套\n');
+console.log('绘图内核冒烟测试：十一类图各渲染一次，校验三件套\n');
 for (const testCase of CASES) {
   const type = testCase[0];
   try {

@@ -6,13 +6,19 @@
 
 ```
 tests/
-├── fixtures/                     五类图各一份样例 IR（合法、可直接渲染）
+├── fixtures/                     十一类图各一份样例 IR（合法、可直接渲染）
 │   ├── sample-architecture.json
 │   ├── sample-workflow.json
 │   ├── sample-sequence.json
 │   ├── sample-dataflow.json
-│   └── sample-lifecycle.json
-├── render.smoke.test.mjs         冒烟：渲染五类图，校验三件套（独立脚本，原生 assert）
+│   ├── sample-lifecycle.json
+│   ├── sample-erd.json
+│   ├── sample-class.json
+│   ├── sample-tree.json
+│   ├── sample-timeline.json
+│   ├── sample-waterfall.json
+│   └── sample-flowchart.json
+├── render.smoke.test.mjs         冒烟：渲染十一类图，校验三件套（独立脚本，原生 assert）
 ├── render.entry.test.mjs         入口契约：透传子命令 / 参数校验 / 失败不留半成品 / 原子提交 / 两轮降级
 ├── task-state.test.mjs           讨论状态库：四态推进与前置条件 / reopen 只翻点名文件 / closed 后 task.md 作废 / 当前轮次 change-list 指针与切换守卫 / 原子写 / YAML 往返 / resume 只读与 blockers
 ├── install.test.mjs              安装脚本：版本硬门 / 备份与备份冲突守卫 / 平铺与整目录规则 / 命令适配器部署（bsa/resume.md 重写、保留其他命令、幂等）/ 装后 doctor / 用法错误
@@ -26,7 +32,7 @@ tests/
 ```bash
 # 全部：一条命令覆盖「仓库测试 + 绘图内核回归集」
 node --test tests/*.test.mjs
-# → 112 个用例，0 失败（含 engine.test.mjs 唤起的内核 24 文件 / 360 用例）
+# → 112 个用例，0 失败（含 engine.test.mjs 唤起的内核 55 文件回归集）
 
 # 只跑冒烟（独立脚本）
 node tests/render.smoke.test.mjs
