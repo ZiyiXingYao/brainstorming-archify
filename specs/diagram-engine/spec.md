@@ -8,21 +8,34 @@ HTML 页，并作为内部能力被 `brainstorming-archify` **直接调用**（�
 
 ## Requirements
 
-### Requirement: 五类图的渲染能力内置
+### Requirement: 十一类图的渲染能力内置
 
-绘图内核 SHALL 在自身目录（`scripts/diagram-engine/`）内携带架构图、工作流图、时序图、数据流图和
-生命周期图五类图的渲染器、schema 与交互页模板，使渲染过程不依赖内核目录之外的任何服务或网络；
-内核 MUST NOT 被声明为独立技能，也 MUST NOT 携带第二份技能文档。
+绘图内核 SHALL 在自身目录（`scripts/diagram-engine/`）内携带**十一类**图的渲染器、schema
+与交互页模板：
 
-#### Scenario: 离线渲染五类图
+- 上游 archify 十类——架构图（`architecture`）、工作流图（`workflow`）、时序图（`sequence`）、
+  数据流图（`dataflow`）、生命周期图（`lifecycle`）、实体关系图（`erd`）、类图（`class`）、
+  树形图（`tree`）、时间线图（`timeline`）、瀑布图（`waterfall`）；
+- 本仓库自建的程序流程图（`flowchart`：起止端子、处理、判断分支、循环、异常路径）。
 
-- **WHEN** 在无网络环境下依次渲染五类图各一份合法 IR
-- **THEN** 五类图均产出 SVG，且过程中不发起网络请求、不读取内核目录以外的路径
+渲染过程 MUST NOT 依赖内核目录之外的任何服务或网络；内核 MUST NOT 被声明为独立技能，
+也 MUST NOT 携带第二份技能文档。
+
+#### Scenario: 离线渲染十一类图
+
+- **WHEN** 在无网络环境下依次渲染十一类图各一份合法 IR
+- **THEN** 十一类图均产出 SVG，且过程中不发起网络请求、不读取内核目录以外的路径
 
 #### Scenario: 请求不存在的图类型
 
-- **WHEN** 请求的图类型不属于上述五类
+- **WHEN** 请求的图类型不属于上述十一类
 - **THEN** 渲染以非零退出码失败，并指出支持的类型清单，不产出任何文件
+
+#### Scenario: 程序流程图拒绝结构不合规的 IR
+
+- **WHEN** 一份 `flowchart` IR 没有唯一的起始端子、存在从起始端子不可达的节点、
+  某个判断节点的出边少于两条、或某条判断分支缺少条件标签
+- **THEN** 渲染以非零退出码失败并逐条指出原因，不产出任何文件
 
 #### Scenario: 内核目录内不存在第二份技能文档
 
@@ -271,17 +284,66 @@ IR 的 `meta.locale` SHALL 接受任意格式合法的语言标签（schema patt
 
 ### Requirement: `schema_version` 的合法取值
 
-`workflow` 与 `lifecycle` 两类图的 `schema_version` SHALL 接受 `1` 与 `2` 两个取值
-（`architecture`、`sequence`、`dataflow` 仍固定为 `1`）；`workflow` 的 v2 走可读编译器，
-`lifecycle` 的 v2 每泳道一行、共用列网格。内核 MUST NOT 提供 schema-version 的 `migrate`
-子命令——迁移 SHALL 由作者直接改写 IR 完成。
+`workflow` 的 `schema_version` SHALL 接受 `1` 与 `2` 两个取值（`1` 是固定布局兼容契约，
+`2` 走可读编译器）；`lifecycle` SHALL **只接受 `3`**（每泳道一行、共用列网格的自动主路径
+布局）；其余类型（`architecture`、`sequence`、`dataflow`、`erd`、`class`、`tree`、`timeline`、
+`waterfall`、`flowchart`）的 `schema_version` SHALL 固定为 `1`。内核 MUST NOT 提供
+schema-version 的 `migrate` 子命令——迁移 SHALL 由作者直接改写 IR 完成。
 
-#### Scenario: lifecycle v1 与 v2
+#### Scenario: lifecycle 只接受 v3
 
-- **WHEN** lifecycle IR 的 `schema_version` 为 `1`
-- **THEN** 使用固定三段带布局；为 `2` 时每泳道一行、共用列网格
+- **WHEN** lifecycle IR 的 `schema_version` 为 `1`、`2` 或缺失
+- **THEN** 渲染以非零退出码失败并指出合法取值为 `3`，不产出任何文件
+
+#### Scenario: workflow v2 走可读编译器
+
+- **WHEN** workflow IR 的 `schema_version` 为 `2`
+- **THEN** 走可读 workflow 编译器；为 `1` 时保持固定布局兼容契约
 
 #### Scenario: 不存在的 migrate 子命令
 
 - **WHEN** 以 `migrate` 调用内核入口
 - **THEN** 以非零退出码失败并指出该子命令不存在
+
+### Requirement: 自建类型的接线完整性
+
+自建的 `flowchart` 类型 SHALL 与上游十类走同一条渲染链：`bin/render.mjs` 与
+`bin/render-driver.mjs` 的类型表、`renderers/shared/cli.mjs` 的
+`START_TYPES`／语义集合／关系集合三张表、`renderers/shared/brand-marks.mjs` 的节点集合表、
+`scripts/generate-validators.mjs` 的生成类型表、`locales/` 内置语言目录的图类型描述键，
+SHALL 全部包含 `flowchart`；任一遗漏都 MUST 表现为可被机械检查发现的失败，
+而不是静默降级。
+
+#### Scenario: 环境自检覆盖自建类型
+
+- **WHEN** 运行 `node scripts/diagram-engine/bin/render.mjs doctor`
+- **THEN** 自检逐类报告「渲染器与 schema 齐备」，其中包含 `flowchart`，退出码 0
+
+#### Scenario: 类型表遗漏自建类型
+
+- **WHEN** 上述任一张类型表缺少 `flowchart`
+- **THEN** 渲染 `flowchart` 以非零退出码失败并点名缺失的环节，不产出任何文件
+
+### Requirement: 上游裁剪偏离可审计
+
+内核中的每一处对本仓库有意为之的偏离 SHALL 在 `scripts/diagram-engine/UPSTREAM.md` 中登记，
+且对**机械可判定**的那几种 SHALL 有对应断言：
+
+- 删除式裁剪（入口只留 `render`／`validate`／`doctor`）SHALL 记录被删除的源行区间；
+- `--repo-root` 溯源能力删除后，内核 SHALL NOT 残留对 `repository-evidence`／
+  `repository-location` 的引用；
+- 品牌解析失败关闭后，URL 字符串与 `{url, sha256}` 对象 SHALL 被拒绝，且渲染路径
+  SHALL NOT 发起网络请求；
+- 测试集的布局适配（import 前缀、包根解析、入口名三类改写）SHALL 只出现在这三类位置，
+  断言逻辑 SHALL NOT 被改动。
+
+#### Scenario: 溯源能力未回流
+
+- **WHEN** 在内核目录内检索 `--repo-root` 与 `repository-evidence`
+- **THEN** 除 `UPSTREAM.md` 与文件头的偏离说明、以及本地用例的负向断言之外，
+  没有任何出现；内核里不存在 `repository-evidence.mjs` 与 `repository-location.mjs`
+
+#### Scenario: 品牌联网边界
+
+- **WHEN** 渲染一份把 `brand` 写成 HTTP(S) URL 的 IR
+- **THEN** 渲染以非零退出码失败并给出 `brand/unsupported-url` 诊断，且过程中不发起网络请求
