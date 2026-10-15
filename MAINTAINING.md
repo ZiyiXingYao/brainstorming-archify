@@ -180,7 +180,7 @@ rm -rf /tmp/sp
 node scripts/diagram-engine/test/run-valid.mjs
 ```
 
-它只跑**在裁剪后成立的那个子集**（当前为上游全绿 48 + 本地 6 = 54 个文件，退出码 `0` = 全过；上游 48 个由 3.1.0 整包 212 个文件逐文件**串行**实测筛出，本地 6 个含 CSS 抽取、主题变量解析、图名派生、驱动 CLI 面、环境自检与品牌边界）。哪些上游检查项被排除、为什么排除，逐条登记在 `scripts/diagram-engine/UPSTREAM.md` 第 3、4 节。
+它只跑**在裁剪后成立的那个子集**（当前为上游全绿 48 + 本地 7 = 55 个文件，退出码 `0` = 全过；上游 48 个由 3.1.0 整包 212 个文件逐文件**串行**实测筛出，本地 7 个含 CSS 抽取、主题变量解析、图名派生、驱动 CLI 面、环境自检、品牌边界与自建 `flowchart`）。哪些上游检查项被排除、为什么排除，逐条登记在 `scripts/diagram-engine/UPSTREAM.md` 第 3、4 节。
 
 **注意：`./scripts/sync-upstream.sh` 只覆盖 `superpowers`，不覆盖 archify**——它比对的是 `skill/SKILL.md`，与绘图内核无关；同步 archify 需按上面的基准 tag / commit 手工比对。
 

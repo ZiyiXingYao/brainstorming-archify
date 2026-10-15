@@ -52,7 +52,7 @@ workflow 放置修复、architecture 标签与路由等大范围改动。
 | `bin/render.mjs`（本仓库新增件，唯一对外入口） | `render <type> <ir.json> <outdir>` 一次产出 `.json`／`.svg`／`.html` 三件套；`validate`／`doctor` 透传给内部驱动；并叠一层「两轮降级」判定（见 `lib/degradation.mjs`）。`TYPES` 同步扩到十一类 |
 | 删除 `--repo-root` 溯源 | 删 `renderers/shared/repository-evidence.mjs`、`repository-location.mjs`；清掉 `renderers/shared/cli.mjs` 里的 `verifyRepositoryEvidence` 导入与调用，`loadDiagram` 返回值不再带 `sourceEvidence` |
 | 品牌摘掉联网分支 | `renderers/shared/brand-marks.mjs` 改为**失败关闭**（706 → 195 行）：URL 字符串与 `{url,sha256}` 直接报 `brand/unsupported-url` 诊断，**渲染路径不再发起任何网络请求**；内置 canonical ID 照常解析；同文件里不可达的抓取实现（DNS 解析、固定 socket HTTP、favicon 发现、图像识别）及其 `dns`／`http`／`https`／`net`／`crypto` 导入一并删除。`COLLECTIONS` 扩到十一类 |
-| **自建 `flowchart` 类型**（本仓库新增，上游没有） | 新增 `schemas/flowchart.schema.json` 与 `renderers/flowchart/render-flowchart.mjs`：自上而下的程序设计流程图——`start`／`end` 端子、`process` 处理、`decision` 判断（≥2 条带条件标签的分支）、`io` 输入输出、`loop` 循环头、`exception` 失败或回滚。回边走左走廊、跨层前向边走右走廊，横段只落在行内或行间空隙，因此不穿节点、不产生真交叉。接线点：`renderers/shared/cli.mjs` 的 `START_TYPES`／`SEMANTIC_COLLECTIONS`（`nodes`）／`RELATIONSHIP_COLLECTIONS`（`edges`）、`renderers/shared/brand-marks.mjs` 的 `COLLECTIONS`（`nodes`）、`scripts/generate-validators.mjs` 的类型表、`locales/{en,zh-CN}.json` 的 `diagram.description.flowchart` |
+| **自建 `flowchart` 类型**（本仓库新增，上游没有） | 新增 `schemas/flowchart.schema.json` 与 `renderers/flowchart/render-flowchart.mjs`：自上而下的程序设计流程图——`start`／`end` 端子、`process` 处理、`decision` 判断（≥2 条带条件标签的分支）、`io` 输入输出、`loop` 循环头、`exception` 失败或回滚。回边走左走廊、跨层前向边走右走廊，横段只落在行内或行间空隙，因此不穿节点、不产生真交叉。接线点：`renderers/shared/cli.mjs` 的 `START_TYPES`／`SEMANTIC_COLLECTIONS`（`nodes`）／`RELATIONSHIP_COLLECTIONS`（`edges`）、`renderers/shared/brand-marks.mjs` 的 `COLLECTIONS`（`nodes`）、`scripts/generate-validators.mjs` 的类型表、`locales/{en,zh-CN}.json` 的 `diagram.description.flowchart`。回归由本地用例 `test/flowchart.test.mjs` 守住（结构拒绝 7 条、showcase 构图合规、接线完整性、品牌边界），并登记进 `LOCAL_TESTS` |
 | `renderers/*/README.md` | 指向 `examples/*.json` 的 worked example 引用改指仓库根 `tests/fixtures/sample-*.json`（本内核未搬 `examples/`）；`timeline`／`tree`／`waterfall` 三份改为「上游样例未随本裁剪构建提供」；删除指向已删 `references/` 的链接 |
 | `schemas/README.md` | 删除对已删子命令（`brands` 列举与抓取、`migrate`）与 `--repo-root` 的引用，改为裁剪后实况；上游的 npm 测试脚本改指 `npm run check:validators` |
 | `package.json` / `package-lock.json` | 按裁剪后实况重写：去掉 `bin` 字段与指向仓库根 `../scripts/*` 的脚本；`scripts` 只留四个生成器脚本；`devDependencies` 只留 `ajv`／`simple-icons`（v3.1.0 起上游已不再需要 `parse5`／`saxes`） |
@@ -115,14 +115,15 @@ workflow 放置修复、architecture 标签与路由等大范围改动。
 |---|---|
 | 上游 `*.test.mjs` 实测总数 | 212 |
 | 实测退出码 0 且 pass>0 → 进入 `UPSTREAM_VALID` | 48 |
-| 本地新增用例 → 进入 `LOCAL_TESTS` | 6 |
-| 入口实际执行（`VALID_TESTS`） | 54 个文件 |
+| 本地新增用例 → 进入 `LOCAL_TESTS` | 7 |
+| 入口实际执行（`VALID_TESTS`） | 55 个文件 |
 | 按成因未登记的上游用例 | 164 |
 
-本地 6 个用例：`svg-css-extract`（CSS 抽取器，含金样 `svg-css-extract.golden.json`）、
+本地 7 个用例：`svg-css-extract`（CSS 抽取器，含金样 `svg-css-extract.golden.json`）、
 `svg-theme-vars`（主题变量解析）、`derive-name`（图名派生）、`cli-surface`（驱动 CLI 面）、
 `doctor`（环境自检）、`brand-marks`（品牌边界：内置 ID 可解析、URL 与摘要固定对象失败
-关闭且不联网）。它们随上游模板/行为变化时按失败信息重签——**内核内的 `svg/` 只有抽取器，
+关闭且不联网）、`flowchart`（自建类型的结构拒绝、showcase 构图合规、接线完整性与品牌边界）。
+它们随上游模板/行为变化时按失败信息重签——**内核内的 `svg/` 只有抽取器，
 没有重签脚本**，金样按测试失败信息重算。
 
 ### 验证入口
@@ -224,7 +225,8 @@ helper 已整体删除；改技能出图行为不可能让它们转绿。
 2. **逐字节替换已搬入目录**：按第 1.2 节的搬入范围，从新基准重新搬运并逐字节核验
    （`diff -r` / `cmp`）。**替换 `test/` 时要保住本仓库新增的 `scripts/diagram-engine/test/run-valid.mjs`
    与本地用例**（`svg-css-extract`、`svg-theme-vars`、`derive-name`、`cli-surface`、`doctor`、
-   `brand-marks` 及 `svg-css-extract.golden.json`）；直接 `rm -rf test/` 再 `cp -R` 会把它们删掉。
+   `brand-marks`、`flowchart` 及 `svg-css-extract.golden.json`）；直接 `rm -rf test/` 再 `cp -R`
+   会把它们删掉。
 3. **重放本次裁剪改动**：按第 1.3 节的改动表逐条把裁剪改动施加到新搬入的代码上——
    入口裁子命令与删除区间、删 `--repo-root`、品牌失败关闭、自建 `flowchart` 的接线点
    （`cli.mjs` 三张表、`brand-marks.mjs` 的 `COLLECTIONS`、`generate-validators.mjs` 类型表、
