@@ -51,7 +51,7 @@ test('模板里能取到字体块与主样式块，字体块原文逐字节可�
   assert.equal(fonts, m[1]);
 });
 
-test('主样式块剥离注释后：顶层 832 个块 / 其中 31 个 at-rule / 801 条普通规则', () => {
+test('主样式块剥离注释后：顶层 864 个块 / 其中 33 个 at-rule / 831 条普通规则', () => {
   const { main } = findStyleBlocks(html);
   const rules = splitTopLevelRules(main);
   assert.equal(rules.length, GOLDEN.topLevelChunkCount);

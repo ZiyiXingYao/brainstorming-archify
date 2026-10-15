@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "diagram_type": "flowchart",
+  "meta": {
+    "title": "库存扣减流程",
+    "output": "deduct-stock.html",
+    "quality_profile": "showcase"
+  },
+  "nodes": [
+    { "id": "start", "kind": "start", "label": "开始" },
+    { "id": "read", "kind": "io", "label": "读取订单与 SKU" },
+    { "id": "lock", "kind": "process", "label": "尝试锁定库存" },
+    { "id": "enough", "kind": "decision", "label": "库存足够？" },
+    { "id": "retry", "kind": "decision", "label": "已重试 3 次？" },
+    { "id": "wait", "kind": "loop", "label": "等待 200ms 后重试" },
+    { "id": "fail", "kind": "exception", "label": "标记订单缺货" },
+    { "id": "write", "kind": "process", "label": "写入扣减流水" },
+    { "id": "end", "kind": "end", "label": "结束" }
+  ],
+  "edges": [
+    { "from": "start", "to": "read", "role": "main" },
+    { "from": "read", "to": "lock", "role": "main" },
+    { "from": "lock", "to": "enough", "role": "main" },
+    { "from": "enough", "to": "write", "role": "branch", "label": "是" },
+    { "from": "enough", "to": "retry", "role": "branch", "label": "否" },
+    { "from": "retry", "to": "fail", "role": "branch", "label": "是" },
+    { "from": "retry", "to": "wait", "role": "branch", "label": "否" },
+    { "from": "wait", "to": "lock", "role": "loop", "label": "重试", "variant": "dashed" },
+    { "from": "write", "to": "end", "role": "main" },
+    { "from": "fail", "to": "end", "role": "exception", "variant": "dashed" }
+  ]
+}

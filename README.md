@@ -63,9 +63,9 @@ node ~/.codebuddy/skills/brainstorming-archify/scripts/diagram-engine/bin/render
 |---|---|---|---|
 | **本仓库 / 本技能的发布版本** | **`1.0.0`**（tag `v1.0.0`） | 这个仓库与它导出的技能的版本，由 git tag 与 [GitHub Release](https://github.com/ZiyiXingYao/brainstorming-archify/releases) 承载；本 README 顶部与本节是它的文字出处（历史：`v0.1.0`，2026-09-22） | 每次发版 |
 | 技能文本上游基准 | `v7.0.0`（commit `bb92a77`） | `skill/SKILL.md` 所同步的 superpowers 坐标 | 同步 superpowers 时 |
-| 绘图内核上游基准 | `v3.0.1`（commit `2ab3cae`；技能包版本 `3.0.1`） | 内核搬运自 archify 的坐标 | 搬运新内核时 |
+| 绘图内核上游基准 | `v3.1.0`（commit `1c2b42d`；技能包版本 `3.1.0`） | 内核搬运自 archify 的坐标 | 搬运新内核时 |
 
-**`scripts/diagram-engine/skill-release.json` 里的 `3.0.1` 不是本仓库版本**——那是上游 archify 技能包的发布清单（含它自己的 `skillId`、更新通道与仓库地址），随内核逐字节搬入以保留可追溯性，改它会让内核与上游对不上号。发版步骤见 [MAINTAINING.md §4](MAINTAINING.md#4-发布一个版本)。
+**`scripts/diagram-engine/skill-release.json` 里的 `3.1.0` 不是本仓库版本**——那是上游 archify 技能包的发布清单（含它自己的 `skillId`、更新通道与仓库地址），随内核逐字节搬入以保留可追溯性，改它会让内核与上游对不上号。发版步骤见 [MAINTAINING.md §4](MAINTAINING.md#4-发布一个版本)。
 
 ## 依赖的上游库
 
@@ -74,7 +74,7 @@ node ~/.codebuddy/skills/brainstorming-archify/scripts/diagram-engine/bin/render
 | 上游 | 被用作 | 以什么形态并入 | 基准 | 许可 |
 |---|---|---|---|---|
 | [superpowers](https://github.com/obra/superpowers) 的 `brainstorming` 技能 | **对话式设计流程骨架**——路径分类、提问与收敛、设计呈现、自审与用户审查 | **改造副本**：`skill/SKILL.md` 保留英文原文，便于与上游逐句 diff；本地偏离逐条登记在 MAINTAINING 的重放清单 | `v7.0.0` | MIT, © 2025 Jesse Vincent |
-| [archify](https://github.com/tt-a1i/archify) 出图技能包 | **绘图内核**——架构图 / 工作流图 / 时序图 / 数据流图 / 生命周期图五类图的渲染、校验与自检 | **裁剪副本**：只保留五类图渲染能力，删掉无关子命令、`--repo-root` 溯源能力与 `examples/`、`references/` 等目录；作为**技能内部构件**装在 `scripts/diagram-engine/`，不是第二个技能，用户不单独调用、不写 IR | `v3.0.1` | MIT, © 2026 tt-a1i (Archify) 与 © 2025 Cocoon AI；内联字体 JetBrains Mono 依 SIL OFL 1.1 |
+| [archify](https://github.com/tt-a1i/archify) 出图技能包 | **绘图内核**——架构图 / 工作流图 / 时序图 / 数据流图 / 生命周期图 / ER 图 / 类图 / 树形图 / 时间线图 / 瀑布图十类图的渲染、校验与自检（另有本仓库自建的**程序流程图** `flowchart`） | **裁剪副本**：保留十类上游图类型的渲染能力，删掉无关子命令、`--repo-root` 溯源能力、`examples/`、`references/` 等目录，并**自建 `flowchart` 类型**；作为**技能内部构件**装在 `scripts/diagram-engine/`，不是第二个技能，用户不单独调用、不写 IR | `v3.1.0` | MIT, © 2026 tt-a1i (Archify) 与 © 2025 Cocoon AI；内联字体 JetBrains Mono 依 SIL OFL 1.1 |
 
 同步办法与逐项偏离清单见 [MAINTAINING.md](MAINTAINING.md)；内核的裁剪明细与被删清单另见 [`scripts/diagram-engine/UPSTREAM.md`](scripts/diagram-engine/UPSTREAM.md)。
 

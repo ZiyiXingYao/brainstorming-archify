@@ -21,8 +21,8 @@
 
 | 对象 | 上游仓库 | 基准坐标 | 同步方式 |
 |------|---------|---------|---------|
-| `skill/SKILL.md` 等技能文本 | [superpowers](https://github.com/obra/superpowers) | `v6.4.1`（commit `5bf4e78`） | `./scripts/sync-upstream.sh` 看 diff 后按《需要重放的改动清单》重放 |
-| `scripts/diagram-engine/` | [archify](https://github.com/tt-a1i/archify) | `v3.0.1`（commit `2ab3cae`；技能包版本 `3.0.1`） | **无脚本**，按 tag / commit 手工比对 + 跑 `test/run-valid.mjs` 判回归（见下文） |
+| `skill/SKILL.md` 等技能文本 | [superpowers](https://github.com/obra/superpowers) | `v7.0.0`（commit `bb92a77`） | `./scripts/sync-upstream.sh` 看 diff 后按《需要重放的改动清单》重放 |
+| `scripts/diagram-engine/` | [archify](https://github.com/tt-a1i/archify) | `v3.1.0`（commit `1c2b42d`；技能包版本 `3.1.0`） | **无脚本**，按 tag / commit 手工比对 + 跑 `test/run-valid.mjs` 判回归（见下文） |
 
 `./scripts/sync-upstream.sh` **只覆盖 `superpowers`**：它比对的是 `skill/SKILL.md`，与绘图内核无关。
 
@@ -168,9 +168,9 @@ rm -rf /tmp/sp
 
 ### 上游二：archify（绘图内核）
 
-`scripts/diagram-engine/` 是 [archify](https://github.com/tt-a1i/archify) 出图技能包的**裁剪副本**：按「只保留 5 类图渲染能力」删掉了全部与 5 类图无关的子命令（compare / deliver / finalize / preview / migrate / inspect / check / visual-check / browser-check / guide / brands / examples / demo / recover-output）、`--repo-root` 溯源能力、`examples/`、`references/` 与上游 `SKILL.md`，把入口 `archify.mjs`（6936 行）裁成内部驱动 `render-driver.mjs`（只留 `render`／`validate`／`doctor`），并以本仓库新增的 `render.mjs` 作为唯一对外入口；品牌解析收窄为「只认内置 canonical ID、不联网」。逐项改动与被删清单见 `scripts/diagram-engine/UPSTREAM.md` 第 1 节。
+`scripts/diagram-engine/` 是 [archify](https://github.com/tt-a1i/archify) 出图技能包的**裁剪副本**：保留十类上游图类型（architecture / workflow / sequence / dataflow / lifecycle / erd / class / tree / timeline / waterfall）的渲染能力，删掉了全部与出图无关的子命令（compare / deliver / finalize / preview / migrate / inspect / check / visual-check / browser-check / guide / brands / examples / demo）、`--repo-root` 溯源能力、`examples/`、`references/`、`recipes/`、`delta/` 与上游 `SKILL.md`，把入口 `archify.mjs`（7139 行）裁成内部驱动 `render-driver.mjs`（约 900 行，只留 `render`／`validate`／`doctor`），并以本仓库新增的 `render.mjs` 作为唯一对外入口；品牌解析收窄为「只认内置 canonical ID、不联网」。此外**自建 `flowchart` 类型**（程序设计流程图，上游没有）。逐项改动与被删清单见 `scripts/diagram-engine/UPSTREAM.md` 第 1 节。
 
-**上游基准**：`tt-a1i/archify` @ `v3.0.1`（commit `2ab3cae`；技能包版本 `3.0.1`，`skill-release.json` 的 `channel` 已是 `stable`）。
+**上游基准**：`tt-a1i/archify` @ `v3.1.0`（commit `1c2b42d`；技能包版本 `3.1.0`，`skill-release.json` 的 `channel` 已是 `stable`）。
 
 **许可证归属**：archify 本体为 MIT（版权方与全文见 `scripts/diagram-engine/LICENSE`）；内联字体 **JetBrains Mono** 依 SIL Open Font License 1.1 授权，完整授权文本随包存放在 `scripts/diagram-engine/assets/JetBrainsMono-OFL.txt`；第三方商标与图标归属见 `scripts/diagram-engine/THIRD_PARTY_NOTICES.md`。
 
@@ -180,7 +180,7 @@ rm -rf /tmp/sp
 node scripts/diagram-engine/test/run-valid.mjs
 ```
 
-它只跑**在裁剪后成立的那个子集**（当前为上游全绿 18 + 本地 6 = 24 个文件、360 个用例，退出码 `0` = 全过；上游 18 个由 3.0.1 整包逐文件**串行**实测筛出，本地 6 个含 CSS 抽取、主题变量解析、图名派生、驱动 CLI 面、环境自检与品牌边界）。哪些上游检查项被排除、为什么排除，逐条登记在 `scripts/diagram-engine/UPSTREAM.md` 第 3、4 节。
+它只跑**在裁剪后成立的那个子集**（当前为上游全绿 48 + 本地 6 = 54 个文件，退出码 `0` = 全过；上游 48 个由 3.1.0 整包 212 个文件逐文件**串行**实测筛出，本地 6 个含 CSS 抽取、主题变量解析、图名派生、驱动 CLI 面、环境自检与品牌边界）。哪些上游检查项被排除、为什么排除，逐条登记在 `scripts/diagram-engine/UPSTREAM.md` 第 3、4 节。
 
 **注意：`./scripts/sync-upstream.sh` 只覆盖 `superpowers`，不覆盖 archify**——它比对的是 `skill/SKILL.md`，与绘图内核无关；同步 archify 需按上面的基准 tag / commit 手工比对。
 
@@ -399,7 +399,7 @@ git push origin --delete v0.1.0   # 再删远端 tag
 # 改完 → 提交推送 → 重新打 tag → 重新 create release（URL 不变）
 ```
 
-**版本号不写进 `scripts/diagram-engine/skill-release.json`**——那里的 `3.0.1` 是上游 archify
+**版本号不写进 `scripts/diagram-engine/skill-release.json`**——那里的 `3.1.0` 是上游 archify
 技能包的版本，改它会让内核与上游对不上号。
 
 

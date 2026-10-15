@@ -78,7 +78,7 @@ const SKILL_ROOT = path.resolve(HERE, '..');
 const DRIVER = path.join(SKILL_ROOT, 'bin', 'render-driver.mjs');
 
 /** 支持的图类型（与上游 rendererPath 的集合一致）。 */
-export const TYPES = Object.freeze(['architecture', 'workflow', 'sequence', 'dataflow', 'lifecycle']);
+export const TYPES = Object.freeze(['architecture', 'workflow', 'sequence', 'dataflow', 'lifecycle', 'erd', 'tree', 'class', 'timeline', 'waterfall', 'flowchart']);
 
 /**
  * 「两轮降级」停止时的退出码（区别于普通校验失败 1 与用法错误 2）。
@@ -526,7 +526,7 @@ function usage() {
   doctor
 
 Types:
-  architecture, workflow, sequence, dataflow, lifecycle
+  architecture, workflow, sequence, dataflow, lifecycle, erd, tree, class, timeline, waterfall, flowchart
 
 render writes three same-prefix files into <outdir>:
   <basename>.json  /  <basename>.svg  /  <basename>.html

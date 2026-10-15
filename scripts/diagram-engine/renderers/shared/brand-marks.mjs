@@ -23,6 +23,12 @@ const COLLECTIONS = Object.freeze({
   sequence: 'participants',
   dataflow: 'nodes',
   lifecycle: 'states',
+  erd: 'entities',
+  tree: 'nodes',
+  class: 'types',
+  timeline: 'events',
+  waterfall: 'spans',
+  flowchart: 'nodes',
 });
 const MARK_BY_LOOKUP = new Map();
 const RESOLVED_BY_NODE = new WeakMap();

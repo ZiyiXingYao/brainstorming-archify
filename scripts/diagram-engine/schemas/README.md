@@ -10,13 +10,18 @@ against one of the schemas in this folder before any layout work happens.
 | `workflow.schema.json` | `diagram_type: "workflow"` | `lanes`, `phases`, `groups`, `mainPath`, `nodes`, `edges` |
 | `sequence.schema.json` | `diagram_type: "sequence"` | `participants`, `segments`, `messages`, `activations` |
 | `dataflow.schema.json` | `diagram_type: "dataflow"` | `stages`, `nodes`, `flows` |
-| `lifecycle.schema.json` | `diagram_type: "lifecycle"` | `lanes`, `states`, `transitions` |
+| `lifecycle.schema.json` | `diagram_type: "lifecycle"` | `mainPath`, `states`, `transitions` |
 | `architecture.schema.json` | `diagram_type: "architecture"` | `components`, `boundaries`, `connections` |
+| `erd.schema.json` | `diagram_type: "erd"` | `entities`, `relationships` |
+| `tree.schema.json` | `diagram_type: "tree"` | `nodes` (each with one `parent`) |
+| `class.schema.json` | `diagram_type: "class"` | `types`, `relationships` |
+| `timeline.schema.json` | `diagram_type: "timeline"` | `events` (`lanes` optional) |
+| `waterfall.schema.json` | `diagram_type: "waterfall"` | `spans` (each with optional `parent`) |
 | `common.schema.json` | shared `$defs` only (no top-level document) | — |
 
 Every diagram schema requires `schema_version`, `diagram_type`, `meta` (with
-`title` and a durable portable `output`), and its structural arrays — except `segments`, `activations`, and
-`cards`, which are optional — and sets `additionalProperties: false` at every
+`title` and a durable portable `output`), and its structural arrays — except `segments`, `activations`, ERD and class
+`relationships`, and `cards`, which are optional — and sets `additionalProperties: false` at every
 level, so unknown fields are rejected rather than silently ignored.
 
 Every `meta` object also accepts `animation: "trace"` for opt-in SVG/CSS motion
@@ -24,30 +29,30 @@ in generated HTML. Omit it, or set `"none"`, for the default static output.
 It also accepts `locale`, any well-formed language tag (schema pattern
 `^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$`). The field selects the fixed Viewer UI,
 renderer-owned default legend and accessibility copy, document-title suffix,
-and `<html lang>` value; it does not translate authored strings. `en` and
-`zh-CN` are built-in catalogs; any other tag needs a matching `translations`
-object (see below) or the renderer falls back to English and discloses it.
+and `<html lang>` value; it does not translate authored strings. The bundled
+catalogs enrolled in `locales/manifest.json` (`en`, `zh-CN`, `zh-TW`, `es`, `ko`) are
+selected by tag, case-insensitively; region and script variants are distinct
+tags. Any other tag needs a matching `translations` object (see below) or the
+renderer falls back to English and discloses it.
 Omitting `locale` preserves legacy behavior and resolves to English.
 Malformed locale tags fail schema validation instead of being guessed or
 silently rewritten.
 
-`meta.translations` supplies the Viewer message catalog for a `locale` with no
-built-in catalog, as data: an object mapping canonical message keys (see
-`catalogKeys()` in `renderers/shared/i18n.mjs`) to translated strings whose
-`{placeholder}` tokens match the English source. A key that is missing,
-unrecognized, or has mismatched placeholders falls back to English rather than
-failing the render; `validate`/`render`/`deliver` report the resulting
-coverage to stderr. Spanish uses the reusable `examples/locales/es.json`
-catalog; dev inputs that previously used only `locale: "es"` now need this
-object in `meta.translations` to retain Spanish UI.
+`meta.translations` is an optional per-key override, as data: an object mapping
+canonical message keys (`locales/en.json`) to translated strings whose
+`{placeholder}` tokens match the English source. Each message resolves as:
+valid `translations` value → bundled catalog for `locale` → English. An
+unrecognized key or mismatched placeholders never replaces a valid
+lower-priority message and fails no render; `validate`/`render`/`deliver`
+report rejected entries and the final resolved coverage to stderr.
 `visual_preset` accepts `classic` (the stable default), `signal-flow` (luminous
 motion-forward presentation), `blueprint` (high-contrast engineering review),
 or `editorial` (warm publication-style design review and documentation).
 Presets change only viewer styling; they do not alter semantic IDs or geometry.
-Sequence `meta` additionally accepts `column_fit`. The default `fixed` keeps
-the historical 108px column gap and 86px participant boxes, so an authored
-diagram renders at the same coordinates no matter how wide its viewBox is.
-`spread` derives the gap and box width from the viewBox instead, which turns a
+Sequence `meta` additionally accepts `column_fit`. The default `spread` applies whether or not `meta.viewBox` is supplied.
+Explicit `fixed` keeps the historical 108px column gap and 86px participant
+boxes. `spread` derives column distance and box width from the viewBox, with
+at least a 16px gutter between participant cards, which turns a
 wide canvas into column distance and label room rather than empty space on the
 right. Lane order, IDs, and message semantics are unchanged either way.
 
@@ -94,6 +99,8 @@ Supported keys are renderer-owned:
 | Sequence | `emphasis`, `return`, `security`, `dashed`, `default` |
 | Dataflow | `emphasis`, `security`, `dashed`, `database`, `default` |
 | Lifecycle | `start`, `active`, `waiting`, `decision`, `success`, `failure`, `neutral`, `external` |
+| ERD | `pk`, `fk`, `uk`, `one`, `many`, `optional` |
+| Class | `dependency`, `association`, `inheritance`, `realization`, `composition`, `aggregation` |
 
 Labels are presentation only: they do not rename the stable kind, change
 nodes/relationships, or create Semantic Lens edge facts. Sequence message and
@@ -109,32 +116,23 @@ authored ID enables a stable `#relation=<id>` viewer link that survives array
 reordering. ID-less documents remain valid and their relationship pins stay
 local to the current page.
 
-Every semantic node collection (`components`, `nodes`, `participants`, and
-`states`) also accepts one optional `brand`: a canonical built-in brand ID, as
-listed in `renderers/shared/generated-brand-marks.mjs`, written as its id, its
-title, or an alias (for example `github`). This build has **no brand-capture
-capability and never makes a network request**: any HTTP(S) URL — even one whose
-host belongs to a known brand — is rejected by the renderer with a
-`brand/unsupported-url` diagnostic, and a bare domain (`github.com`) is not a
-brand ID either and fails as `brand/unknown`. The schema therefore declares
-`brand` as a bounded plain string and no longer blesses the upstream
-digest-pinned `{ "url", "sha256" }` object form. Omitted `brand` preserves the
-prior output.
+Every semantic node collection (`components`, `nodes`, `participants`, `states`,
+`entities`, `types`, `events`, `spans`) also accepts one optional `brand`: a
+canonical string resolving to the bundled vector catalogue (its id, title, or an
+alias). **This build has no capture capability**: an HTTP(S) URL string and a
+digest-pinned `{ "url", "sha256" }` object are both rejected with a
+`brand/unsupported-url` diagnostic, and no network request is reachable from the
+render path. Omitted `brand` preserves the prior output.
 
 ## schema_version policy
 
 Workflow supports schema versions 1 and 2. Version 1 remains the fixed-layout
-compatibility contract; version 2 opts into the readable workflow compiler. This
-build has no `migrate` subcommand — author schema version 2 directly.
-Lifecycle also supports versions 1 and 2 with the same fields. Version 1 keeps
-the fixed three-band layout; version 2 renders one row per lane on a shared
-column grid (see the [lifecycle renderer](../renderers/lifecycle/README.md)).
-Lifecycle has no migration command either: to adopt v2, set `schema_version: 2`,
-re-place lower-lane `col` values on the shared grid (v1 column `N` sat under
-main column `N + 2`), and drop coordinates authored for the v1 canvas
-(`viewBox`, `via`, `channelX`, `channelY`, `labelAt`).
-The other three diagram schemas keep `schema_version` pinned to `1`; they have
-no schema-version migration command. For any of the five diagram types, repair
+compatibility contract; version 2 opts into the readable workflow compiler and
+is authored directly as `schema_version: 2` (this build ships no `migrate`
+command). Lifecycle accepts only version 3, an automatic main-path layout (see
+the [lifecycle renderer](../renderers/lifecycle/README.md)).
+The other diagram schemas keep `schema_version` pinned to `1`; they have
+no schema-version migration command. For any diagram type, repair
 a legacy missing or nonportable `meta.output` in the source and run `validate`.
 
 Workflow also accepts optional `semanticChecks`. `allowedRoots` and
@@ -151,7 +149,9 @@ declared version throughout the 2.x release line. The explicitly reviewed
 portable-output hardening is the one exception: older v1 documents that omit
 `meta.output` must add a portable POSIX-relative `.html` path (for example,
 `reports/diagram.html`); ordinary explicit CLI output arguments do not replace
-this durable authored value. Additive viewer,
+this durable authored value. The workflow-only v1-to-v2 migration command may
+instead receive that value explicitly as `--output reports/diagram.html`; it
+writes the value only to its separate validated destination. Additive viewer,
 accessibility, and presentation improvements may enhance generated HTML, but
 they must not reinterpret authored IR or turn a previously valid profile-less
 v1 file into a new hard layout failure. Breaking IR changes require a new
@@ -165,13 +165,14 @@ The five diagram schemas reference `common.schema.json#/$defs/...`:
 - `point` — an `[x, y]` pair of numbers (used by `via` and `labelAt`)
 - `componentType` — `frontend`, `backend`, `database`, `cloud`, `security`,
   `messagebus`, `external`
-- `locale` — a well-formed renderer locale tag (`en` and `zh-CN` are built in;
-  any other tag needs a matching `translations` object)
-- `translations` — canonical message key → translated string, for a `locale`
-  with no built-in catalog
+- `locale` — a well-formed renderer locale tag (bundled catalogs are listed in
+  `locales/manifest.json`; any other tag needs a matching `translations` object)
+- `translations` — canonical message key → translated string, layered over the
+  bundled catalog for `locale`, then English
 - `portableOutputPath` — the portable POSIX-relative `.html` path used by
-  `meta.output`; see `renderers/shared/output-path.mjs` for the two output-path boundaries
-- `brandMark` — one optional bounded brand ID string (an id, title or alias); URLs are rejected by the renderer
+  `meta.output`; the two output-path boundaries are enforced by
+  `renderers/shared/output-path.mjs`
+- `brandMark` — one optional built-in brand ID or explicit HTTP(S) site URL
 - `variant` — `default`, `emphasis`, `security`, `dashed` (sequence messages
   extend this list locally with `return`)
 - `legendMode` and `legendEntry` — the shared strict mode and label/visibility
@@ -200,20 +201,18 @@ express cleanly here: duplicate view IDs, duplicate focus IDs, focus IDs that do
 not exist in the diagram's semantic collection, and duplicate authored
 relationship IDs within the mode's relationship collection.
 
-All five modes still declare an opt-in, revision-pinned repository evidence
-shape. `meta.repository` names the repository URL and full commit SHA, with
-optional `provider` (`github` or `gitee`) and `link_mode` (`web` or `local-only`);
-a node may carry one to three `sources` with repo-relative POSIX paths, optional
-line ranges, and optional labels. Sources are authored on the mode's own node
+All five modes support opt-in, revision-pinned repository evidence.
+`meta.repository` names the repository URL and full commit SHA, with optional
+`provider` (`github`, `gitee`, or `gitlab`) and `link_mode` (`web` or `local-only`; see the
+authoring contract); a node may carry one to three `sources` with repo-relative POSIX paths, optional line
+ranges, and optional labels. Sources are authored on the mode's own node
 collection — Architecture `components`, Workflow and Data Flow `nodes`,
-Sequence `participants`, Lifecycle `states`. **The shape is still schema-checked,
-but this build no longer populates it**: the revision/blob/line verification and
-the `--repo-root` argument were removed together with the rest of the
-code-provenance capability, so the render path always emits `null`. The fields
-are kept because the Viewer's Semantic Passport still consumes them when a
-caller injects a verified payload; while it is absent the passport's evidence
-area stays hidden, and ordinary documents and visual exports never carry
-repository paths.
+Sequence `participants`, Lifecycle `states` — and the verified payload is keyed
+by node id. Shape is schema-checked, then the renderer requires
+`--repo-root`: the local Git origin must match, and Git must prove the commit,
+blobs, and requested lines. Verified evidence is embedded outside the canonical
+SVG for the Semantic Passport and Node Finder; ordinary documents and visual
+exports carry no repository evidence.
 
 ## Visual quality and engineering truth
 
@@ -236,11 +235,8 @@ The profile validates only authored IR. It does not discover infrastructure,
 infer owners, or prove that a diagram matches a live environment. If a fact is
 unknown, leave the profile unset or obtain the fact instead of inventing it.
 
-`npm run check:validators` and `npm run check:brand-marks` re-run the two
-generators in check mode and fail when the committed artifacts drift from
-`schemas/` and `brand-marks/catalog.json`. They need the `devDependencies`
-installed; the shipped skill does not, because both generated files are
-committed.
+`npm run check:validators` runs the generator in check mode and fails when the
+committed validators drift from their schemas.
 
 ## Error format
 

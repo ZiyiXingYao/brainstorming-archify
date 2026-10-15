@@ -5,7 +5,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const repositoryRoot = path.resolve(here, '../..');
+const repositoryRoot = path.resolve(here, '..');
 const productionSourceRoots = [
   'archify/bin',
   'archify/delta',

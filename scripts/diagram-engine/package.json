@@ -1,9 +1,9 @@
 {
   "name": "archify",
-  "version": "3.0.1",
+  "version": "3.1.0",
   "private": true,
   "type": "module",
-  "description": "Trimmed archify rendering kernel for brainstorming-archify: JSON-IR diagram renderers (architecture / workflow / sequence / dataflow / lifecycle) with render / validate / doctor only.",
+  "description": "Trimmed archify rendering kernel for brainstorming-archify: JSON-IR diagram renderers (architecture / workflow / sequence / dataflow / lifecycle / erd / class / tree / timeline / waterfall) plus the locally authored flowchart type, with render / validate / doctor only.",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -16,8 +16,6 @@
   },
   "devDependencies": {
     "ajv": "^8.17.1",
-    "parse5": "7.3.0",
-    "saxes": "6.0.0",
     "simple-icons": "16.28.0"
   },
   "overrides": {
