@@ -94,6 +94,7 @@ test('实装形态：skill/ 平铺到根，templates/ 与 scripts/ 整目录，�
     assert.ok(fs.existsSync(path.join(target, 'templates', 'architecture-doc-template.md')));
     assert.ok(fs.existsSync(path.join(target, 'templates', 'module-doc-template.md')));
     assert.ok(fs.existsSync(path.join(target, 'templates', 'interface-contract-template.md')));
+    assert.ok(fs.existsSync(path.join(target, 'templates', 'data-model-doc-template.md')));
     assert.ok(fs.existsSync(path.join(target, 'scripts', 'install.mjs')));
     // sync-upstream.sh 是仓库维护工具（会 clone 上游仓库比对 SKILL.md），不该出现在用户技能目录
     assert.ok(

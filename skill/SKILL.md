@@ -193,9 +193,9 @@ that path's gates before implementation.
 | "It's bounded and the design is obvious — I'll start while they read it" | The gate is the approval, not the design's length. Present, then stop until you hear yes. |
 | "I understand this kind of app, so it's bounded" | Bounded measures the repo, not your familiarity. A new project has no existing flow — it is architectural. |
 | "They just asked casually, so I'll write the doc anyway" | The Persist Gate: ask first. No consent, no file. |
-| "I'll write the doc in whatever shape feels right" | Design documents MUST follow `architecture-doc-template.md`, `module-doc-template.md`, or `interface-contract-template.md`, in section and in order. |
+| "I'll write the doc in whatever shape feels right" | Design documents MUST follow `architecture-doc-template.md`, `module-doc-template.md`, `interface-contract-template.md` or `data-model-doc-template.md`, in section and in order. |
 | "No interface came up in this discussion, so no interface contract is needed" | Whether the interface contract is produced is a mechanical test, not a topic judgment: any one of the seven interface families — MySQL, Redis, MQ, HTTP, gRPC, dynamic-library API, TCP — being used by the system this design covers means the document MUST be produced. The base is that system's runtime dependencies, not the surrounding repository and not whether the code exists yet. A skip justified by "we did not touch interfaces" is a defect. |
-| "The interface contract can be `0-接口契约.md` so it sorts with the others" | The interface contract's path and file name are fixed at `specs/design/00-接口契约.md`. Its `00-` is a fixed literal prefix that sits outside the module ordinal sequence — the architecture overview is fixed `01-` and the module documents are `02+` — so the `00-` does not change as modules are added or removed, is not governed by the "append, never renumber" rule, and is never renumbered even when a new module is added. Any other name — no-prefix `接口契约.md`, single-zero `0-接口契约.md`, or the English alias `contract.md` — is a defect. |
+| "The interface contract can be `0-接口契约.md` so it sorts with the others" | The interface contract's path and file name are fixed at `specs/design/00-接口契约.md`. Its `00-` is a fixed literal prefix that sits outside the module ordinal sequence — the architecture overview is fixed `01-`, the data-model document is fixed `02-`, and the module documents are `03+` — so the `00-` does not change as modules are added or removed, is not governed by the "append, never renumber" rule, and is never renumbered even when a new module is added. Any other name — no-prefix `接口契约.md`, single-zero `0-接口契约.md`, or the English alias `contract.md` — is a defect. |
 | "This is a module discussion, but I'll tidy up the architecture doc while I'm in there" | Untouched sections stay word-for-word. Only entries actually affected by this discussion may change. |
 | "I know the module list well enough, I'll just write the doc" | Reading `specs/design/` first is a hard prerequisite. Writing without reading silently erases other discussions' work. |
 | "Field tables look like spec mode, so I'll describe them in prose instead" | Field tables, function tables, call chains, and interface matrices are design description, not acceptance criteria. They are required, not forbidden. |
@@ -398,7 +398,7 @@ chunk by asking what's wrong or missing. This is the working form of
   - **Functional-point layer** — ask until **every** functional point is captured: which functional points does the system offer? For each, what need it serves, for whom, its input and its observable result, and its boundary (what it deliberately does not do). Which are goals and which are explicit non-goals?
   - **Architecture layer** — ask until **every** functional point and **every** functional flow is captured: how is the system cut into modules, and *why* that way (the seams, the alternative divisions rejected)? Which modules depend on which, and how strongly? Which cross-module interfaces are needed, and what does the calling side expect of each signature? Which classes are the core classes that chain the functional flows together? What do the module folders and core files look like? How does it *run* — which processes, each with which threads, and how do they interact? How is it *deployed* — the deployment directory structure, the deployment steps, and the files the deployment is made of? Deliberately defer the details — they belong to the module layer.
   - **Module layer** — only now: for each class, its fields and functions; the relationships between classes; for each declared outward dependency, the provider, class, and expected signature; and for each flow the module participates in, the function-level call chain with its data-shape changes, who receives the result, and the failure path.
-- **A layer is finished when its template fields are fillable — not when the conversation feels done.** Concretely: the functional-point layer is finished when every column of architecture section 5 is answerable for every functional point; the architecture layer, when sections 6, 7, 8, 9 and the flow skeletons of 10 are answerable; the module layer, when sections 2, 3, 4 and 5 of that module's document are answerable. Before starting the next layer, list which of the current layer's template fields you still cannot fill and ask about exactly those — an unfillable field is a question you have not asked yet.
+- **A layer is finished when its template fields are fillable — not when the conversation feels done.** Concretely: the functional-point layer is finished when every column of architecture section 5 is answerable for every functional point; the architecture layer, when sections 6, 7, 8, 9, the flow skeletons of 10, the orchestration skeletons of 11 and the runtime view of 12 are answerable — plus, when the data-model document applies to this system, its overview and its four diagram-bearing sections; the module layer, when sections 2, 3, 4, 5 and 6 of that module's document are answerable. Before starting the next layer, list which of the current layer's template fields you still cannot fill and ask about exactly those — an unfillable field is a question you have not asked yet.
 - **When the architecture is already confirmed and you are designing one module** — the normal incremental case — the functional-point and architecture layers have already been answered *by that document*. Do not re-ask them. Verify each of their template fields against the architecture you read, and ask only about the ones it genuinely leaves open or that this module changes; the questions that remain belong to the module layer.
 - **A required field you cannot fill has exactly two legitimate outcomes, and proceeding as if it were filled is neither.** Either the human decides it, which answers it, or the answer would contradict an existing document — in which case it is a Rule 3 conflict: list it in the change list's **Conflicts** column and do not write the affected document until the human adjudicates. Never write `TBD`, never invent a value, and never loop on the same unanswered question.
 - **Ask for rejected alternatives while you ask for decisions.** Every layer's questions should surface not only what the human chose but what they rejected, because 关键决策记录 requires the rejected option. If they state a choice without an alternative, ask what they ruled out.
@@ -416,7 +416,7 @@ chunk by asking what's wrong or missing. This is the working form of
 - Once you believe you understand what you're building, present the design
 - Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
 - Ask after each section whether it looks right so far
-- Cover the ground the templates will require: functional points; module division and its rationale; core classes with their relationships and calls; the file tree; cross-module interfaces; the global flows; the runtime view (which processes run, each process's threads, and how they relate) and the deployment view (deployment directory structure, how to deploy, and the files involved) — each with an explicit `不适用` reason when the section genuinely does not apply; and, for any project that produces the interface contract, the outward interfaces and data contracts across the seven families — MySQL tables; Redis keys and structures; MQ channels; HTTP interfaces; gRPC interfaces; dynamic-library APIs; TCP interfaces — plus the catch-all for other outward interfaces. The templates decide the exact section list — inventing a section name the templates do not have is a defect.
+- Cover the ground the templates will require: functional points; module division and its rationale; core classes with their relationships and calls; the file tree; cross-module interfaces; the global flows; the business orchestrations (cross-role flows that hand work between responsible parties or cross an approval gate); the runtime view (which processes run, each process's threads, and how they relate) and the deployment view (deployment directory structure, how to deploy, and the files involved) — each with an explicit `不适用` reason when the section genuinely does not apply; for each module, its own state machines; when the data-model document applies, its overview plus the domain class diagram, the entity-relationship diagram, the data-flow diagram and the core entity state machine; and, for any project that produces the interface contract, the outward interfaces and data contracts across the seven families — MySQL tables; Redis keys and structures; MQ channels; HTTP interfaces; gRPC interfaces; dynamic-library APIs; TCP interfaces — plus the catch-all for other outward interfaces. The templates decide the exact section list — inventing a section name the templates do not have is a defect.
 - Be ready to go back and clarify if something doesn't make sense
 
 **Design for isolation and clarity:**
@@ -463,7 +463,12 @@ Forward moves go **one step at a time**; moving backwards requires
 approved it).
 
 **The commands** (run from anywhere inside the project; `--root <dir>`
-overrides discovery):
+overrides discovery). **Every `<path>` argument is a path relative to the project
+root, never absolute** — `change-state.mjs` rejects an absolute path or one that
+escapes the project, so pass
+`.brainstorming-archify/change-lists/20260922T112442Z-order.md`, not
+`/tmp/proj/.brainstorming-archify/…`. Being able to run the command from any
+subdirectory does not change what the path is relative to.
 
 ```
 node <skill-root>/scripts/task-state/change-state.mjs init
@@ -689,17 +694,19 @@ changes and both are announced in the change list.
 diagram is a derived artifact of the entries it illustrates, so it belongs to
 the persist that changes those entries. When this discussion changes an entry
 that carries a diagram — a global flow in the architecture's section 10, a
-module flow in a module document's section 5, or the module dependency
-relationship in section 6.3 — create or re-render that diagram **and its whole
-triple** in the same persist, and list it in the change list alongside the
-document changes. A diagram created for the first time also follows the Diagram
-Planning Gate: plan it, get the plan confirmed, then generate. Entries this
-discussion did not touch keep their diagrams untouched, exactly as they keep
-their text word-for-word: never re-render a diagram whose entry did not change.
-Adding a flow adds its diagram; removing a flow removes all three of its
-artifacts — an orphaned diagram is a stale artifact, not a harmless leftover.
-The IR is refreshed in the same persist as the diagram, so the three artifacts
-never disagree about what was rendered.
+business orchestration in section 11, the runtime view in section 12, the module
+dependency relationship in section 6.3, a flow or a complex function in a module
+document (section 5 or a section 3.N function description), a module state machine
+in section 6, or any of the four diagrams in the data-model document — create or
+re-render that diagram **and its whole triple** in the same persist, and list it
+in the change list alongside the document changes. A diagram created for the first
+time also follows the Diagram Planning Gate: plan it, get the plan confirmed, then
+generate. Entries this discussion did not touch keep their diagrams untouched,
+exactly as they keep their text word-for-word: never re-render a diagram whose
+entry did not change. Adding a flow adds its diagram; removing a flow removes all
+three of its artifacts — an orphaned diagram is a stale artifact, not a harmless
+leftover. The IR is refreshed in the same persist as the diagram, so the three
+artifacts never disagree about what was rendered.
 
 The module list in `01-架构设计.md` section 6.2 is the single source of
 truth for which modules exist; the interface matrix in section 7 is the
@@ -832,13 +839,21 @@ Output placement is a hard rule, not a preference:
   When two derived names collide, append `-2`, `-3`, … and **report both sides of
   the collision** — never rename silently.
 
-**One flow, one file.** A flow name that appears in both the architecture
-document and a module document uses **one** diagram triple, because the two must
-use the same diagram type; sharing the files removes the risk of copies drifting
-apart. The number prefix comes from the **owning** document — a cross-module flow
-belongs to the architecture document (`01-`), a purely intra-module flow to its
-module document's number. When the second document would write the same diagram,
-it references the existing triple instead of producing its own.
+**One flow, two layers — never one shared file.** A flow name that appears in both
+the architecture document and a module document is drawn **twice, once per layer**:
+the architecture's section 10 draws the cross-module call order and the module's
+section 5 draws that module's own implementation steps. Each takes **its own
+document's number** — the architecture's `01-…​.sequence`, the module's
+`0N-…​.sequence` — so the two file names never collide, and neither document
+references the other's file as its own diagram. A module diagram that merely
+restates the architecture one is a defect.
+
+**One exception, and it inverts the ownership.** A **single-module** functional
+flow (its cross-module hops are one at most and the other participants are
+external systems, not modules of this system) has only one layer to draw: its
+diagram belongs to the **module** document, and the architecture's section 10
+**references that file** instead of drawing its own. It is still registered in
+section 10 under the same name — registration and drawing are different things.
 
 ### How the document references it
 
@@ -906,13 +921,49 @@ the document saying why, and mark that state in the change list. This degradatio
 
 ### Diagram type router
 
+**The section decides the type — never the nature of the flow.** The kernel ships
+eleven types; this skill binds each diagram-bearing section to exactly one of them.
+Do not pick a type because a flow "feels like" a swimlane, a pipeline or a state
+machine: a flow that looks like all three still follows the table, and the other
+two views belong to their own sections.
+
+| Document | Section | Type | Trigger |
+|---|---|---|---|
+| architecture | §6.3 module dependency | `architecture` | always, when two or more modules exist |
+| architecture | §8.2 class structure / §8.3 class calls | *(reference the class diagram in the data-model document)* | never drawn here |
+| architecture | §10 global functional flows, each | `sequence` | every registered flow |
+| architecture | §11 business orchestration | `workflow` | the flow's participants include human roles, an external department or an external system, **and** it hands work between responsible parties or crosses an approval gate |
+| architecture | §12 runtime view | `architecture` | always draw processes and threads and who talks to whom; write `不适用：<reason>` only when genuinely not applicable (a single-process single-thread library) |
+| module | §5 end-to-end flows, each | `sequence` | every registered flow; the architecture draws the cross-module call order, the module draws its own implementation steps |
+| module | §3.N class detailed design — function descriptions | `flowchart` | **important ∩ complex** — see the exception below |
+| module | §6 module entity state machine | `lifecycle` | an entity or object **inside this module** has an explicit state enumeration and is not already registered in the data-model document |
+| data-model | §2 domain class / §3 entity-relationship / §4 data flow / §5 core entity state machine | `class` / `erd` / `dataflow` / `lifecycle` | the document exists (see its own section) |
+| interface contract | the whole document | *(no diagrams, no `diagrams/` directory)* | never |
+
+**§3.N function flowcharts.** A function gets a `flowchart` when it is **important**
+— the architecture's section 5 functional point or the module's section 5 flow prose
+names it as carrying a key step — **and complex** — its body holds two or more
+conditional branches, or a loop, or an exception/rollback path. Functions that fail
+either half get no diagram and no `不适用` note. The one exception: when the function
+exists only in this module (the architecture has no sequence diagram for it) and it
+has a cross-process or outward call order, draw a `sequence` instead and say why in
+that spot.
+
+The types and their structural arrays, for authoring the IR:
+
 | Type | Use for | Structural arrays |
 |---|---|---|
-| `architecture` | components, services, cloud / security boundaries, infrastructure | `components`, `boundaries`, `connections` |
+| `architecture` | components, services, process / deployment boundaries, infrastructure | `components`, `boundaries`, `connections` |
 | `workflow` | processes, approval gates, tool calls, runbooks, CI/CD (swimlanes) | `lanes`, `phases`, `groups`, `mainPath`, `nodes`, `edges` |
 | `sequence` | API call chains, request lifecycles, async traces, returns | `participants`, `segments`, `messages`, `activations` |
 | `dataflow` | pipelines, ETL/ELT, lineage, governance, consumers | `stages`, `nodes`, `flows` |
 | `lifecycle` | state / status transitions, retries, waiting and terminal states | `lanes`, `states`, `transitions` |
+| `erd` | tables and entities, attributes, keys, cardinality | `entities`, `relationships` |
+| `class` | classes, interfaces, selected members, dependency / association / inheritance / realization / composition | `types`, `relationships` |
+| `tree` | single-parent containment: repository trees, capability breakdowns | `nodes` |
+| `timeline` | timestamped events on a proportional clock | `events` |
+| `waterfall` | span durations, overlap and nesting on a common time axis | `spans` |
+| `flowchart` | a program's control flow: terminals, steps, labelled decision branches, loops, exception paths | `nodes`, `edges` |
 
 ### Shared IR structure and `meta` fields
 
@@ -975,6 +1026,13 @@ Component types: `frontend`, `backend`, `database`, `cloud`, `security`,
 Legend keys: `frontend`, `backend`, `database`, `cloud`, `security`,
 `messagebus`, `external`.
 
+**A boundary must enclose only its own members.** The geometry check fails when a
+component that the boundary does not list as a member ends up inside its frame —
+so a node you meant to sit outside a trust, process or deployment boundary has to
+be placed *away* from it, not merely omitted from the `boundaries` entry. When a
+boundary relayouts, re-check which nodes it now covers; adding components is the
+usual trigger.
+
 ### Workflow diagrams
 
 Lanes express responsibility or phase; columns `0..5` express logical
@@ -1016,13 +1074,14 @@ Legend keys: `emphasis`, `security`, `dashed`, `database`, `default`.
 
 ### Lifecycle diagrams
 
-**Start new lifecycle diagrams on `schema_version: 2`** (one row per lane on a
-shared column grid); the geometry described below is the fixed three-band
-`schema_version: 1` layout, which existing sources keep. To move a v1 document to
-v2, set `schema_version: 2`, re-place lower-lane `col` values on the shared grid
-(v1 column `N` sat under main column `N + 2`), and drop the v1 canvas coordinates
-(`viewBox`, `via`, `channelX`, `channelY`, `labelAt`). There is no `migrate`
-subcommand — author v2 directly.
+**`schema_version` is `3`** (one row per lane on a shared column grid). The kernel
+accepts **only** `3`: the earlier fixed three-band layout and the intermediate v2
+are no longer valid inputs, so a legacy source must be re-authored rather than
+switched by changing the version number. To move an older document to v3, re-place
+lower-lane `col` values on the shared grid (a pre-v2 column `N` sat under main
+column `N + 2`) and drop any canvas coordinates the old document carried (`viewBox`,
+`via`, `channelX`, `channelY`, `labelAt`). There is no `migrate` subcommand —
+author v3 directly.
 
 Main phases use columns `0..4`; event and terminal bands use columns `0..2`, and
 event/terminal column `N` aligns to the same x coordinate as main column `N + 2`.
@@ -1042,6 +1101,43 @@ and a transition below 32px is its own failure, so re-validate after widening.
 
 Legend keys: `start`, `active`, `waiting`, `decision`, `success`, `failure`,
 `neutral`, `external`.
+
+### Flowchart diagrams
+
+A **program flowchart** — one function's control flow: terminals, steps, labelled
+decision branches, loops and exception paths. Use it only where the type router
+binds it (a module's §3.N function description).
+
+- **Structure is validated, not repaired.** Exactly one `start` terminal; at
+  least one `end`; every node reachable from `start`; every `decision` with **at
+  least two outgoing edges, each carrying a `label`**. Violating any of these
+  fails the render with a named diagnostic and writes nothing.
+- **Layout is rank by rank.** Nodes are placed in rows by distance from `start`;
+  a back edge (a loop) travels the outer lane, a forward edge that skips ranks
+  takes the other. You do not author coordinates.
+- **There are no per-node geometry knobs and no label-routing controls.** Unlike
+  architecture and workflow, this type has no `pos`, `layout`, `via`, `labelAt`,
+  `labelDx`, `labelDy`, `labelSegment`, `channelX` or per-node `width`. So the
+  repair-order steps that tell you to move a label or reroute an edge **do not
+  apply here** — do not go looking for those fields. The levers you actually have
+  are: **fewer nodes per rank**, **shorter labels**, **less branching in one
+  diagram** (split a sprawling function into two diagrams rather than compressing
+  it), and introducing an explicit merge step instead of letting several edges
+  land on the same node from far apart.
+- **Node order in the IR is meaningful.** Ranks are ordered by the order you
+  declare nodes in, so moving a node in the file moves it in the picture. Change
+  the order when the *reading* order is wrong (a later step appearing left of an
+  earlier one) — not as a way to shop for a passing render; if a layout only
+  passes after a reshuffle, the topology is too dense and should be split.
+
+### Erd, class, tree, timeline and waterfall diagrams
+
+These five exist for the data-model document and for authoring outside this
+skill. This skill uses **`erd` and `class`** (in the data-model document) and
+never authors `tree` / `timeline` / `waterfall` from the design flow. Author
+them from `schemas/<type>.schema.json` the same way as every other type: read the
+type's own schema for its structural arrays and enums rather than carrying
+another type's vocabulary across.
 
 ### Shared authoring constraints
 
@@ -1078,6 +1174,15 @@ Legend keys: `start`, `active`, `waiting`, `decision`, `success`, `failure`,
   accepts differs per type — read the `route` property in
   `schemas/<diagram type>.schema.json` rather than guessing, because a wrong
   value fails schema validation. Reach for it in repair-order step ④.
+- **Enumerated edge fields differ per type — read the schema, do not carry one
+  type's vocabulary to another.** `edges[].role` is **not** the same list
+  everywhere: `workflow` accepts `main` / `branch` / `async` / `return` /
+  `error`, while `flowchart` accepts `main` / `branch` / `loop` / `exception`.
+  The same goes for `route` (above) and for every other `enum` in the type's
+  schema. Copying the value that worked in one diagram into another is the
+  single most common schema failure; read `schemas/<diagram type>.schema.json`
+  first. The type router table lists each type's **structural arrays** only —
+  it deliberately does not restate field enums, because the schemas own them.
 - **Desktop readability is a hard check, not a taste rule.** The viewer's desktop
   reader gives a diagram 930px of width (a 960px reader minus 30px of chrome) and
   scales the whole viewBox by `min(1, 930 / meta.viewBox[0])`. So the **smallest
@@ -1117,7 +1222,8 @@ Legend keys: `start`, `active`, `waiting`, `decision`, `success`, `failure`,
 ## Handoff to a Downstream Process
 
 This skill ends at the persisted document set under `specs/design/`:
-`01-架构设计.md`, one document per designed module, `00-接口契约.md` when its
+`01-架构设计.md`, `02-实体与数据设计.md` when its mechanical trigger fires, one
+document per designed module, `00-接口契约.md` when its
 mechanical trigger fires, `specs/design/task.md` once every document is
 confirmed, and the diagram triples under `specs/design/diagrams/`. Because
 every document references its diagrams by a path relative to itself, that one
@@ -1289,9 +1395,9 @@ reading time.
 
 ## Writing the Design Document
 
-1. **Read all three templates first** — `architecture-doc-template.md`,
-   `module-doc-template.md`, and `interface-contract-template.md` in this
-   skill's directory. This step is mandatory.
+1. **Read all four templates first** — `architecture-doc-template.md`,
+   `module-doc-template.md`, `interface-contract-template.md` and
+   `data-model-doc-template.md` in this skill's directory. This step is mandatory.
 2. **Read the existing output set** — per the Incremental Persist
    Protocol, Rule 1. Then decide the write set: what is new, what is
    merged, and which entries change in each document.
@@ -1310,10 +1416,16 @@ reading time.
    `change-state.mjs file <path> landed`; when every registered file is
    `landed`, run `advance draft` (see **Discussion State**).
    - `01-架构设计.md` is fixed for the architecture document
+   - The data-model document is `specs/design/02-实体与数据设计.md` — `02-` is a
+     **fixed literal prefix too**, outside the module ordinal sequence, so it never
+     changes as modules are added or removed. It is **conditionally produced**: it
+     exists when the design uses a MySQL, Redis or MQ interface, or has an explicit
+     domain model; otherwise it is absent entirely (no `不适用` page).
    - The interface contract document is `specs/design/00-接口契约.md` — that
      file name is fixed, and its `00-` is a fixed literal prefix. It sits
      **outside the module ordinal sequence**: the architecture overview is fixed
-     `01-` and the module documents are `02+`. Being outside that sequence, the
+     `01-`, the data-model document is fixed `02-`, and the module documents are
+     `03+`. Being outside that sequence, the
      `00-` does not change as modules are added or removed and is **not governed
      by the "append, never renumber" rule** below; it is never renumbered, even
      when a new module is added. Never produce any other name — no-prefix
@@ -1331,14 +1443,18 @@ reading time.
 7. **Subagent review** (below)
 8. **Ask your human partner to review** the documents
 
-**The three managed document types.** The skill manages three kinds of design
+**The four managed document types.** The skill manages four kinds of design
 document, and each is written against its own template with every section kept
 in that template's order — no section added, removed, or reordered:
 
 - **Architecture overview** — `architecture-doc-template.md`, written to
   `specs/design/01-架构设计.md`.
+- **Data model** — `data-model-doc-template.md`, written to
+  `specs/design/02-实体与数据设计.md` (fixed name; `02-` is a fixed literal
+  prefix). **Conditionally produced**: present when the design uses a MySQL,
+  Redis or MQ interface, or has an explicit domain model; otherwise absent.
 - **Module document** — `module-doc-template.md`, written to
-  `specs/design/<NN>-<module name>.md`.
+  `specs/design/<NN>-<module name>.md`, numbered `03+`.
 - **Interface contract** — `interface-contract-template.md`, written to
   `specs/design/00-接口契约.md` (fixed name; its `00-` is a fixed literal prefix,
   outside the module ordinal sequence and never renumbered).
@@ -1390,7 +1506,7 @@ is never a defect.
 
 Check each item and fix in place:
 
-1. **Template compliance per document:** Has each document been checked against its own template — architecture against `architecture-doc-template.md`, each module against `module-doc-template.md`, the interface contract against `interface-contract-template.md`? Every section present, in order, no extra sections? For the architecture document this includes the 4+1 views: the **runtime view** (§11 — which processes run, each process's threads, and how processes and threads relate) and the **deployment view** (§12 — the deployment directory structure, how to deploy, and which files make up the deployment) — each present with its sub-parts, or carrying an explicit `不适用：<reason>`.
+1. **Template compliance per document:** Has each document been checked against its own template — architecture against `architecture-doc-template.md`, the data-model document (when present) against `data-model-doc-template.md`, each module against `module-doc-template.md`, the interface contract against `interface-contract-template.md`? Every section present, in order, no extra sections? For the architecture document this includes the 4+1 views: the **runtime view** (§12 — which processes run, each process's threads, and how processes and threads relate, with its `architecture` diagram) and the **deployment view** (§13 — the deployment directory structure, how to deploy, and which files make up the deployment) — each present with its sub-parts, or carrying an explicit `不适用：<reason>`. Was the data-model document produced exactly when the mechanical test says it should be — present when a MySQL / Redis / MQ interface is in use or an explicit domain model exists, absent otherwise, and with its four diagrams restricted to the key subset rather than the full class list or table list?
 2. **Placeholder scan:** Any `TBD`, `TODO`, unfilled `<...>` prose placeholder, or empty sections? The scan targets **prose placeholders the author must fill**. Do not flag (a) a literal spec inside inline backticks or a fenced block (e.g. the interface contract's mandated naming format string `<系统>:<域>:<实体>:<用途>`), (b) the templates' fixed notation `不适用：<原因>` and the fixed placeholder line, or (c) the trailing 「使用说明」 block — that block is template guidance and must not appear in the product.
 3. **Internal consistency:** Do any sections contradict each other? Does the recommended approach match the comparison's conclusion?
 4. **Ambiguity check:** Can any sentence be read two ways? Pick one reading and make it explicit.
@@ -1410,7 +1526,7 @@ Check each item and fix in place:
     - **Catch-all section:** outward interfaces outside the seven families go in section 8, never forced into sections 1–7 and never omitted; when the section is empty its heading stays, carrying `不适用：<reason>`.
     - **No diagrams:** the interface contract carries no SVG diagrams and needs no `diagrams/` directory — do not report a defect for its having none.
 14. **Shared understanding:** Per **Establish Shared Understanding**, was a shared understanding your human partner could assess and correct in place *before* any feature or approach was proposed, and updated once they corrected it? Entering feature or approach discussion without it is a defect.
-15. **Diagram triples:** For every diagram the change list carries, is the whole **triple** present under `specs/design/diagrams/` with one common prefix — `<document number>-<diagram name>.<diagram type>` — and all three extensions `.json`, `.svg`, `.html`, never split across directories and never outside `specs/design/diagrams/`? Does the document use the fixed two-line reference (the image line plus the `> [打开交互式版本](…)` line), with no `<svg>` tag anywhere in the body? Do the figures agree with the text of their own section — same components, participants and states, no contradiction — and does a same-named flow in the architecture and a module document reference the **same** three files with the same type, under the owning document's number? Is every diagram within the 12-primary-node limit, and does every name carry both its document-number prefix and its type segment? Is the confirmed **Diagram Planning Gate** plan accounted for one-to-one in the change list? **A diagram kept as a `未通过校验` placeholder is compliant when it has no triple — including no leftover `.json` source IR in `diagrams/` — and its section carries the fixed placeholder line instead of the two-line reference** — count it as accounted for; a missing triple with no placeholder note, or an orphan IR with no placeholder note, is what makes a defect.
+15. **Diagram triples:** For every diagram the change list carries, is the whole **triple** present under `specs/design/diagrams/` with one common prefix — `<document number>-<diagram name>.<diagram type>` — and all three extensions `.json`, `.svg`, `.html`, never split across directories and never outside `specs/design/diagrams/`? Does the document use the fixed two-line reference (the image line plus the `> [打开交互式版本](…)` line), with no `<svg>` tag anywhere in the body? Do the figures agree with the text of their own section — same components, participants and states, no contradiction? **Does every diagram's type equal the one its own section binds?** (`architecture` for §6.3 and the runtime view, `sequence` for §10 and a module's §5, `workflow` for §11, `flowchart` for a §3.N function description, `lifecycle` for a module's §6, and `class` / `erd` / `dataflow` / `lifecycle` for the data-model document's own four sections) — a type that contradicts its section is a defect, and so is a same-named flow in the architecture and a module document pretending to be **one** diagram with one type, because the two now draw different layers (the architecture draws the cross-module call order, the module draws its own implementation steps). Is every diagram within the 12-primary-node limit, and does every name carry both its document-number prefix and its type segment? Is the confirmed **Diagram Planning Gate** plan accounted for one-to-one in the change list? **A diagram kept as a `未通过校验` placeholder is compliant when it has no triple — including no leftover `.json` source IR in `diagrams/` — and its section carries the fixed placeholder line instead of the two-line reference** — count it as accounted for; a missing triple with no placeholder note, or an orphan IR with no placeholder note, is what makes a defect.
 
 ## Subagent Review
 
@@ -1421,8 +1537,9 @@ procedure at the end of this section says how to run it yourself and how to
 record that it was self-performed. Pass it:
 
 - the path to every document in the write set
-- the path to all three templates — `architecture-doc-template.md`,
-  `module-doc-template.md`, and `interface-contract-template.md`
+- the path to all four templates — `architecture-doc-template.md`,
+  `module-doc-template.md`, `interface-contract-template.md` and
+  `data-model-doc-template.md`
 - the approved change list itself: which files are new, which are modified
   and in which sections, what was declared untouched, every new
   dependency, any pending conflict, and whether it was announced as an
@@ -1430,8 +1547,9 @@ record that it was self-performed. Pass it:
   untouched part — the merge-integrity check depends on knowing what the
   approved scope actually was.
 
-One subagent reviews all three document types. Route each document to its
+One subagent reviews all four document types. Route each document to its
 template: `01-架构设计.md` follows the architecture template,
+`02-实体与数据设计.md` follows the data-model template (when present),
 `specs/design/00-接口契约.md` follows the interface-contract template, and every
 other document follows the module template.
 

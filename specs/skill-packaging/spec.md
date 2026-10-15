@@ -40,31 +40,32 @@
 
 ### Requirement: 一键安装单一技能
 
-`scripts/install.mjs` SHALL 一条命令把 `brainstorming-archify` 技能安装到
-`<家目录>/.codebuddy/skills/brainstorming-archify`，并在写盘之前检查运行环境、安装之后自动执行一次
-绘图内核的环境自检。安装源 SHALL 取自重排后的三处目录：`skill/` 内文件**平铺**复制到目标根，
-`templates/` 与 `scripts/` 整目录复制到目标下的同名目录。
+仓库 SHALL 提供一键安装脚本，把本技能安装到目标技能目录，并保持幂等：重复安装结果一致、
+只覆盖自己那份文件、不影响目录下其它技能。
 
-安装 SHALL 同批把 **CodeBuddy 命令适配器**部署到 `<命令目录>/bsa/resume.md`（`--commands-dir` 可覆盖，
-默认 `<家目录>/.codebuddy/commands`）：源文件为仓库 `commands/bsa/resume.md`，其中 `__BSA_ROOT__`
-占位符 SHALL 在部署时重写为本次安装的技能根绝对路径。命令目录下的**其他命令 SHALL 原样保留**；
-重复安装 SHALL 幂等（只覆盖适配器自己那一份，不备份、不报错）。
+安装清单 SHALL 覆盖技能运行所需的全部构件，其中**设计文档模板 SHALL 为四份**：
+架构设计文档模板、功能模块设计文档模板、接口契约模板与**实体与数据设计文档模板**。
+安装后 SHALL 对已安装副本执行一次绘图内核自检，通过才报告成功。
 
-#### Scenario: 安装后命令可用
+#### Scenario: 四份模板全部落盘
 
-- **WHEN** 安装在环境满足的条件下完成
-- **THEN** `<命令目录>/bsa/resume.md` 存在，内容中已无 `__BSA_ROOT__` 占位符，且指向本次安装的技能根
-  （`resume-state.mjs` 与 `change-state.mjs` 的绝对路径）；`/bsa:resume` 命令可用
+- **WHEN** 安装完成后检查已安装副本的模板目录
+- **THEN** 四份模板俱在，其中包含实体与数据设计文档模板
 
-#### Scenario: 命令目录里有别人的命令
+#### Scenario: 重复安装幂等
 
-- **WHEN** 命令目录下已存在其他命令（如 `ssf/resume.md`）后再次安装
-- **THEN** 其他命令文件逐字节保留，只有 `bsa/resume.md` 被刷新
+- **WHEN** 对同一目标目录连续安装两次
+- **THEN** 第二次结果与第一次一致，四份模板内容不变
 
-#### Scenario: 预演列出命令适配器
+#### Scenario: 不影响目录下其它技能
 
-- **WHEN** 以 `--dry-run` 运行安装器
-- **THEN** 输出除技能清单外还列出命令适配器的「源文件 → 目标路径」，且不创建命令目录
+- **WHEN** 目标技能目录下已存在其它技能
+- **THEN** 安装后这些技能原样保留
+
+#### Scenario: 装后自检失败
+
+- **WHEN** 已安装副本的绘图内核自检不通过
+- **THEN** 安装脚本以非零退出码结束并报告失败原因
 
 ### Requirement: 绘图内核的环境自检
 
