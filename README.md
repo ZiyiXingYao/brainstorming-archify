@@ -12,7 +12,7 @@
 - **多模块项目的契约不靠口头对齐**：未设计模块的依赖按**签名级**（函数名 / 入参 / 返回类型 / 边界语义）记进架构接口矩阵，提供方设计时逐条翻牌；函数名须与提供方函数表逐字相等。
 - **讨论进度落库、可中断续接**：`.brainstorming-archify/state.yaml` 记状态机与文件状态，当前轮次的 change-list 文件记讨论记录 / 决策 / 台账 / 落盘授权；隔天或换会话用 `/bsa:resume` 恢复现场，explore 阶段的决策不会因中断而丢。
 - **全部确认后产出实现任务清单**：`specs/design/task.md`——框架 → 模块 → 具体功能三层，每任务一行（勾选框 + 概要 + 依赖 + 四段式 AI 提示词 `[实现的功能]`—`[任务实现的要求]`—`[实现的约束]`—`[验收标准]`），带依赖校验。
-- **明确不做**：不写实现代码、不调用下游技能或流程、不产出 spec 模式的验收产物（字段表 / 签名表 / 接口矩阵是设计描述，模板要求，不算 spec 模式）。技能**只描述行为**，权威口径在 `SKILL.md`、三份模板与 `specs/`。
+- **明确不做**：不写实现代码、不调用下游技能或流程、不产出 spec 模式的验收产物（字段表 / 签名表 / 接口矩阵是设计描述，模板要求，不算 spec 模式）。技能**只描述行为**，权威口径在 `SKILL.md`、四份模板与 `specs/`。
 
 ## 怎么用
 
@@ -80,6 +80,6 @@ node ~/.codebuddy/skills/brainstorming-archify/scripts/diagram-engine/bin/render
 
 ## 语言与许可
 
-- **语言**：`skill/` 下两个文件（技能本体与子代理提示词）用**英文**，保持与上游逐句可比；三份模板、README、MAINTAINING、tests/README 用**中文**；产出的设计文档跟随对话语言；**图文件名恒为英文 slug**。内核内含文档与上游一致（英文为主），逐字节搬运不翻译。
+- **语言**：`skill/` 下两个文件（技能本体与子代理提示词）用**英文**，保持与上游逐句可比；四份模板、README、MAINTAINING、tests/README 用**中文**；产出的设计文档跟随对话语言；**图文件名恒为英文 slug**。内核内含文档与上游一致（英文为主），逐字节搬运不翻译。
 - **许可**：[MIT](LICENSE)（`scripts/diagram-engine/LICENSE` 为其独立副本）。本技能改编自 superpowers 的 `brainstorming`（MIT, © 2025 Jesse Vincent）；出图内核搬运自 archify（MIT, © 2026 tt-a1i (Archify) 与 © 2025 Cocoon AI）并做过裁剪；内联字体 JetBrains Mono 依 SIL OFL 1.1，完整文本见 `scripts/diagram-engine/assets/JetBrainsMono-OFL.txt`；第三方商标与图标归属见 `scripts/diagram-engine/THIRD_PARTY_NOTICES.md`。
 - **自测**：`node --test tests/*.test.mjs`（覆盖仓库测试与内核回归集，零依赖）。
