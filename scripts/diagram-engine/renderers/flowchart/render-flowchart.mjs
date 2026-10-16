@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { esc, renderDefinitions, textUnits } from '../shared/utils.mjs';
+import { esc, renderDefinitions, renderSemanticSigil, textUnits, SEMANTIC_SIGIL_INSET, SEMANTIC_SIGIL_FOOTPRINT } from '../shared/utils.mjs';
 import {
   animateAttr,
   focusEdgeAttrs,
@@ -13,7 +13,15 @@ import {
 } from '../shared/cli.mjs';
 import { brandMarkFor, renderBrandMark } from '../shared/brand-marks.mjs';
 import { throwDiagnosticError } from '../shared/diagnostics.mjs';
-import { routePointsValue } from '../shared/geometry.mjs';
+import { arrowClassMap, edgeLabelAccent, routePointsValue } from '../shared/geometry.mjs';
+import { fittedNodeFontSize, minimumNodeTextWidth, nodeLabelLayout } from '../shared/text-fit.mjs';
+import {
+  legendFootprint,
+  relationshipLegendObstacles,
+  resolveLegend,
+  renderLegend as renderResolvedLegend,
+} from '../shared/legend.mjs';
+import { translateMessage as i18nText } from '../shared/i18n.mjs';
 
 // ---------------------------------------------------------------------------
 // flowchart — 程序设计流程图（本仓库自建类型，上游 archify 没有）
@@ -23,10 +31,18 @@ import { routePointsValue } from '../shared/geometry.mjs';
 // 布局：自上而下的分层。前向边从源底部出、目标顶部入；回边与跨层边走右侧通道。
 // 事实口径：图只画作者声明的节点与边，不推断任何结构；结构不合规即报诊断，
 // 不静默修补。
+//
+// 风格口径：本类型的**布局**（分层 / 重心排序 / 回边走廊）是自有的，但**成色与
+// 文本度量全部复用内核共享件**，与 lifecycle / architecture 同构：
+//   - 节点配色走内核 tone 调色板（kind → c-<tone>，见 KIND_STYLE）；
+//   - 节点文字走 text-fit（fittedNodeFontSize / minimumNodeTextWidth / nodeLabelLayout）；
+//   - 边样式走 arrowClassMap（a-<variant> 类 + arrowhead 标记）与 edgeLabelAccent；
+//   - 语义角标走 renderSemanticSigil；图例走 resolveLegend / renderLegend。
+// 不自定义 shape 颜色、不自定义 marker——避免与内核其它类型画风不一致。
 // ---------------------------------------------------------------------------
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const { diagram, template, outPath } = await loadDiagramWithBrandMarks({
+const { diagram, template, outPath, sourceEvidence } = await loadDiagramWithBrandMarks({
   rendererDir: __dirname,
   diagramType: 'flowchart',
   defaultExample: 'program-flow.flowchart.json',
@@ -38,6 +54,27 @@ const edges = diagram.edges;
 const locale = diagram.meta?.locale;
 const problems = [];
 
+// ---- 内核 tone 映射 --------------------------------------------------------
+// kind → tone 取自内核调色板（c-frontend / c-backend / c-database / c-cloud /
+// c-security / c-messagebus / c-external 由模板与主题变量提供 fill + stroke）。
+// 语义与 lifecycle 同源：端子=frontend、处理步=backend、判断=database、
+// 循环=cloud、异常=security、进出=messagebus。
+const KIND_STYLE = {
+  start: { fill: 'c-frontend', sigil: { kind: 'start', icon: 'start' } },
+  end: { fill: 'c-frontend', sigil: { kind: 'start', icon: 'stop' } },
+  process: { fill: 'c-backend', sigil: { kind: 'success', icon: 'active' } },
+  decision: { fill: 'c-database', sigil: { kind: 'decision', icon: 'decision' } },
+  loop: { fill: 'c-cloud', sigil: { kind: 'cloud', icon: 'waiting' } },
+  exception: { fill: 'c-security', sigil: { kind: 'security', icon: 'failure' } },
+  io: { fill: 'c-messagebus', sigil: { kind: 'messagebus', icon: 'database' } },
+};
+const KIND_STYLE_DEFAULT = KIND_STYLE.process;
+const styleFor = (node) => KIND_STYLE[node.kind] || KIND_STYLE_DEFAULT;
+
+// 边的 role 语义 → 内核 variant（default / emphasis / security / dashed），
+// 供 arrowClassMap 与 edgeLabelAccent 复用；作者显式声明的 variant 优先。
+const ROLE_VARIANT = { main: 'default', branch: 'emphasis', loop: 'dashed', exception: 'security' };
+
 const layout = {
   margin: 40,
   top: 76,
@@ -47,14 +84,35 @@ const layout = {
   nodeH: diagram.layout?.nodeH ?? 46,
   decisionH: 78,
   labelFont: 13,
+  labelMinFont: 8,
   sublabelFont: 11,
+  sublabelMinFont: 7,
   edgeFont: 11.5,
-  // 估算宽度用的字宽系数（与内核其它渲染器的文本度量口径一致）
+  // 估算宽度用的字宽系数（与内核 text-fit 的 nodeTextFit.widthFactor 一致）
   advance: 0.6,
+  padY: 10,
+  lineHeight: 18,
+  sublabelLineHeight: 15,
 };
 
+// 文本内边距与左侧角标栏（与内核 text-fit 的 horizontalPadding / nodeLabelLayout
+// 左栏口径一致）：折行按 TEXT_PAD 计算，框宽额外预留 RAIL_LEFT 让文字躲开角标。
+const TEXT_PAD = 8;
+const RAIL_LEFT = SEMANTIC_SIGIL_FOOTPRINT + 2;
+// 框宽额外预留：左栏放角标 + 右侧留一点，让 nodeLabelLayout 走「保持行、右移让开
+// 角标」而不是把整行压到角标下方（门槛是 width - 4 - RAIL_LEFT >= 行宽）。
+const RAIL_RESERVE = RAIL_LEFT + 5;
+const MIN_TEXT_INNER = 48;
 const NODE_MIN_W = 120;
-const NODE_MAX_W = 300;
+const NODE_MAX_W = 384;
+// `layout.nodeW` 是作者可用的框宽下限（缺省时退回 NODE_MIN_W）；`layout.nodeH` 是框高下限。
+const NODE_FLOOR_W = diagram.layout?.nodeW ?? NODE_MIN_W;
+const IO_SKEW = 14;
+// 菱形判断框：可用单行文字宽 / 半宽斜率 / 内接边距 / 容纳目标。
+const DECISION_TEXT_W = 340;
+const DECISION_SLOPE = 1.47;
+const DECISION_PAD = 28;
+const DECISION_FILL = 0.82;
 
 // ---- 结构校验 --------------------------------------------------------------
 
@@ -179,22 +237,156 @@ for (const node of nodes) if (!rank.has(node.id)) rank.set(node.id, 0);
 /** 跨层前向边（层距 > 1）：与回边一样走外侧走廊。 */
 const longEdges = forward.filter((edge) => (rank.get(edge.to) ?? 0) > (rank.get(edge.from) ?? 0) + 1);
 
-// ---- 节点尺寸与行内顺序 ------------------------------------------------------
+// ---- 文本度量与折行（复用内核 text-fit 口径）--------------------------------
 
-const labelWidth = (text, font) => textUnits(text) * font * layout.advance;
+const round = (value) => Math.round(value * 10) / 10;
+const labelWidthPx = (text, font) => textUnits(text) * font * layout.advance;
+const maxLineWidthPx = (lines, font) => lines.reduce((max, line) => Math.max(max, labelWidthPx(line, font)), 0);
 
-function nodeSize(node) {
-  const width = Math.min(NODE_MAX_W,
-    Math.max(NODE_MIN_W, Math.round(labelWidth(node.label, layout.labelFont) + 40)));
-  if (node.kind === 'decision') {
-    // 菱形内接矩形要装得下标签：宽度按约 1.7 倍标签宽取值
-    const diamond = Math.min(NODE_MAX_W + 90,
-      Math.max(170, Math.round(labelWidth(node.label, layout.labelFont) * 1.7 + 56)));
-    return { width: diamond, height: layout.decisionH };
+/** 把一个超宽词按字素切到可容纳宽度。 */
+function breakLongSegment(segment, maxWidth, font) {
+  const pieces = [];
+  let buffer = '';
+  for (const char of Array.from(segment)) {
+    if (buffer !== '' && labelWidthPx(buffer + char, font) > maxWidth) {
+      pieces.push(buffer);
+      buffer = char;
+    } else {
+      buffer += char;
+    }
   }
-  const height = node.sublabel ? layout.nodeH + 16 : layout.nodeH;
-  return { width, height };
+  if (buffer !== '') pieces.push(buffer);
+  return pieces;
 }
+
+/**
+ * 贪心折行：优先在空白处断开；CJK 无空白则按字素断开。返回值至少一行。
+ * 与内核一致地在**首选字号**下折行，缩字号只作兜底。
+ */
+function wrapLabel(text, maxWidth, font) {
+  const segments = String(text ?? '').split(/(\s+)/).filter((segment) => segment !== '');
+  const lines = [];
+  let line = '';
+  const flush = () => { if (line !== '') { lines.push(line); line = ''; } };
+  for (const segment of segments) {
+    if (/^\s+$/.test(segment)) {
+      if (line !== '' && labelWidthPx(`${line} `, font) <= maxWidth) line += ' ';
+      continue;
+    }
+    const candidate = line + segment;
+    if (labelWidthPx(candidate, font) <= maxWidth) { line = candidate; continue; }
+    flush();
+    if (labelWidthPx(segment, font) <= maxWidth) { line = segment; continue; }
+    const pieces = breakLongSegment(segment, maxWidth, font);
+    for (let index = 0; index < pieces.length - 1; index += 1) lines.push(pieces[index]);
+    line = pieces[pieces.length - 1] ?? '';
+  }
+  flush();
+  return lines.length ? lines : [String(text ?? '')];
+}
+
+// 折行上限：超过它的标签在流程图里已不可读，宁可拒绝也不硬塞。缩字号最多到可读下限。
+const MAX_LABEL_LINES = 4;
+
+/**
+ * 折行 + 缩字号：从首选字号往下试，取第一个能把标签压进 MAX_LABEL_LINES 行的字号
+ * （越小一行装得越多、行数越少）；到可读下限仍压不进则返回最低字号的结果并标记超限。
+ */
+function fitLines(label, innerW) {
+  for (let font = layout.labelFont; font >= layout.labelMinFont; font -= 0.5) {
+    const lines = wrapLabel(label, innerW, font);
+    if (lines.length <= MAX_LABEL_LINES) return { lines, font, overfull: false };
+  }
+  return { lines: wrapLabel(label, innerW, layout.labelMinFont), font: layout.labelMinFont, overfull: true };
+}
+
+// ---- 节点尺寸（放宽 → 折行 → 缩字号）---------------------------------------
+
+const measured = new Map();
+
+function measureNode(node) {
+  if (measured.has(node.id)) return measured.get(node.id);
+  const isDecision = node.kind === 'decision';
+  const isIo = node.kind === 'io';
+  const skewPad = isIo ? IO_SKEW * 2 : 0;
+  const maxW = isDecision ? DECISION_TEXT_W : NODE_MAX_W;
+
+  // 放宽：框宽先按单行装下整条标签取值，并额外预留左侧角标栏（RAIL_LEFT），
+  // 让 nodeLabelLayout 走「保持居中、右移让开角标」而不是把文字压到角标下方。
+  const singleW = Math.ceil(labelWidthPx(node.label, layout.labelFont) + RAIL_RESERVE + skewPad);
+  const boxW = Math.max(NODE_FLOOR_W, Math.min(maxW, singleW));
+  // 折行：超过框宽的标签按内核 horizontalPadding 口径折行（此时才可能多行）。
+  const innerW = Math.max(MIN_TEXT_INNER, boxW - TEXT_PAD - skewPad);
+  // 缩字号：行数超过上限时整块缩字号（行数随之下降），到可读下限仍超限则标记超限。
+  const { lines, font: lineFont, overfull } = fitLines(node.label, innerW);
+
+  const textW = maxLineWidthPx(lines, lineFont);
+  const textBlockH = lines.length * layout.lineHeight;
+  const sub = node.sublabel
+    ? { font: fittedNodeFontSize(node.sublabel, boxW - skewPad, layout.sublabelFont, layout.sublabelMinFont) }
+    : null;
+
+  let width;
+  let height;
+  if (isDecision) {
+    const halfW = textW / 2;
+    const halfH = textBlockH / 2;
+    const A = Math.max(85, DECISION_SLOPE * halfW + DECISION_PAD);
+    const B = Math.max(layout.decisionH / 2, halfH / Math.max(0.1, DECISION_FILL - halfW / A));
+    width = Math.round(2 * A);
+    height = Math.round(2 * B);
+  } else {
+    width = boxW;
+    height = Math.max(layout.nodeH, Math.round(layout.padY * 2 + textBlockH + (sub ? layout.sublabelLineHeight : 0)));
+  }
+
+  const size = {
+    width,
+    height,
+    lines,
+    lineFont,
+    textW,
+    sub,
+    skewPad,
+    overfull,
+  };
+  measured.set(node.id, size);
+  return size;
+}
+
+const nodeSize = (node) => measureNode(node);
+
+// 兜底校核：折行与缩字号都做完后，仍压不进 MAX_LABEL_LINES 行（`overfull`），
+// 或某行在可读下限下仍超可用宽，一律报诊断而不是让文字溢出框外。
+const textProblems = [];
+for (const node of nodes) {
+  const size = nodeSize(node);
+  const budget = node.kind === 'decision'
+    ? size.width - 2 * DECISION_PAD
+    : size.width - size.skewPad - TEXT_PAD;
+  if (size.overfull) {
+    textProblems.push(problem('flowchart/label-overflow',
+      `Node "${node.id}" label "${node.label}" needs more than ${MAX_LABEL_LINES} lines at the ${layout.labelMinFont}px legible minimum — shorten the label.`,
+      { id: node.id, lines: size.lines.length }));
+    continue;
+  }
+  for (const line of size.lines) {
+    const required = minimumNodeTextWidth(line, layout.labelMinFont);
+    if (required > budget) {
+      textProblems.push(problem('flowchart/label-overflow',
+        `Node "${node.id}" line "${line}" needs ~${Math.ceil(required)}px at the ${layout.labelMinFont}px legible minimum, but its box provides ${Math.round(budget)}px — shorten the label.`,
+        { id: node.id, line }));
+    }
+  }
+}
+if (textProblems.length) {
+  throwDiagnosticError(
+    `Flowchart labels cannot fit their boxes:\n- ${textProblems.map((entry) => entry.message).join('\n- ')}`,
+    textProblems,
+  );
+}
+
+// ---- 行内顺序 ---------------------------------------------------------------
 
 const rows = [];
 for (const node of nodes) {
@@ -256,17 +448,14 @@ for (let level = 0; level < rows.length; level += 1) {
     const size = nodeSize(node);
     const x = Math.round(cursorX);
     const y = Math.round(cursorY + (rowHeight - size.height) / 2);
-    placed.set(node.id, { node, x, y, width: size.width, height: size.height, rank: level });
+    placed.set(node.id, { node, x, y, width: size.width, height: size.height, rank: level, size });
     cursorX += size.width + layout.gapX;
   }
   cursorY += rowHeight + layout.gapY;
 }
-
-const canvasHeight = Math.round(cursorY - layout.gapY + layout.margin + 24);
+const contentBottom = Math.round(cursorY - layout.gapY + layout.margin);
 
 // ---- 边路由 -----------------------------------------------------------------
-
-const EDGE_STROKE = { main: 1.5, branch: 1.5, loop: 1.4, exception: 1.4 };
 
 function portBottom(box) { return [box.x + box.width / 2, box.y + box.height]; }
 function portTop(box) { return [box.x + box.width / 2, box.y]; }
@@ -313,6 +502,8 @@ const routed = edges.map((edge) => {
   return { edge, points, back: isBack };
 }).filter(Boolean);
 
+const routeByEdge = new Map(routed.map((entry) => [entry.edge, entry.points]));
+
 // 自检：边不得穿过无关节点的包围盒
 if (process.env.FLOWCHART_DEBUG) {
   console.error(JSON.stringify({
@@ -357,83 +548,137 @@ function segmentHitsBox([x1, y1], [x2, y2], box) {
   return false;
 }
 
-// ---- 渲染 ------------------------------------------------------------------
+// ---- 图例（复用内核 legend 模块）-------------------------------------------
 
-const MARKER_BY_VARIANT = {
-  default: 'arrowhead',
-  emphasis: 'arrowhead-emphasis',
-  security: 'arrowhead-security',
-  dashed: 'arrowhead-dashed',
-};
+const LEGEND_CATALOG = ['start', 'end', 'process', 'decision', 'loop', 'exception', 'io'].map((kind) => ({
+  kind,
+  label: i18nText(locale, `legend.flowchart.${kind}`),
+}));
+const presentKinds = new Set(nodes.map((node) => node.kind));
+const legendEntries = resolveLegend(diagram.meta?.legend, LEGEND_CATALOG, presentKinds);
+const legend = legendFootprint(legendEntries, { width: canvasWidth - 80 });
+const canvasHeight = Math.round(contentBottom + (legendEntries.length ? 78 + legend.extraHeight : 24));
+const legendBaselineY = canvasHeight - 16;
+
+// ---- 渲染 ------------------------------------------------------------------
 
 function pathData(points) {
   return `M ${points.map(([x, y]) => `${round(x)} ${round(y)}`).join(' L ')}`;
 }
-const round = (value) => Math.round(value * 10) / 10;
 
-function nodeShape(box) {
-  const { node } = box;
-  const common = `x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height}"`;
+function shapeMarkup(box, className, extra = '') {
+  const { node, x, y, width, height } = box;
+  const common = `x="${x}" y="${y}" width="${width}" height="${height}"`;
   switch (node.kind) {
     case 'start':
     case 'end':
-      return `<rect ${common} rx="${box.height / 2}" class="c-mask fc-terminal"/>`;
+      return `<rect ${common} rx="${round(height / 2)}" class="${className}"${extra}/>`;
     case 'decision': {
-      const cx = box.x + box.width / 2;
-      const cy = box.y + box.height / 2;
-      return `<polygon points="${round(cx)},${box.y} ${box.x + box.width},${round(cy)} ${round(cx)},${box.y + box.height} ${box.x},${round(cy)}" class="c-mask fc-decision"/>`;
+      const cx = x + width / 2;
+      const cy = y + height / 2;
+      return `<polygon points="${round(cx)},${y} ${x + width},${round(cy)} ${round(cx)},${y + height} ${x},${round(cy)}" class="${className}"${extra}/>`;
     }
-    case 'io': {
-      const skew = 14;
-      return `<polygon points="${box.x + skew},${box.y} ${box.x + box.width},${box.y} ${box.x + box.width - skew},${box.y + box.height} ${box.x},${box.y + box.height}" class="c-mask fc-io"/>`;
-    }
-    case 'exception':
-      return `<rect ${common} rx="6" class="c-mask fc-exception"/>`;
-    case 'loop':
-      return `<rect ${common} rx="6" class="c-mask fc-loop"/>`;
+    case 'io':
+      return `<polygon points="${x + IO_SKEW},${y} ${x + width},${y} ${x + width - IO_SKEW},${y + height} ${x},${y + height}" class="${className}"${extra}/>`;
     default:
-      return `<rect ${common} rx="6" class="c-mask fc-process"/>`;
+      return `<rect ${common} rx="6" class="${className}"${extra}/>`;
   }
 }
 
-function renderNode(box) {
-  const { node } = box;
-  const labelY = node.sublabel ? box.y + box.height / 2 - 4 : box.y + box.height / 2 + 4.5;
-  const label = `            <text x="${round(box.x + box.width / 2)}" y="${round(labelY)}" class="t-primary fc-label" font-size="${layout.labelFont}" text-anchor="middle">${esc(node.label)}</text>`;
-  const sublabel = node.sublabel
-    ? `\n            <text x="${round(box.x + box.width / 2)}" y="${round(labelY + 15)}" class="t-secondary fc-sublabel" font-size="${layout.sublabelFont}" text-anchor="middle">${esc(node.sublabel)}</text>`
+function renderNode(box, index) {
+  const { node, size } = box;
+  const style = styleFor(node);
+  const hasBrand = Boolean(brandMarkFor(node));
+  const hasSource = Boolean(sourceEvidence?.nodes?.[node.id]?.length);
+  const firstBaseline = (box.height - (size.lines.length - 1) * layout.lineHeight) / 2 + size.lineFont * 0.36;
+  const rows = size.lines.map((text, lineIndex) => ({
+    text,
+    font: size.lineFont,
+    y: firstBaseline + lineIndex * layout.lineHeight,
+  }));
+  if (size.sub) {
+    rows.push({ text: node.sublabel, font: size.sub.font, y: firstBaseline + size.lines.length * layout.lineHeight });
+  }
+  const labelLayout = nodeLabelLayout({
+    width: box.width,
+    height: box.height,
+    rows,
+    side: 'left',
+    brand: hasBrand,
+    source: hasSource,
+  });
+  const textX = round(box.x + labelLayout.x);
+  const labels = size.lines.map((text, lineIndex) => {
+    const anchor = lineIndex === 0 ? ' data-node-label=""' : '';
+    return `            <text${anchor} x="${textX}" y="${round(box.y + labelLayout.ys[lineIndex])}" class="t-primary fc-label" font-size="${size.lineFont}" text-anchor="middle">${esc(text)}</text>`;
+  });
+  if (size.sub) {
+    labels.push(`            <text data-detail="context" x="${textX}" y="${round(box.y + labelLayout.ys[size.lines.length])}" class="t-muted fc-sublabel" font-size="${size.sub.font}" text-anchor="middle">${esc(node.sublabel)}</text>`);
+  }
+  const brand = hasBrand
+    ? `\n            ${renderBrandMark(node, { x: box.x + box.width - 22, y: box.y + 6 })}`
     : '';
-  const brand = brandMarkFor(node)
-    ? `\n            ${renderBrandMark(node, { x: box.x + 6, y: box.y + 6 })}`
-    : '';
-  return `          <g ${focusNodeAttrs(node.id, node.label, { kind: node.kind, sublabel: node.sublabel, tag: node.tag }, locale)}>
-            ${focusNodeTitle(node.label, { kind: node.kind, sublabel: node.sublabel, tag: node.tag })}
-            ${nodeShape(box)}${brand}
-${label}${sublabel}
+  const sigil = renderSemanticSigil(style.sigil.kind, {
+    icon: style.sigil.icon,
+    x: box.x + SEMANTIC_SIGIL_INSET,
+    y: round(box.y + labelLayout.sigilY),
+    size: labelLayout.sigilSize,
+  });
+  const passport = { kind: node.kind, sublabel: node.sublabel, tag: node.tag };
+  return `          <g ${focusNodeAttrs(node.id, node.label, passport, locale)}>
+            ${focusNodeTitle(node.label, passport)}
+            ${shapeMarkup(box, 'c-mask')}
+            ${shapeMarkup(box, `${style.fill} fc-shape fc-${node.kind}`, animateAttr(diagram.meta, 'node', index))}${brand}
+            ${sigil}
+${labels.join('\n')}
           </g>`;
+}
+
+function edgeVariant(edge, back) {
+  const role = edge.role || (back ? 'loop' : 'main');
+  return edge.variant || ROLE_VARIANT[role] || (back ? 'dashed' : 'default');
 }
 
 function labelAnchor(points) {
   const [a, b] = points;
-  // 标签放在第一段中点，沿段方向偏移，避免压线
   const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
   const vertical = Math.abs(a[0] - b[0]) < 0.5;
   return vertical ? [mid[0] + 8, mid[1]] : [mid[0], mid[1] - 7];
 }
 
-function renderEdge({ edge, points, back }) {
-  const variant = edge.variant || 'default';
+function renderEdge({ edge, points, back }, index) {
   const role = edge.role || (back ? 'loop' : 'main');
-  const marker = MARKER_BY_VARIANT[variant] || 'arrowhead';
-  const dash = variant === 'dashed' ? ' stroke-dasharray="5 4"' : '';
-  const cls = `a-${variant} fc-edge fc-edge-${role}`;
-  const pathTag = `          <path ${focusEdgeAttrs(edge.from, edge.to, edge.label, undefined, edge.id)} data-composition-points="${routePointsValue(points)}" data-edge-role="${role}" d="${pathData(points)}" class="${cls}"${animateAttr(diagram.meta, 'edge', 0)} stroke-width="${EDGE_STROKE[role] || 1.5}"${dash} marker-end="url(#${marker})"/>`;
+  const variant = edgeVariant(edge, back);
+  const [cls, marker] = arrowClassMap[variant] || arrowClassMap.default;
+  const strokeWidth = edge.width || (variant === 'emphasis' ? 1.8 : 1.5);
+  const pathTag = `          <path ${focusEdgeAttrs(edge.from, edge.to, edge.label, index, edge.id)} data-composition-points="${routePointsValue(points)}" data-edge-role="${role}" d="${pathData(points)}" class="${cls} fc-edge"${animateAttr(diagram.meta, 'edge', index)} stroke-width="${strokeWidth}" marker-end="url(#${marker})"/>`;
   if (!edge.label) return pathTag;
   const [lx, ly] = labelAnchor(points);
-  const width = Math.ceil(labelWidth(edge.label, layout.edgeFont) + 12);
+  const width = Math.ceil(labelWidthPx(edge.label, layout.edgeFont) + 12);
   const mask = `          <rect x="${round(lx - width / 2)}" y="${round(ly - 10)}" width="${width}" height="15" rx="3" class="fc-edge-label-plate"/>`;
-  const text = `          <text x="${round(lx)}" y="${round(ly + 1.5)}" class="t-secondary fc-edge-label" font-size="${layout.edgeFont}" text-anchor="middle">${esc(edge.label)}</text>`;
+  const text = `          <text x="${round(lx)}" y="${round(ly + 1.5)}" class="${edgeLabelAccent(variant)} fc-edge-label" font-size="${layout.edgeFont}" text-anchor="middle">${esc(edge.label)}</text>`;
   return `${pathTag}\n${mask}\n${text}`;
+}
+
+function renderLegendBlock() {
+  if (!legendEntries.length) return '';
+  return renderResolvedLegend({
+    entries: legendEntries,
+    locale,
+    layout: {
+      x: layout.margin,
+      baselineY: legendBaselineY,
+      width: canvasWidth - 80,
+      minTitleY: contentBottom + 8,
+      obstacles: relationshipLegendObstacles(edges, {
+        pointsFor: (edge) => routeByEdge.get(edge) || [],
+        labelRectFor: () => null,
+      }),
+      unfit: diagram.meta?.legend === undefined ? 'hide' : 'error',
+      diagramType: 'flowchart',
+    },
+    renderSwatch: (entry) => `<rect x="${entry.x}" y="${entry.baseline - 8}" width="14" height="9" rx="2" class="${styleFor({ kind: entry.kind }).fill}" stroke-width="1"/>`,
+  });
 }
 
 function renderSvg() {
@@ -447,16 +692,9 @@ ${svgAccessibleText(diagram.meta, 'flowchart')}
 ${renderDefinitions()}
         <style>
           svg[data-flowchart-ui] .fc-edge { stroke-linejoin: round; stroke-linecap: round; }
-          svg[data-flowchart-ui] .fc-edge-main { stroke: var(--arrow); }
-          svg[data-flowchart-ui] .fc-edge-branch { stroke: var(--arrow-emphasis); }
-          svg[data-flowchart-ui] .fc-edge-loop { stroke: var(--text-muted); }
-          svg[data-flowchart-ui] .fc-edge-exception { stroke: var(--failure-stroke, var(--arrow)); }
-          svg[data-flowchart-ui] .fc-terminal { stroke: var(--arrow-emphasis); }
-          svg[data-flowchart-ui] .fc-process { stroke: var(--lane-stroke); }
-          svg[data-flowchart-ui] .fc-decision { stroke: var(--arrow-emphasis); }
-          svg[data-flowchart-ui] .fc-io { stroke: var(--database-stroke, var(--lane-stroke)); }
-          svg[data-flowchart-ui] .fc-loop { stroke: var(--text-muted); stroke-dasharray: 6 4; }
-          svg[data-flowchart-ui] .fc-exception { stroke: var(--failure-stroke, var(--arrow)); stroke-dasharray: 6 4; }
+          svg[data-flowchart-ui] .fc-shape { stroke-width: 1.25px; }
+          svg[data-flowchart-ui] .fc-loop,
+          svg[data-flowchart-ui] .fc-exception { stroke-dasharray: 6 4; }
           svg[data-flowchart-ui] .fc-label { font-weight: 600; }
           svg[data-flowchart-ui] .fc-edge-label-plate { fill: var(--mask); stroke: none; }
         </style>
@@ -469,6 +707,9 @@ ${routed.map(renderEdge).join('\n')}
 
         <!-- Steps -->
 ${[...placed.values()].map(renderNode).join('\n')}
+
+        <!-- Legend -->
+${renderLegendBlock()}
       </svg>`;
 }
 
@@ -479,6 +720,7 @@ writeDiagram({
   meta: diagram.meta,
   svg: renderSvg(),
   cards: diagram.cards,
+  sourceEvidence,
 });
 
 function problem(code, message, subject) {

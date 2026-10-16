@@ -20,6 +20,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { TYPES } from '../bin/render.mjs';
+import { textUnits } from '../renderers/shared/utils.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SKILL_ROOT = path.resolve(HERE, '..');
@@ -164,6 +165,58 @@ test('正向：含回边的样例在 showcase 下过产物检查与构图检查�
   } finally {
     run.cleanup();
   }
+});
+
+test('配色与图例：节点复用内核 tone 调色板并输出图例', () => {
+  const run = runCase(validDiagram());
+  try {
+    assert.equal(run.result.status, 0, `应渲染成功\n${run.output.slice(0, 600)}`);
+    const svg = fs.readFileSync(run.artifacts[1], 'utf8');
+    // 每种 kind 都走内核 tone 类（fill+stroke 由模板主题变量提供），而不是单层 c-mask。
+    for (const tone of ['c-frontend', 'c-backend', 'c-database', 'c-cloud', 'c-security', 'c-messagebus']) {
+      assert.ok(svg.includes(`${tone} fc-shape`), `节点应带内核 tone 类 ${tone}`);
+    }
+    assert.ok(!/class="c-mask fc-/.test(svg), '节点不应再是「底色 + 描边」的单层画法');
+    assert.ok(!svg.includes('MARKER_BY_VARIANT'), '不应残留自造 marker 常量');
+    assert.ok(svg.includes('data-legend=""'), '应输出图例');
+    assert.ok(svg.includes('data-legend-kind="decision"'), '图例应含判断项');
+    assert.ok(svg.includes('data-semantic-sigil'), '节点应带语义角标');
+  } finally {
+    run.cleanup();
+  }
+});
+
+test('文本自适应：超长标签折行后仍落在框内', () => {
+  const diagram = validDiagram();
+  const longLabel = '读取上游配置并逐条校验厂商与版本组合的合法性后写入内存注册表并建立全局订阅回调';
+  diagram.nodes.find((node) => node.id === 'lock').label = longLabel;
+  const run = runCase(diagram);
+  try {
+    assert.equal(run.result.status, 0, `应渲染成功\n${run.output.slice(0, 600)}`);
+    const svg = fs.readFileSync(run.artifacts[1], 'utf8');
+    assert.ok(svg.includes(`data-node-label="${longLabel}"`), '作者标签必须原样保留');
+    const group = svg.split('<g id="node-').find((chunk) => chunk.startsWith('lock"'));
+    const lines = group.match(/class="t-primary fc-label"/g) || [];
+    assert.ok(lines.length >= 2, `长标签应折成多行，实际 ${lines.length} 行`);
+    const rect = group.match(/<rect[^>]*class="[^"]*fc-shape[^"]*"[^>]*\/>/)[0];
+    const rx = Number(rect.match(/x="([-\d.]+)"/)[1]);
+    const rw = Number(rect.match(/width="([-\d.]+)"/)[1]);
+    for (const match of group.matchAll(/<text[^>]*x="([-\d.]+)"[^>]*font-size="([\d.]+)"[^>]*>([^<]*)<\/text>/g)) {
+      const cx = Number(match[1]);
+      const font = Number(match[2]);
+      const half = (textUnits(match[3]) * font * 0.6) / 2;
+      assert.ok(cx - half >= rx - 0.5 && cx + half <= rx + rw + 0.5,
+        `行「${match[3]}」越框：text[${cx - half}, ${cx + half}] box[${rx}, ${rx + rw}]`);
+    }
+  } finally {
+    run.cleanup();
+  }
+});
+
+test('结构拒绝：标签长到可读下限内也折不进框时非零退出且不落盘', () => {
+  const diagram = validDiagram();
+  diagram.nodes.find((node) => node.id === 'lock').label = '核'.repeat(220);
+  assertRejected('超长标签', diagram, 'flowchart/label-overflow');
 });
 
 test('接线完整性：入口类型表与 doctor 自检都覆盖 flowchart', () => {
