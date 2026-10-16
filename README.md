@@ -1,6 +1,6 @@
 # brainstorming-archify
 
-> **当前版本**：`1.0.0`（tag `v1.0.0`） · [Releases](https://github.com/ZiyiXingYao/brainstorming-archify/releases) · [MIT](LICENSE) · 三个版本号的区分见[版本](#版本)
+> **当前版本**：`2.0.0`（tag `v2.0.0`） · [Releases](https://github.com/ZiyiXingYao/brainstorming-archify/releases) · [MIT](LICENSE) · 三个版本号的区分见[版本](#版本)
 > **技能本体**：[`skill/SKILL.md`](skill/SKILL.md)（英文，AI 读的行为约束） · **维护手册**：[MAINTAINING.md](MAINTAINING.md) · **规格基线**：[`specs/`](specs/) · **测试面**：[`tests/README.md`](tests/README.md)
 
 一个可独立安装到 [CodeBuddy](https://cnb.cool/codebuddy/codebuddy-code) 的**对话式设计技能**：用一问一答把设计谈透，最后（经你同意）按固定模板落成一套**人类可读的实现级设计文档**，并生成实现任务清单。它**不写代码、不接下游流程**。
@@ -16,14 +16,14 @@
 
 ## 怎么用
 
-**安装**（唯一带版本硬门、备份与自检的路径）：
+**安装**（唯一带版本硬门、整目录替换与自检的路径）：
 
 ```bash
 node scripts/install.mjs   # → ~/.codebuddy/skills/brainstorming-archify/ + ~/.codebuddy/commands/bsa/resume.md
 node scripts/install.mjs --dry-run   # 只列将写入的文件与目标路径，不落盘
 ```
 
-- 启动先查 Node 主版本，**< 18 时非零退出且一个文件都不写**；目标已存在先整体备份为 `brainstorming-archify.bak-<时间戳>`；装完对已安装副本跑 `diagram-engine doctor` 自检。
+- 启动先查 Node 主版本，**< 18 时非零退出且一个文件都不写**；目标已存在时先把整目录 rename 成 `brainstorming-archify.bak-<时间戳>` 再写入，这份临时备份**只做写盘失败时的兜底**——安装成功后自动清理（**成功安装不残留 `.bak` 目录**），中途失败才留在盘上供恢复；装完对已安装副本跑 `diagram-engine doctor` 自检。
 - 可选：`--target <技能目录>`（默认 `~/.codebuddy/skills/brainstorming-archify`）、`--commands-dir <命令目录>`（默认 `~/.codebuddy/commands`；只覆盖 `bsa/resume.md` 自己那份，其他命令原样保留、重复安装幂等）、`--help`。
 
 **用**：提出想法 / 新功能 / 行为变更（或需求模糊、要选型）时技能会自动触发，也可显式调用；安装后需**新开一个 CodeBuddy 会话**才会加载。讨论被打断或跨会话时，打 **`/bsa:resume`** 从状态库恢复现场（它报告当前状态、每个文件什么状态、当前轮次记录文件与下一步）。
@@ -50,8 +50,8 @@ node ~/.codebuddy/skills/brainstorming-archify/scripts/diagram-engine/bin/render
 # 期望：检查项全部 [ok]，退出码 0；需 Node ≥ 18
 ```
 
-**更新**：重跑 `node scripts/install.mjs`（先备份后覆盖；`git clone` 方式则 `git pull` 后再跑一次）。
-**卸载**：`rm -rf ~/.codebuddy/skills/brainstorming-archify ~/.codebuddy/commands/bsa`（按需清理 `brainstorming-archify.bak-*`）。卸载不影响已落盘的设计文档——它们在你的项目目录里。
+**更新**：重跑 `node scripts/install.mjs`（先整目录 rename 再写入、成功不留备份；`git clone` 方式则 `git pull` 后再跑一次）。
+**卸载**：`rm -rf ~/.codebuddy/skills/brainstorming-archify ~/.codebuddy/commands/bsa`（正常安装后不该有 `brainstorming-archify.bak-*`；若上次安装中途失败才可能残留一份，按需清理）。卸载不影响已落盘的设计文档——它们在你的项目目录里。
 
 **四套模板的章节形状**（固定结构，产出即实现级设计）：架构总纲 **15 节**（背景/目标/方案对比/整体功能/功能点/模块划分/跨模块接口矩阵/核心类/代码文件树/全局功能流程/**业务编排流程**/运行视图/部署视图/关键决策/待定问题）；功能模块 **8 节**（含**本模块实体状态机**）；**实体与数据设计 8 节**（数据模式总览/领域类图/实体关系图/数据流图/核心实体状态机/数据生命周期与保留/关键决策/待定问题，**条件必出**）；接口契约 `## 总则`（不编号）+ `## 1.`–`## 10.`，七类接口节各含「清单表 / 逐项契约 / 该类规则」三段，该文档**不配图**。编号固定前缀为 `00-` 契约 / `01-` 架构 / `02-` 实体与数据设计，模块为 `03+`。
 
@@ -61,7 +61,7 @@ node ~/.codebuddy/skills/brainstorming-archify/scripts/diagram-engine/bin/render
 
 | 版本号 | 值 | 指的是什么 | 什么时候变 |
 |---|---|---|---|
-| **本仓库 / 本技能的发布版本** | **`1.0.0`**（tag `v1.0.0`） | 这个仓库与它导出的技能的版本，由 git tag 与 [GitHub Release](https://github.com/ZiyiXingYao/brainstorming-archify/releases) 承载；本 README 顶部与本节是它的文字出处（历史：`v0.1.0`，2026-09-22） | 每次发版 |
+| **本仓库 / 本技能的发布版本** | **`2.0.0`**（tag `v2.0.0`） | 这个仓库与它导出的技能的版本，由 git tag 与 [GitHub Release](https://github.com/ZiyiXingYao/brainstorming-archify/releases) 承载；本 README 顶部与本节是它的文字出处（历史：`v1.0.0`；`v0.1.0`，2026-09-22） | 每次发版 |
 | 技能文本上游基准 | `v7.0.0`（commit `bb92a77`） | `skill/SKILL.md` 所同步的 superpowers 坐标 | 同步 superpowers 时 |
 | 绘图内核上游基准 | `v3.1.0`（commit `1c2b42d`；技能包版本 `3.1.0`） | 内核搬运自 archify 的坐标 | 搬运新内核时 |
 

@@ -175,6 +175,8 @@ rm -rf /tmp/sp
 
 60. （新增）自建 `flowchart` 渲染器**改由内核共享件组合**（变更 `flowchart-kernel-style`），修掉「画风与内核其它类型两样 + 长标签溢出框」两个缺陷。①**配色**：节点不再只画单层 `c-mask`（底色 + 描边），改为复用内核 tone 调色板——`kind → c-<tone>`（`start`/`end`→frontend、`process`→backend、`decision`→database、`loop`→cloud、`exception`→security、`io`→messagebus，与 `lifecycle` 同源语义），底层 `c-mask` + 上层 tone 实色双层，fill/stroke 由模板主题变量提供（深/浅主题 × 四预设一致）。②**文本自适应**：改用内核 `text-fit` 口径——**放宽**（框宽按单行装下取值并预留角标栏 `RAIL_RESERVE`，让 `nodeLabelLayout` 走「保持居中、右移让开角标」而不是把整行压到角标下方）→ **换行**（超宽按内核 `horizontalPadding` 折行，上限 4 行；矩形按行数加高、菱形判断框按内接矩形扩宽加高）→ **缩字号**（行数超限时整块缩到可读下限）；到下限仍折不进框则报 `flowchart/label-overflow` 拒绝渲染、不落盘。③**风格件同构**：边改用 `arrowClassMap`（删除自造的 `MARKER_BY_VARIANT`/`EDGE_STROKE`）、边标签走 `edgeLabelAccent`，节点接 `renderSemanticSigil` 角标，图例走 `resolveLegend`/`renderLegend`。④**i18n**：新增 `legend.flowchart.{start,end,process,decision,loop,exception,io}` 七键并**五份目录全写**（`translateMessage` 无逐键回退，缺键即抛错）。⑤**规格与技能**：`specs/diagram-engine` 走 delta 补「flowchart 复用 tone / text-fit / 图例」；`SKILL.md` flowchart 专节补「Styling and text reuse the kernel's own types」要点（结构校验与「没有几何旋钮」口径不变）。机械门：`test/flowchart.test.mjs` 新增 3 条（tone 类与图例、长标签折行不越框、超长标签拒绝），内核回归入口 `RESULT: PASS`；`i18n.test.mjs` 因依赖已裁剪的 `examples/` 本就不在回归清单内，其 `missingKeys.length === 10` 断言受 `slice(0, 10)` 封顶影响、不因新增七键而变（核查记录，无需改）。das 侧 7 张 flowchart 图重渲后 9/9 产物检查、0 error / 0 warning。另按本仓库约定对改后的 flowchart 专节做了**作者视角 dry-run**（子代理扮作者，仅凭专节 + schema 造一份 12 节点流程）：**一次通过**，9/9 产物检查、0 error / 0 warning，tone 类/角标/图例齐全、无标签越框。dry-run 摩擦**已消两条**（专节补明「角标与图例由 `kind` 自动生成、不用作者声明」与「本类型默认图例天然合意，故省略 `meta.legend`」）；**登记备查两条**：①共享约束「At most 12 primary nodes」未定义是否含 `start`/`end`（属全类型口径，非本变更范围）；②`routeReview` 会报「建议拉伸 1.35」一类**非阻塞**提示而 repair order 未覆盖该项、也不影响 composition（工具面既有行为）。
 
+61. （新增）安装器**不再残留备份**，并把本仓库发布版本提到 `2.0.0`。①备份语义收窄：`scripts/install.mjs` 仍「先整目录 rename 为 `brainstorming-archify.bak-<时间戳>` 再写入」（写盘不是原子的，这份备份是**中途失败时的唯一兜底**），但**安装与自检全部成功后在末尾自动清理**——成功安装不留任何 `.bak` 目录，中途抛错才保留供人工恢复；usage 与文件头注释同步改写。②`tests/install.test.mjs` 的备份用例由「应恰好产出一个备份目录、既有内容保留在备份里」翻转为「**成功安装后不得残留备份目录**、旧文件随整目录替换消失、stdout 报告已清理」，用例名与文件头注释同步；`backupExisting` 的纯函数用例（同 stamp 撞名拒绝覆盖）保持不变。③`README.md` 的安装 / 更新 / 卸载三处备份口径同步改写（成功不留 `.bak`）。④**版本 1.0.0 → 2.0.0**：README 顶部一行与 `## 版本` 表的「本仓库 / 本技能的发布版本」两处（版本号权威文字出处，见 §4），并把 `v1.0.0` 记入历史；tag / GitHub Release 由 §4 的发版步骤另行承载。同批把 §4 里过期的「59 用例」更正为当前计数。机械门：`node --test tests/install.test.mjs` 与全量 `node --test tests/*.test.mjs` 全绿；实机 `node scripts/install.mjs` 后 `ls ~/.codebuddy/skills/*.bak-*` 为空。
+
 ### 上游二：archify（绘图内核）
 
 `scripts/diagram-engine/` 是 [archify](https://github.com/tt-a1i/archify) 出图技能包的**裁剪副本**：保留十类上游图类型（architecture / workflow / sequence / dataflow / lifecycle / erd / class / tree / timeline / waterfall）的渲染能力，删掉了全部与出图无关的子命令（compare / deliver / finalize / preview / migrate / inspect / check / visual-check / browser-check / guide / brands / examples / demo）、`--repo-root` 溯源能力、`examples/`、`references/`、`recipes/`、`delta/` 与上游 `SKILL.md`，把入口 `archify.mjs`（7139 行）裁成内部驱动 `render-driver.mjs`（约 900 行，只留 `render`／`validate`／`doctor`），并以本仓库新增的 `render.mjs` 作为唯一对外入口；品牌解析收窄为「只认内置 canonical ID、不联网」。此外**自建 `flowchart` 类型**（程序设计流程图，上游没有），其配色、文本度量、图例与角标均复用内核共享件、与上游十类同构（见第 60 条）。逐项改动与被删清单见 `scripts/diagram-engine/UPSTREAM.md` 第 1 节。
@@ -433,7 +435,7 @@ F3–F8 修完后用新项目**盲测复跑**一次，仍判 `有需猜`（无�
 
 ```bash
 # 1. 改版本号：README 顶部一行 + `## 版本` 表
-# 2. 全量测试必须绿（59 用例，含内核回归集）
+# 2. 全量测试必须绿（139 用例，含内核回归集）
 node --test tests/*.test.mjs
 # 3. 提交并推送
 git push origin main

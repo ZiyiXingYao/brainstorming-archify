@@ -38,8 +38,9 @@
  * ------------
  *   1. 环境不满足：**启动先在写盘之前**检查 Node 主版本，低于 18 即以非零退出码结束，
  *      明确报出所需版本与当前版本，**不写入任何文件**（`--dry-run` 同样受此硬门约束）。
- *   2. 目标已存在：先把既有目录整体备份为 `brainstorming-archify.bak-<时间戳>`，再写入新内容，
- *      不就地覆盖、不删除用户既有文件。
+ *   2. 目标已存在：先把既有目录整体 rename 为 `brainstorming-archify.bak-<时间戳>` 再写入新内容
+ *      （不就地覆盖、不删除用户既有文件）。这份备份只是**写盘中途失败时的兜底**：安装与自检
+ *      全部成功后在末尾自动清理，**成功安装不残留任何 `.bak` 目录**；中途报错则保留供恢复。
  *   3. 拷贝规则：`skill/` 内文件平铺到目标根；`templates/` 与 `scripts/` 整目录复制。
  *   4. 安装后自检：对**已安装副本**执行一次 `diagram-engine doctor`，通过才报告成功。
  *
@@ -215,7 +216,8 @@ export function usage() {
   - 安装到 <目标目录> 本身的根：skill/ 内文件平铺到该目录，templates/ 与 scripts/ 整目录复制。
     '--target' 传的是**技能目录**，不是它的上级——脚本不会自动追加 ${SKILL_NAME}/；
     scripts/sync-upstream.sh 是仓库维护工具，**不随安装复制**（见本文件 SKIP_REL_PREFIXES）；
-  - 目标已存在时，先把它整体备份为 <目标目录名>.bak-<时间戳>，再写入；
+  - 目标已存在时，先把它整体 rename 为 <目标目录名>.bak-<时间戳> 再写入；这份备份只在写盘
+    或自检失败时保留供恢复，安装成功后自动清理（成功安装不残留 .bak 目录）；
   - 安装后对已安装副本执行 bin/render.mjs doctor 自检（该链路不依赖 node_modules）；
   - 同批部署命令适配器到 <命令目录>/bsa/resume.md（即 /bsa:resume）：源文件里的
     ${BSA_ROOT_PLACEHOLDER} 重写为实际技能根；命令目录下其他命令原样保留，重复安装幂等。
@@ -471,7 +473,7 @@ export function run(argv = process.argv.slice(2), options = {}) {
 
     stdout(`开始安装到：${target}\n`);
     const backup = backupExisting(target, options.stamp ?? timestamp());
-    if (backup) stdout(`目标已存在，已备份为：${backup}\n`);
+    if (backup) stdout(`目标已存在，先整目录备份为：${backup}（安装成功后自动清理）\n`);
 
     const written = installFiles(manifest, target);
     if (written !== manifest.length) {
@@ -492,6 +494,13 @@ export function run(argv = process.argv.slice(2), options = {}) {
     stdout(`  入口 SKILL.md → ${path.join(target, 'SKILL.md')}\n`);
     stdout(`  绘图内核     → ${path.join(target, 'scripts', 'diagram-engine')}\n`);
     stdout(`  恢复命令     → ${path.join(args.commandsDir, 'bsa', 'resume.md')}（/bsa:resume）\n`);
+
+    // 全部写入与自检都成功后，清理这份临时兜底备份——成功安装不残留 .bak。
+    // 中途任何一步抛错都会跳过这里，备份留在盘上供人工恢复。
+    if (backup) {
+      fs.rmSync(backup, { recursive: true, force: true });
+      stdout(`已清理临时备份：${backup}\n`);
+    }
     return 0;
   } catch (error) {
     stderr(`安装失败：${error instanceof Error ? error.message : String(error)}\n`);

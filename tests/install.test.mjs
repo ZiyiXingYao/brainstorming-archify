@@ -3,8 +3,9 @@
  * ============================================================================
  *
  * 被测对象是**用户入口脚本**，四道行为约束逐条锁成回归测试：
- *   ① Node 主版本硬门在任何写盘之前；② 目标已存在先整体备份；③ 平铺 + 整目录复制规则；
- *   ④ 装完对已安装副本跑 doctor 自检。另测 `--dry-run` 与用法错误。
+ *   ① Node 主版本硬门在任何写盘之前；② 目标已存在先整体 rename 再写入、**成功即清理临时备份**
+ *   （失败才保留兜底）；③ 平铺 + 整目录复制规则；④ 装完对已安装副本跑 doctor 自检。
+ *   另测 `--dry-run` 与用法错误。
  *
  * 全部动作发生在临时目录，不触碰 `~/.codebuddy`。
  * 只用 Node 内置模块，不依赖 node_modules。
@@ -117,7 +118,7 @@ test('实装形态：skill/ 平铺到根，templates/ 与 scripts/ 整目录，�
   }
 });
 
-test('目标已存在：先整体备份，既有内容完整保留在备份里', () => {
+test('目标已存在：成功安装整目录替换且不残留任何备份', () => {
   const parent = tmpDir('install-backup-');
   const target = path.join(parent, 'brainstorming-archify');
   const commandsDir = path.join(parent, 'commands');
@@ -129,13 +130,10 @@ test('目标已存在：先整体备份，既有内容完整保留在备份里',
     assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
 
     const backups = fs.readdirSync(parent).filter((name) => name.startsWith('brainstorming-archify.bak-'));
-    assert.equal(backups.length, 1, `应恰好产出一个备份目录，实际：${backups.join(', ')}`);
-    assert.match(backups[0], /^brainstorming-archify\.bak-\d{8}-\d{6}$/, '备份名应为 brainstorming-archify.bak-<时间戳>');
-    const backedUp = path.join(parent, backups[0], 'PREVIOUS.md');
-    assert.ok(fs.existsSync(backedUp), '既有文件应完整保留在备份里');
-    assert.equal(fs.readFileSync(backedUp, 'utf8'), 'OLD-CONTENT');
-    // 新装内容应就位
-    assert.ok(fs.existsSync(path.join(target, 'SKILL.md')));
+    assert.equal(backups.length, 0, `成功安装后不得残留备份目录，实际：${backups.join(', ')}`);
+    assert.match(result.stdout, /已清理临时备份/, '应报告已清理那次临时兜底备份');
+    assert.ok(!fs.existsSync(path.join(target, 'PREVIOUS.md')), '旧文件应随整目录替换而消失');
+    assert.ok(fs.existsSync(path.join(target, 'SKILL.md')), '新装内容应就位');
   } finally {
     fs.rmSync(parent, { recursive: true, force: true });
   }
@@ -197,7 +195,7 @@ test('命令适配器：命令目录下其他命令原样保留，重复安装�
     const first = fs.readFileSync(path.join(commandsDir, 'bsa', 'resume.md'), 'utf8');
     assert.notEqual(first, 'STALE', '旧适配器应被刷新');
 
-    // 重复安装（目标已存在 → 走备份分支）后命令目录依旧正确
+    // 重复安装（目标已存在 → 走整目录替换分支）后命令目录依旧正确
     assert.equal(runInstall(['--target', target, '--commands-dir', commandsDir]).status, 0);
     assert.equal(fs.readFileSync(path.join(commandsDir, 'ssf', 'resume.md'), 'utf8'), 'SSF-RESUME');
     assert.equal(fs.readFileSync(path.join(commandsDir, 'bsa', 'resume.md'), 'utf8'), first,
