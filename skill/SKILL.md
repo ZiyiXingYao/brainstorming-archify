@@ -505,10 +505,12 @@ node <skill-root>/scripts/task-state/resume-state.mjs [--json]
 - **At the User Review Gate** — when the human approves a document, mark it
   `file <path> confirmed`. When every registered file is `confirmed`, run
   `advance confirm`.
-- **At `confirm`** — generate `specs/design/task.md` per **Implementation
-  Task Split** below, then `advance closed --task-md specs/design/task.md`.
-  The `--task-md` check refuses a stale file: a reopen invalidates the old
-  task list, so re-generating it is mandatory before closing again.
+- **At `confirm`** — write `specs/design/task.md` per **Implementation
+  Task Split** below (regenerate it whole only when the file is absent or
+  fully checked off; otherwise edit it in place and append), then
+  `advance closed --task-md specs/design/task.md`. The `--task-md` check
+  refuses a stale file: a reopen makes the old task list out of date, so
+  updating it before closing again is mandatory.
 - **A revision arrives** — if the human asks for changes after documents
   landed or were confirmed, `reopen` the affected files with the reason and
   walk the cycle again. Documents nobody asked to change are not re-reviewed.
@@ -1626,12 +1628,31 @@ re-reviewed.
 
 Once every registered document is `confirmed` (the library sits in
 `confirm`), write **`specs/design/task.md`** — the implementation task list
-that splits the confirmed design from **framework** down to **modules** down
-to **individual features**. It is a managed part of the design set: the
-subagent review covers it, and it is part of what gets handed over. It is
-**not** governed by the "append, never renumber" rule — it is regenerated
-whole from the confirmed design, and a reopen invalidates it (the old file
-must be regenerated before the round can close again).
+that splits the design from **framework** down to **modules** down to
+**individual features**. It is a managed part of the design set: the
+subagent review covers it, and it is part of what gets handed over. Treat it
+as the **outstanding work handed to the downstream implementer**, so both its
+scope and how you write it depend on what the file already holds — read
+`specs/design/task.md` **before** writing, and the checkbox is the mechanical
+mark of what is done (`- [x]` = checked off = done):
+
+- **First round** (`init`; no `specs/design/task.md` yet): write the tasks
+  for the **whole design**.
+- **A later round** (`reopen`), and the existing file has **any** unchecked
+  row (`- [ ]`): the previous batch is not finished, so **do not regenerate
+  or overwrite it** — that would drop outstanding work. **Edit it in
+  place**: change only the rows this round's design changes touch, and
+  **append** this round's new tasks. Keep every existing task's ID, wording
+  and checkbox state word-for-word; never renumber an existing task, never
+  delete an unfinished one, and give appended tasks IDs continuing past the
+  highest existing one.
+- **A later round**, and **every** row in the existing file is already
+  checked off (no `- [ ]` left): the previous batch is done, so
+  **regenerate the file whole and overwrite it**, holding **only this
+  round's change** — the tasks implied by the design this round touched — not
+  a re-listing of the whole design.
+
+Either way, never silently clear a checkbox state.
 
 **The three tiers, in this order:**
 

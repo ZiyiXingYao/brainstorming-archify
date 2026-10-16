@@ -1038,4 +1038,27 @@ test('SKILL 写明 boundary 只能圈住自己的成员', () => {
   );
 });
 
+// ⑲ task.md 收口规则（task-md-preserve-progress）：勾选框即「核销」的机械标识。
+//    重开且全核销 → 整份重生成、只装本轮改动点；重开且有未核销 → 禁止覆盖、只能就地改/追加并保留勾选。
+test('SKILL 写明 task.md 的生成范围与写盘方式', () => {
+  const skill = read(SKILL);
+  assert.match(skill, /Edit it in\s+place/, '未核销时应就地修改');
+  assert.match(skill, /never silently clear a checkbox state/, '不得静默清掉勾选状态');
+  assert.match(skill, /regenerate the file whole and overwrite it/, '全核销时应整份重生成覆盖');
+  assert.match(skill, /only this\s+round's change/, '全核销重生成只装本轮改动点');
+  assert.match(skill, /never renumber an existing task/, '不得重编号既有任务');
+  assert.ok(
+    !/regenerated\s+whole from the confirmed design/.test(skill),
+    '不得残留「整份重生成」的旧口径',
+  );
+  assert.ok(!/reopen invalidates it/.test(skill), '不得残留「重开即作废」的旧口径');
+});
+
+test('审查提示词含 task.md 的未核销保护判据', () => {
+  const body = read(REVIEWER);
+  assert.match(body, /edited in place and appended/, '应要求就地改 + 追加');
+  assert.match(body, /drops unchecked tasks or clears their checkbox states/, '应把丢未核销任务判缺陷');
+  assert.match(body, /only this round's change/, '全核销重生成只装本轮改动点');
+});
+
 
