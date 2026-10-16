@@ -6,7 +6,7 @@
  * 机械看门人。本文件把那部分补回来，锁住本次改写的关键约定，防止后续静默回退：
  *   ① `skill/SKILL.md` 含绘图规划 Gate、三件套、落点/命名硬规则、两行引用、主节点上限、
  *      自审 15 项、修复顺序 ①–⑥，且不含已被裁剪掉的机制名与 `--repo-root`；
- *   ② 三份模板齐备，两份配图模板含三件套与两行引用；
+ *   ② 四份模板齐备，三份配图模板含三件套与两行引用；
  *   ③ 迁移残留：活文件不得出现两代历史名与改名前的落盘目录——`skill/`、`templates/` 扫两代名，
  *      `scripts/` 只扫 `codebuddy-brainstorming`（`design-diagrams` 只允许留在 `MAINTAINING.md` 的历史条目里）；
  *   ④ 接口矩阵状态只在架构模板第 7 节定义一次，其余三份文件只引用、不复述；
@@ -75,14 +75,63 @@ test('技能入口在约定位置', () => {
   }
 });
 
-test('三份模板齐备（接口契约模板不可少）', () => {
+test('四份模板齐备（含第四份实体与数据设计模板）', () => {
   for (const rel of [
     ARCH_TEMPLATE,
     MODULE_TEMPLATE,
+    DATA_MODEL_TEMPLATE,
     'templates/interface-contract-template.md',
   ]) {
     assert.ok(fs.existsSync(path.join(ROOT, rel)), `缺少 ${rel}`);
   }
+});
+
+// ⑱ 图类型口径的遗留清理（fix-diagram-leftovers）：
+//    · 绘图规划 Gate 不得再按「流程性质」选型（章节决定类型）；
+//    · 不得残留五类型时代的措辞「the other three types」；
+//    · `flowchart` 不得再被断言「没有 layout」——内核 schema 定义了 `layout.gapX/gapY/nodeW/nodeH`
+//      且渲染器实际读取，正文应把它点名为可用旋钮；
+//    · 审查提示词须按四份文档类型接收第四份模板，并定义 `(data model)` 图例标记；
+//    · 架构 §10 的缺陷判据须排除单模块功能流程（其图归模块文档、本节只写引用）。
+test('绘图规划 Gate 不再按流程性质选型', () => {
+  const gate = read(SKILL).split('### The Diagram Planning Gate')[1]?.split('### ')[0] ?? '';
+  assert.ok(gate.length > 0, '应能定位绘图规划 Gate 段');
+  assert.ok(!/nature of what is described/.test(gate), 'Gate 不得再写「按所述性质选型」');
+  assert.match(gate, /section decides the type, never the nature/i, 'Gate 应声明章节决定类型');
+});
+
+test('不再残留五类型时代的措辞', () => {
+  assert.ok(
+    !/other\s+three types/i.test(read(SKILL)),
+    'SKILL 不得再写「the other three types」（注意旧句跨行断开）',
+  );
+});
+
+test('flowchart 不再被断言「没有 layout」', () => {
+  const section = read(SKILL).split('### Flowchart diagrams')[1]?.split('### ')[0] ?? '';
+  assert.ok(section.length > 0, '应能定位 Flowchart diagrams 段');
+  assert.ok(
+    !/has no `pos`, `layout`/.test(section),
+    'flowchart 段不得把 `layout` 列为不存在的旋钮',
+  );
+  assert.match(section, /`layout` object/, 'flowchart 段应点明全局 `layout` 块是可用旋钮');
+  assert.match(section, /gapX/, 'flowchart 段应给出 layout.gapX');
+});
+
+test('审查提示词按四份文档类型接收第四份模板', () => {
+  const prompt = read(REVIEWER);
+  assert.match(prompt, /all four document types/, '应为「四份文档类型」');
+  assert.ok(!/all three document types/.test(prompt), '不得残留「all three document types」');
+  assert.match(prompt, /DATA_MODEL_TEMPLATE_PATH/, '应提供第四份模板路径占位符');
+  assert.match(prompt, /data-model-doc-template\.md/, '应点明第四份模板文件名');
+  assert.match(prompt, /\(data model\)/, '图例应定义 `(data model)` 标记');
+});
+
+test('架构 §10 缺陷判据排除单模块功能流程例外', () => {
+  const section = read(ARCH_TEMPLATE).split('## 10. 全局功能流程')[1]?.split('## 11.')[0] ?? '';
+  assert.ok(section.length > 0, '应能定位 §10');
+  assert.match(section, /单模块功能流程/, '§10 判据应提到单模块功能流程例外');
+  assert.match(section, /不得因缺 `01-` 前缀的 SVG 判缺陷/, '§10 判据应显式排除缺 01- 前缀的误判');
 });
 
 test('SKILL.md 含绘图规划 Gate 与三件套', () => {

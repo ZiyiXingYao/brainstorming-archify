@@ -4,14 +4,15 @@ Use this template when dispatching a design document reviewer subagent.
 
 **Purpose:** Verify the design documents are complete, consistent,
 implementation-ready, and follow the fixed templates
-`architecture-doc-template.md`, `module-doc-template.md`, and
-`interface-contract-template.md` — and, once every document of the round is
+`architecture-doc-template.md`, `module-doc-template.md`,
+`interface-contract-template.md`, and `data-model-doc-template.md` — and, once
+every document of the round is
 confirmed, that the generated `specs/design/task.md` splits the design into
 a dependency-clean implementation task list.
 
 **Dispatch after:** The design documents are written to `specs/design/`.
 
-**One subagent reviews all three document types** — plus `specs/design/task.md`
+**One subagent reviews all four document types** — plus `specs/design/task.md`
 when the round has reached `confirm`. When the write set
 exceeds five documents, split the dispatch: architecture first, then the
 module documents in batches, carrying the architecture findings forward.
@@ -30,6 +31,7 @@ Subagent (general-purpose):
     **Architecture template:** [ARCHITECTURE_TEMPLATE_PATH]   ← absolute path to architecture-doc-template.md
     **Module template:** [MODULE_TEMPLATE_PATH]               ← absolute path to module-doc-template.md
     **Interface-contract template:** [INTERFACE_CONTRACT_TEMPLATE_PATH]   ← absolute path to interface-contract-template.md
+    **Data-model template:** [DATA_MODEL_TEMPLATE_PATH]                   ← absolute path to data-model-doc-template.md
     **Approved change list:** [CHANGE_LIST_SUMMARY]           ← what the human approved: new files (including every diagram file this write will create or re-render, each with the flow it belongs to), modified files and which sections, what was declared untouched, new dependencies, pending conflicts. State whether it was announced as an architecture overhaul
     **Findings from the architecture review (if this is a later batch):** [PRIOR_BATCH_FINDINGS]
 
@@ -115,9 +117,16 @@ Subagent (general-purpose):
     ## What to Check
 
     Rows marked **(module)** apply only to module documents; **(architecture)**
-    only to `01-架构设计.md`; **(interface contract)** only to
+    only to `01-架构设计.md`; **(data model)** only to
+    `specs/design/02-实体与数据设计.md`; **(interface contract)** only to
     `specs/design/00-接口契约.md`; the unmarked rows apply to the architecture and
-    module documents. The interface contract is checked against its own
+    module documents. The data-model document is additionally checked against the
+    unmarked rows that are **generic rather than topic-specific** — Template
+    compliance, Readability, Incremental merge integrity, Completeness, Decision
+    traceability, Ambiguity, and **Diagram consistency** — and not against the
+    rows that address a module's class tables, dependency matrices, functional
+    points or a flow's cross-module skeleton, which exist only in the architecture
+    and module documents. The interface contract is checked against its own
     template and against its own **(interface contract)** rows below; beyond
     those, the unmarked rows that are **generic rather than topic-specific**
     also apply to it — Template compliance, Readability, Incremental merge
@@ -206,7 +215,7 @@ Subagent (general-purpose):
     tree that stops at module folders and core files, and an architecture core-class
     list that is a strict subset of the **already-designed** modules' class lists, are both the templates
     working as designed. Neither are wording style, uneven section depth, "could be
-    more detailed", or a document not carrying the other template's sections. The
+    more detailed", or a document not carrying the other template's sections.     The
     architecture document's class structure relationships (8.2) and class call relationships
     (8.3) are **no longer** allowed to stand as prose, tables or mermaid in place of a
     diagram: the kernel now has a `class` type, so those two sections must reference the

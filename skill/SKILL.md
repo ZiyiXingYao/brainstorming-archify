@@ -732,9 +732,9 @@ persist. After the requirements conversation has converged, and before you
 generate any IR, present one **diagram plan** and wait for an explicit yes:
 
 1. **Which diagrams** — one entry per diagram.
-2. **Which type** — one of `architecture`, `workflow`, `sequence`, `dataflow`,
-   `lifecycle`, chosen by the nature of what is described (see the type router
-   below), never by taste.
+2. **Which type** — the one this section binds, taken straight from the type
+   router below (eleven types); the section decides the type, never the nature
+   of the flow.
 3. **Which section** — the document and section that will carry it.
 
 Generating the IR or rendering before that plan is confirmed is a defect. Once
@@ -795,9 +795,9 @@ node <skill-root>/scripts/diagram-engine/bin/render.mjs validate <type> <ir.json
 node <skill-root>/scripts/diagram-engine/bin/render.mjs doctor
 ```
 
-`--layout-json` is supported for **architecture and workflow only** — on the other
-three types it exits non-zero saying so, rather than emitting partial layout, so do
-not build a repair loop around it for sequence / dataflow / lifecycle.
+`--layout-json` is supported for **architecture and workflow only** — on every
+other type it exits non-zero saying so, rather than emitting partial layout, so do
+not build a repair loop around it for any other type.
 
 `validate` checks and writes nothing; a showcase pass prints
 `9 artifact checks; composition showcase: 0 errors, 0 warnings`. `doctor`
@@ -1116,14 +1116,17 @@ binds it (a module's §3.N function description).
   a back edge (a loop) travels the outer lane, a forward edge that skips ranks
   takes the other. You do not author coordinates.
 - **There are no per-node geometry knobs and no label-routing controls.** Unlike
-  architecture and workflow, this type has no `pos`, `layout`, `via`, `labelAt`,
+  architecture and workflow, this type has no `pos`, `via`, `labelAt`,
   `labelDx`, `labelDy`, `labelSegment`, `channelX` or per-node `width`. So the
   repair-order steps that tell you to move a label or reroute an edge **do not
   apply here** — do not go looking for those fields. The levers you actually have
-  are: **fewer nodes per rank**, **shorter labels**, **less branching in one
-  diagram** (split a sprawling function into two diagrams rather than compressing
-  it), and introducing an explicit merge step instead of letting several edges
-  land on the same node from far apart.
+  are: the global **`layout` object** — `gapX` / `gapY` for the column and row
+  gaps and `nodeW` / `nodeH` for box size, all optional (this is a plain spacing
+  block, **not** a layout *mode* and **not** a grid block) — plus **fewer nodes
+  per rank**, **shorter labels**, **less branching in one diagram** (split a
+  sprawling function into two diagrams rather than compressing it), and
+  introducing an explicit merge step instead of letting several edges land on the
+  same node from far apart.
 - **Node order in the IR is meaningful.** Ranks are ordered by the order you
   declare nodes in, so moving a node in the file moves it in the picture. Change
   the order when the *reading* order is wrong (a later step appearing left of an

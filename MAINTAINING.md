@@ -169,6 +169,8 @@ rm -rf /tmp/sp
 56. （新增）**图类型由章节唯一决定，并新增第四份模板**（变更 `diagram-type-by-section`）。三处要点：①**删掉「按流程性质选图类型」**——技能 `Diagram type router` 换成「章节 → 图类型」映射表并声明类型由章节决定；架构总纲 §6.3 与 §12 运行视图固定 `architecture`、§10 全局功能流程固定 `sequence`、新增 §11 业务编排流程固定 `workflow`（判据：参与方含人类角色/外部部门/外部系统且存在责任方交接或人工审批门）；模块 §5 固定 `sequence`、§6 新增本模块实体状态机固定 `lifecycle`、§3.N 功能描述按「**重要∩复杂**」固定 `flowchart`（例外：模块独有且有对外调用顺序时改配 `sequence`）。架构由 14 节扩到 **15 节**、模块由 7 节扩到 **8 节**，新节插在 §10／§5 之后并顺延后续节号。②**新增第四份模板 `data-model-doc-template.md`（实体与数据设计，八节，条件必出）**：命中 MySQL/Redis/MQ 任一类持久化接口或存在显式领域模型时与架构总纲同批产出，否则**整份缺席**；其四张图（领域类图 `class`、实体关系图 `erd`、数据流图 `dataflow`、核心实体状态机 `lifecycle`）**只画关键子集**（类图取架构 §8.1 核心类、ER 取核心领域实体、数据流取跨模块/跨边界/涉敏感链路、状态机取跨模块可见实体），完整性权威仍在模块类清单与接口契约 MySQL 清单。文档编号新增固定前缀 `02-`，**模块序号由 `02+` 改为 `03+`**。③**两处口径翻转**：架构 §8.2/§8.3 由「不做类图、用文字或 mermaid」改为**引用第四份文档的领域类图**（内核 v3.1.0 已带 `class` 类型），审查提示词里「这三节不做类图、不要报缺图」的校准条目随之改写；「同名流程跨文档共用同一组三件套」**删除**，改为**架构画跨模块调用顺序、模块画本模块实现步骤，各画自己那一层**。同批还修了 lifecycle `schema_version` 的旧口径（内核 v3.1.0 只接受 `3`，原文写「新图用 2」）。机械门：`tests/doc-consistency.test.mjs` 新增 11 个断言（先跑红 9 失败 → 改后 61 全过）。
 57. （新增）第四份模板随安装器部署：`templates/` 是**整目录复制**，故安装器代码无需枚举清单，只更新了 `scripts/install.mjs` 的注释计数与 `tests/install.test.mjs` 的落盘断言（三份 → 四份）。
 
+58. （新增）清理变更 B 遗留的**图类型口径不一致**（变更 `fix-diagram-leftovers`）。逐项：①`skill/SKILL.md` 绘图规划 Gate 第 2 步仍写「chosen by the nature of what is described」且只列 5 类（`architecture/workflow/sequence/dataflow/lifecycle`）——与本文件 `Diagram type router`（章节决定类型 + 十一类）冲突，改为「取所属章节绑定的类型，取自 type router（十一类）」。②`specs/design-doc-guardrails` 基线里遗留的 Scenario「图类型按性质选定」（与「图类型由章节唯一决定」冲突）经 delta 删除，改为「规划时按章节而非性质定类型」。③`SKILL.md` flowchart 专节曾把 `layout` 列进「不存在的旋钮」——内核 `flowchart.schema.json` 定义并读取 `layout.gapX/gapY/nodeW/nodeH`，已改正并把它写进可用杠杆；本节上方 dry-run 记录（原「D」条）的同款登记同步更正。④审查提示词 Purpose／调度头／图例由「三份文档类型」改为四份，补 `DATA_MODEL_TEMPLATE_PATH` 与 `(data model)` 图例标记。⑤`specs/design-doc-guardrails`、`specs/design-doc-templates` 与 `README.md` 的「三份模板」口径统一改为四份（含 Scenario「模板登记为三套」、「两份配图模板」）。⑥基线「运行视图与部署视图的自审与审查判据」原先写「两节 SHALL NOT 被要求配图」且节号为 11/12 → 改为运行视图须配 `architecture` 图（第 12 节）、部署视图不配图（第 13 节）。⑦架构模板 §10 缺陷判据补单模块功能流程例外。⑧`tests/README.md` 用例计数 123 → 135。机械门：`tests/doc-consistency.test.mjs` 新增 5 条断言（先跑红 5 失败 → 改后 135 全过）。
+
 ### 上游二：archify（绘图内核）
 
 `scripts/diagram-engine/` 是 [archify](https://github.com/tt-a1i/archify) 出图技能包的**裁剪副本**：保留十类上游图类型（architecture / workflow / sequence / dataflow / lifecycle / erd / class / tree / timeline / waterfall）的渲染能力，删掉了全部与出图无关的子命令（compare / deliver / finalize / preview / migrate / inspect / check / visual-check / browser-check / guide / brands / examples / demo）、`--repo-root` 溯源能力、`examples/`、`references/`、`recipes/`、`delta/` 与上游 `SKILL.md`，把入口 `archify.mjs`（7139 行）裁成内部驱动 `render-driver.mjs`（约 900 行，只留 `render`／`validate`／`doctor`），并以本仓库新增的 `render.mjs` 作为唯一对外入口；品牌解析收窄为「只认内置 canonical ID、不联网」。此外**自建 `flowchart` 类型**（程序设计流程图，上游没有）。逐项改动与被删清单见 `scripts/diagram-engine/UPSTREAM.md` 第 1 节。
@@ -355,8 +357,10 @@ F3–F8 修完后用新项目**盲测复跑**一次，仍判 `有需猜`（无�
 **撞到、但属既有内核行为，一并补进正文覆盖的 2 处**：
 
 - **F** architecture 的 `boundary` 只能圈住自己的成员——未列出却几何落进框内会判失败 → SKILL 补明文。
-- **D** `flowchart` 补专节：结构是**校验**而非修补、**没有逐节点几何旋钮**（`pos`/`layout`/`via`/`labelAt`/`labelDx`/
-  `labelDy`/`labelSegment`/`channelX`/`width` 都不存在）、repair order 里「挪标签、改路由」的步骤对本类型
+- **D** `flowchart` 补专节：结构是**校验**而非修补、**没有逐节点几何旋钮**（`pos`/`via`/`labelAt`/`labelDx`/
+  `labelDy`/`labelSegment`/`channelX`/`width` 都不存在；唯一的间距控制是**全局 `layout` 块**的
+  `gapX`/`gapY`/`nodeW`/`nodeH`，**没有 layout 模式、也没有 grid 块**——本条初稿误把 `layout` 一并写进「都不存在」，
+  2026-10-16 的 `fix-diagram-leftovers` 已改正）、repair order 里「挪标签、改路由」的步骤对本类型
   **不适用**、节点书写顺序会改变布局（只用于修正阅读顺序，不得用来凑一次通过的渲染）。
 
 **未修、登记备查的 3 条**：
