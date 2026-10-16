@@ -347,3 +347,33 @@ SHALL 全部包含 `flowchart`；任一遗漏都 MUST 表现为可被机械检�
 
 - **WHEN** 渲染一份把 `brand` 写成 HTTP(S) URL 的 IR
 - **THEN** 渲染以非零退出码失败并给出 `brand/unsupported-url` 诊断，且过程中不发起网络请求
+
+### Requirement: 自建 `flowchart` 的成色与文本复用内核共享件
+
+自建的 `flowchart` 类型 SHALL 复用内核共享的绘图件，MUST NOT 自造成色或文本度量，以与上游十类保持同一画风：
+
+- 节点 SHALL 按 `kind` 取内核 tone 调色板着色——`start`／`end` → frontend、`process` → backend、
+  `decision` → database、`loop` → cloud、`exception` → security、`io` → messagebus——并 SHALL
+  复用 `renderSemanticSigil` 输出节点语义角标；
+- 节点标签 SHALL 复用内核 `text-fit` 口径自适应：先按单行放宽框宽，超出则折行（上限 4 行），
+  再缩到可读下限；到可读下限仍折不进框时 SHALL 以非零退出码失败并点名 `flowchart/label-overflow`，
+  不产出任何文件；
+- 关系边 SHALL 复用 `arrowClassMap` 提供的类与箭头标记，MUST NOT 自造 marker 常量；
+- 图例 SHALL 复用 `resolveLegend`／`renderLegend`，其标签取自内核内置语言目录的
+  `legend.flowchart.*` 键，且这些键 SHALL 在全部内置语言目录中齐备。
+
+#### Scenario: 节点着色、角标与图例复用内核调色板
+
+- **WHEN** 渲染任一份合法 `flowchart` IR
+- **THEN** 每个节点按 `kind` 带内核 tone 类（如 `decision` → `c-database`），产物含 `renderSemanticSigil`
+  生成的语义角标，并含 `resolveLegend`／`renderLegend` 生成的图例
+
+#### Scenario: 长标签折行后不越出节点边界
+
+- **WHEN** 一份 `flowchart` IR 的某个节点标签宽于其框宽
+- **THEN** 渲染成功，该标签折成多行（必要时缩字号），且每一行都落在节点包围盒内
+
+#### Scenario: 标签长到可读下限仍折不进框
+
+- **WHEN** 一份 `flowchart` IR 的某个节点标签，在可读下限字号下折到 4 行仍装不下
+- **THEN** 渲染以非零退出码失败并点名 `flowchart/label-overflow`，不产出任何文件

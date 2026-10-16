@@ -1117,6 +1117,17 @@ binds it (a module's §3.N function description).
 - **Layout is rank by rank.** Nodes are placed in rows by distance from `start`;
   a back edge (a loop) travels the outer lane, a forward edge that skips ranks
   takes the other. You do not author coordinates.
+- **Styling and text reuse the kernel's own types — do not expect a bespoke look.**
+  Each node is drawn with the kernel tone palette keyed by its `kind` (`start` /
+  `end` → frontend, `process` → backend, `decision` → database, `loop` → cloud,
+  `exception` → security, `io` → messagebus), carries a corner semantic sigil, and
+  the diagram emits a kind legend — the same visual system as `architecture` and
+  `lifecycle`. **Labels are auto-fitted, not your job to pre-break:** the box
+  widens to hold the label on one line up to a maximum, a longer label wraps onto
+  up to **4 lines** (a rect grows taller; a decision diamond grows wider and
+  taller), and the font shrinks toward its legible minimum. A label that still
+  cannot fit at that minimum fails the render with `flowchart/label-overflow` and
+  writes nothing — shorten it.
 - **There are no per-node geometry knobs and no label-routing controls.** Unlike
   architecture and workflow, this type has no `pos`, `via`, `labelAt`,
   `labelDx`, `labelDy`, `labelSegment`, `channelX` or per-node `width`. So the

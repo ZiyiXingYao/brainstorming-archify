@@ -1030,6 +1030,25 @@ test('SKILL 为 flowchart 写明结构校验与「没有几何旋钮」', () => 
   assert.match(skill, /### Erd, class, tree, timeline and waterfall diagrams/, '应说明其余类型的作者口径');
 });
 
+// ⑳ 自建 flowchart 的成色与文本复用内核共享件（变更 flowchart-kernel-style）：
+//    · SKILL 的 flowchart 专节须点明节点走内核 tone 调色板、标签自适应（含 flowchart/label-overflow）；
+//    · MAINTAINING 须登记本次变更。
+test('SKILL 为 flowchart 写明复用内核成色与文本自适应', () => {
+  const section = read(SKILL).split('### Flowchart diagrams')[1]?.split('### ')[0] ?? '';
+  assert.ok(section.length > 0, '应能定位 Flowchart diagrams 段');
+  assert.match(section, /kernel tone palette/, '应写明节点复用内核 tone 调色板');
+  assert.match(section, /auto-fitted/, '应写明标签自适应');
+  assert.match(section, /flowchart\/label-overflow/, '应写明超长标签的拒绝诊断码');
+});
+
+test('MAINTAINING 登记 flowchart 复用内核共享件', () => {
+  assert.match(
+    read('MAINTAINING.md'),
+    /60\. （新增）自建 `flowchart` 渲染器\*\*改由内核共享件组合\*\*/,
+    'MAINTAINING 应有本次变更的登记条目',
+  );
+});
+
 test('SKILL 写明 boundary 只能圈住自己的成员', () => {
   assert.match(
     read(SKILL),
