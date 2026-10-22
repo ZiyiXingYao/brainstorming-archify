@@ -1687,12 +1687,14 @@ Either way, never silently clear a checkbox state.
    and exercising the cross-module interfaces that flow uses.
 
 **Every task is one row with this exact shape** — a checkbox first, then a
-short summary, the dependencies, and the AI implementation prompt:
+short summary, the dependencies, the design documents it must read, and the
+AI implementation prompt:
 
 ```markdown
 - [ ] **T-03 通信模块：Redis 客户端与 key 命名落地**
   - 概要：按 §6.2 模块清单与接口契约 Redis 节实现通信模块的缓存客户端，key 一律走总则命名规范。
   - 依赖：T-01（工程骨架）、T-02（配置与日志）
+  - 参考文档：`01-架构设计.md` §6.2（模块清单）、§8.1（核心类）；`00-接口契约.md` 2.2（Redis 逐项契约）；`03-通信模块.md` §3.1（本模块职责）
   - AI 实现提示词：
     - [实现的功能] 实现通信模块的 Redis 客户端封装……
     - [任务实现的要求] 覆盖接口契约 2.2 节列出的每个 key……遵循 §8.1 核心类清单里的类名与签名……
@@ -1700,11 +1702,39 @@ short summary, the dependencies, and the AI implementation prompt:
     - [验收标准] `node --test` 全绿；key 命名可用机械核对；接口矩阵中本模块负责的行全部翻到 `已落地`……
 ```
 
+**The 参考文档 line is the task's reading list** — every task names the
+design documents it implements against as **file name plus section number**
+pairs (`01-架构设计.md` §6.2、§8.1；`00-接口契约.md` 2.2；`03-<模块>.md`
+§3.1). Section numbers are not unique across the design set — a module
+document carries its own §3.1 and §8.1 — so a bare `§8.1` leaves the
+implementer guessing which of the four-plus documents to open, and a bare
+file name makes them read a whole document to find one table. The line must
+be complete enough that the listed sections alone settle every design
+decision the task needs, and precise enough to be checked against those
+documents: a missing line, a document name with no section
+(`01-架构设计.md`), a section with no document (`§6.2`), a document that
+does not exist under `specs/design/`, or a section number the named document
+does not carry — each is a defect. List only the sections this task actually
+reads: citing a document without any section, or padding the line with every
+section of a document just to be safe, is the same defect as leaving it out,
+because it points nowhere. A short gloss after a section
+(`§6.2（模块清单）`) is welcome but not required. When a module is still
+未设计 and has no document of its own, its module task must not cite a
+document that does not exist: it cites the architecture's module list, file
+tree and interface matrix plus the contract families it touches, and names
+the missing module document as a blocking precondition under
+`[实现的约束]`. When a framework task draws on nothing that is a numbered
+design section, say what it does rest on under `[实现的约束]` instead of
+inventing a citation.
+
 The prompt must be **self-contained and detailed** — an engineer (human or
 AI) who has read the design documents must be able to implement the task
 from the prompt plus those documents alone, without re-deriving decisions
 the design already made. Reference concrete sections (`§6.2`, `§7`, `§8.1`,
-the contract's `x.2` items) instead of restating them.
+the contract's `x.2` items) instead of restating them. The prompt and the
+`参考文档` line cite the same sections and divide the work: the line says
+**where to read**, the prompt says **what to do with what is read**. The two
+must not contradict each other or drift apart.
 
 **Dependency verification — run it before writing the file.** The task list
 is invalid if any of these holds, and the check's conclusion is written into

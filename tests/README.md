@@ -32,7 +32,7 @@ tests/
 ```bash
 # 全部：一条命令覆盖「仓库测试 + 绘图内核回归集」
 node --test tests/*.test.mjs
-# → 139 个用例，0 失败（含 engine.test.mjs 唤起的内核 55 文件回归集）
+# → 140 个用例，0 失败（含 engine.test.mjs 唤起的内核 55 文件回归集）
 
 # 只跑冒烟（独立脚本）
 node tests/render.smoke.test.mjs

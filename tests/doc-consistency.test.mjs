@@ -1080,4 +1080,21 @@ test('审查提示词含 task.md 的未核销保护判据', () => {
   assert.match(body, /only this round's change/, '全核销重生成只装本轮改动点');
 });
 
+// ⑳ task.md 参考文档列（task-md-reference-docs）：每个任务点名要参考的设计文档，粒度「文件名 + 章节号」，
+//    让实现者按图索骥，不必通读整个设计集；只给文档名或只给 `§` 号同判缺陷。
+test('task.md 每个任务带参考文档行，技能/审查/规格三处一致', () => {
+  const skill = read(SKILL);
+  assert.match(skill, /^  - 参考文档：/m, 'SKILL 的行结构模板应含参考文档行');
+  assert.match(skill, /The 参考文档 line is the task's reading list/, '应把参考文档行定义为阅读清单');
+  assert.match(skill, /file name plus section number/, '应要求文件名 + 章节号成对');
+  assert.match(skill, /a section with no document/, '应把只给章节号判缺陷');
+
+  const reviewer = read(REVIEWER);
+  assert.match(reviewer, /\*\*参考文档\*\* line naming every design document/, '审查判据应要求参考文档行');
+  assert.match(reviewer, /a document name with no section/, '审查判据应把只给文档名判缺陷');
+
+  const spec = read('specs/task-split/spec.md');
+  assert.match(spec, /参考文档/, '规格基线应写明参考文档列');
+});
+
 
