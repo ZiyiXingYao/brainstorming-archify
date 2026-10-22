@@ -1087,14 +1087,22 @@ test('task.md 每个任务带参考文档行，技能/审查/规格三处一致'
   assert.match(skill, /^  - 参考文档：/m, 'SKILL 的行结构模板应含参考文档行');
   assert.match(skill, /The 参考文档 line is the task's reading list/, '应把参考文档行定义为阅读清单');
   assert.match(skill, /file name plus section number/, '应要求文件名 + 章节号成对');
-  assert.match(skill, /a section with no document/, '应把只给章节号判缺陷');
+  assert.match(skill, /a section with no\s+document/, '应把只给章节号判缺陷');
+  assert.match(skill, /参考文档：无/, '应给出「不依据任何编号章节」时的取值');
 
   const reviewer = read(REVIEWER);
   assert.match(reviewer, /\*\*参考文档\*\* line naming every design document/, '审查判据应要求参考文档行');
   assert.match(reviewer, /a document name with no section/, '审查判据应把只给文档名判缺陷');
 
   const spec = read('specs/task-split/spec.md');
-  assert.match(spec, /参考文档/, '规格基线应写明参考文档列');
+  assert.match(spec, /参考文档 SHALL 是该任务的阅读清单/, '规格基线应把参考文档定为阅读清单');
+  assert.match(spec, /#### Scenario: 参考文档行可核对/, '规格基线应含参考文档行的可核对场景');
+  assert.match(spec, /为求全把某文档每个章节都列上/, '规格基线应把整份引用/列满判缺陷');
+  assert.match(spec, /参考文档：无/, '规格基线应给出「不依据任何编号章节」时的取值');
+  assert.match(spec, /未设计/, '规格基线应覆盖模块未设计时的引用方式');
+
+  const readme = read('README.md');
+  assert.match(readme, /参考文档（文件名 \+ 章节号）/, 'README 的任务行描述应同步参考文档');
 });
 
 

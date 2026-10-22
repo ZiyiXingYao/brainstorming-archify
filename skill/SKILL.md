@@ -1705,36 +1705,41 @@ AI implementation prompt:
 **The 参考文档 line is the task's reading list** — every task names the
 design documents it implements against as **file name plus section number**
 pairs (`01-架构设计.md` §6.2、§8.1；`00-接口契约.md` 2.2；`03-<模块>.md`
-§3.1). Section numbers are not unique across the design set — a module
-document carries its own §3.1 and §8.1 — so a bare `§8.1` leaves the
-implementer guessing which of the four-plus documents to open, and a bare
-file name makes them read a whole document to find one table. The line must
-be complete enough that the listed sections alone settle every design
-decision the task needs, and precise enough to be checked against those
-documents: a missing line, a document name with no section
-(`01-架构设计.md`), a section with no document (`§6.2`), a document that
-does not exist under `specs/design/`, or a section number the named document
-does not carry — each is a defect. List only the sections this task actually
-reads: citing a document without any section, or padding the line with every
-section of a document just to be safe, is the same defect as leaving it out,
-because it points nowhere. A short gloss after a section
-(`§6.2（模块清单）`) is welcome but not required. When a module is still
-未设计 and has no document of its own, its module task must not cite a
-document that does not exist: it cites the architecture's module list, file
-tree and interface matrix plus the contract families it touches, and names
-the missing module document as a blocking precondition under
-`[实现的约束]`. When a framework task draws on nothing that is a numbered
-design section, say what it does rest on under `[实现的约束]` instead of
-inventing a citation.
+§3.1), with several sections of one document sitting in one entry. Section
+numbers are not unique across the design set — a module document carries its
+own §3.1 and §8.1 — so a bare `§8.1` leaves the implementer guessing which
+of the four-plus documents to open, while a bare file name sends them
+through a whole document to find one table. A short gloss after a section
+(`§6.2（模块清单）`) is welcome but not required.
+
+The line must be complete enough that the listed sections alone settle every
+design decision the task needs, and precise enough to be checked: a missing
+line, a document name with no section (`01-架构设计.md`), a section with no
+document (`§6.2`), a document that does not exist under `specs/design/`, a
+section number the named document does not carry, or padding the line with
+every section of a document just to be safe — each is a defect, because none
+of them tells the implementer where to look.
+
+Two edges have a settled form. When a module is still 未设计 and has no
+document of its own, its module task must not cite a document that does not
+exist: it cites the architecture's module list, file tree and interface
+matrix plus the contract families it touches, and names the missing module
+document as a blocking precondition under `[实现的约束]`. When a framework
+task draws on nothing that is a numbered design section, the line reads
+`参考文档：无` and `[实现的约束]` says what the task does rest on — the line
+stays present so a reviewer can tell "nothing to read" from "forgot to write
+it".
 
 The prompt must be **self-contained and detailed** — an engineer (human or
 AI) who has read the design documents must be able to implement the task
 from the prompt plus those documents alone, without re-deriving decisions
 the design already made. Reference concrete sections (`§6.2`, `§7`, `§8.1`,
 the contract's `x.2` items) instead of restating them. The prompt and the
-`参考文档` line cite the same sections and divide the work: the line says
-**where to read**, the prompt says **what to do with what is read**. The two
-must not contradict each other or drift apart.
+`参考文档` line divide the work: the line says **where to read**, the prompt
+says **what to do with what is read**. Every section the prompt leans on must
+appear in the line — the converse need not hold, since the line may carry
+background the prompt never cites — and the two must not contradict each
+other or drift apart.
 
 **Dependency verification — run it before writing the file.** The task list
 is invalid if any of these holds, and the check's conclusion is written into
