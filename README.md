@@ -1,6 +1,6 @@
 # brainstorming-archify
 
-> **当前版本**：`2.0.0`（tag `v2.0.0`） · [Releases](https://github.com/ZiyiXingYao/brainstorming-archify/releases) · [MIT](LICENSE) · 三个版本号的区分见[版本](#版本)
+> **当前版本**：`2.1.0`（tag `v2.1.0`） · [Releases](https://github.com/ZiyiXingYao/brainstorming-archify/releases) · [MIT](LICENSE) · 三个版本号的区分见[版本](#版本)
 > **技能本体**：[`skill/SKILL.md`](skill/SKILL.md)（英文，AI 读的行为约束） · **维护手册**：[MAINTAINING.md](MAINTAINING.md) · **规格基线**：[`specs/`](specs/) · **测试面**：[`tests/README.md`](tests/README.md)
 
 一个可独立安装到 [CodeBuddy](https://cnb.cool/codebuddy/codebuddy-code) 的**对话式设计技能**：用一问一答把设计谈透，最后（经你同意）按固定模板落成一套**人类可读的实现级设计文档**，并生成实现任务清单。它**不写代码、不接下游流程**。
@@ -61,7 +61,7 @@ node ~/.codebuddy/skills/brainstorming-archify/scripts/diagram-engine/bin/render
 
 | 版本号 | 值 | 指的是什么 | 什么时候变 |
 |---|---|---|---|
-| **本仓库 / 本技能的发布版本** | **`2.0.0`**（tag `v2.0.0`） | 这个仓库与它导出的技能的版本，由 git tag 与 [GitHub Release](https://github.com/ZiyiXingYao/brainstorming-archify/releases) 承载；本 README 顶部与本节是它的文字出处（历史：`v1.0.0`；`v0.1.0`，2026-09-22） | 每次发版 |
+| **本仓库 / 本技能的发布版本** | **`2.1.0`**（tag `v2.1.0`） | 这个仓库与它导出的技能的版本，由 git tag 与 [GitHub Release](https://github.com/ZiyiXingYao/brainstorming-archify/releases) 承载；本 README 顶部与本节是它的文字出处（历史：`v2.0.0`；`v1.0.0`；`v0.1.0`，2026-09-22） | 每次发版 |
 | 技能文本上游基准 | `v7.0.0`（commit `bb92a77`） | `skill/SKILL.md` 所同步的 superpowers 坐标 | 同步 superpowers 时 |
 | 绘图内核上游基准 | `v3.1.0`（commit `1c2b42d`；技能包版本 `3.1.0`） | 内核搬运自 archify 的坐标 | 搬运新内核时 |
 
