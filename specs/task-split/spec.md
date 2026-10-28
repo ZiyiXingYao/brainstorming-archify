@@ -21,17 +21,25 @@ state.yaml SHALL 记录四级整体状态与每个登记文件的三态：
 
 - 整体状态取值恰为 `explore`（纯讨论，没有**设计文档**落盘；`.brainstorming-archify/` 下的流程簿记
   不算「产物」，故 `explore` 期间轮次记录文件已在写）、`draft`（草稿已落盘、人工校验中）、
-  `confirm`（全部确认，只差生成 task.md）、`closed`（task.md 已生成，结束）；
+  `confirm`（全部确认，只差生成自验用例与 task.md）、`closed`（自验用例与 task.md 已生成，结束）；
 - 文件状态取值恰为 `discussing`、`landed`、`confirmed`，且 `confirmed` 蕴含 `landed`。
 
 状态推进 SHALL 满足：
 
 - 正向推进只能走一步，不得跳级；回退 SHALL 必须给出 `--reason`；
 - 推进到 `draft` 的前置条件是全部登记文件已 `landed`；推进到 `confirm` 的前置条件是全部登记文件已
-  `confirmed`；推进到 `closed` 的前置条件是 `specs/design/task.md` 存在且其修改时间晚于最后一次重开，
+  `confirmed`（此判定只看进入 `confirm` 前登记的文件；自验用例在 `confirm` 内才登记，不改变已进入的状态）；
+  推进到 `closed` 的前置条件是 `specs/design/task.md` 存在且其修改时间晚于最后一次重开，
+  `specs/design/03-自验用例.md` **必须存在、必须已登记且为 `confirmed`**、修改时间晚于最后一次重开且不晚于 `task.md`，
   **且本轮已设当前 change-list 文件、该文件在盘上**；
 - `reopen <文件>... --reason` SHALL 只把点名文件翻回 `discussing`（未点名文件状态不变）、整体状态退回
-  `explore`，并登记一条重开事件；点名尚未登记的文件时 SHALL 先登记再翻转。
+  `explore`，并登记一条重开事件；点名尚未登记的文件时 SHALL 先登记再翻转。设计改动影响用例时，
+  MUST NOT 把 `specs/design/03-自验用例.md` 重开为 `discussing`——它只在 `confirm` 内生成，重开会阻断 `advance draft`；SHALL 在 `confirm` 内重新生成并重新确认，陈旧文件由 `advance closed` 拒绝。
+
+**`confirm` 内 SHALL 先出用例、再出任务清单**：技能 SHALL 生成 `specs/design/03-自验用例.md` 并登记为
+`landed`，经自审、子代理审查与用户审查后标为 `confirmed`，再按「实现任务清单 task.md」生成
+`specs/design/task.md`。`advance closed` SHALL 校验上述结果：用例文件存在、已登记且已确认、
+修改时间晚于最后一次重开且不晚于 `task.md`；任一不满足 SHALL 拒绝收口。
 
 **当前 change-list 指针 SHALL 只有一个，且切换受守卫**：state.yaml SHALL 记录
 `change_list: { path, set_at }`；`change-state.mjs change-list <path>` SHALL 要求路径位于
@@ -44,7 +52,8 @@ state.yaml SHALL 记录四级整体状态与每个登记文件的三态：
 
 `state.yaml` SHALL 只允许由 `scripts/task-state/change-state.mjs` 编辑；`resume-state.mjs` SHALL 为
 只读命令：输出当前状态、文件三态、`change_list`（当前轮次文件）、`next_action`
-（按四态给出下一步与要加载的文件——`load` SHALL 含当前 change-list 文件）与 `blockers`
+（按四态给出下一步与要加载的文件——`load` SHALL 含当前 change-list 文件；`confirm` 态 SHALL 先指向
+生成与评审 `03-自验用例.md`，再指向 `task.md`）与 `blockers`
 （state.yaml 不存在、形状或取值非法、登记为 `landed`/`confirmed` 的文件已不在盘上、
 **当前 change-list 文件已不在盘上**）。存在 blocker 时调用方 SHALL 停下并展示修复命令。
 
@@ -53,10 +62,16 @@ state.yaml SHALL 记录四级整体状态与每个登记文件的三态：
 #### Scenario: 首轮讨论走到收口
 
 - **WHEN** 项目没有 state.yaml 时开始讨论，创建轮次 change-list 文件并设指针，随后落盘设计文档、
-  人工逐份确认，最后生成 task.md
+  人工逐份确认，进入 `confirm` 后生成自验用例并评审，最后生成 task.md
 - **THEN** 状态依次为 `explore`（init 后）→ 文档登记为 `landed` 且全部落盘后 `advance draft` →
-  逐份 `confirmed` 且全部确认后 `advance confirm` → 生成 `specs/design/task.md` 后
-  `advance closed --task-md specs/design/task.md` 成功，状态为 `closed`
+  逐份 `confirmed` 且全部确认后 `advance confirm` → 生成 `03-自验用例.md`、登记 `landed`、审查后
+  `confirmed` → 生成 `specs/design/task.md` 后 `advance closed --task-md specs/design/task.md` 成功，
+  状态为 `closed`
+
+#### Scenario: 自验用例缺失、未登记或未确认时不得收口
+
+- **WHEN** `specs/design/task.md` 已生成，但 `03-自验用例.md` 不存在、存在却未登记、或已登记却不是 `confirmed`
+- **THEN** `advance closed` SHALL 拒绝并点名缺失的文件、未登记或未确认状态；用例文件晚于 task.md 时同样拒绝
 
 #### Scenario: 讨论未完成时换 change-list 文件被拒
 
@@ -70,13 +85,15 @@ state.yaml SHALL 记录四级整体状态与每个登记文件的三态：
 - **THEN** `reopen <新模块文档> --reason "<原因>"` 只把该文件登记为 `discussing`、既有 `confirmed`
   文件保持原状、整体状态退回 `explore`；此时 `change-list <新轮次文件>` SHALL 成功；
   重走一遍后**旧 task.md 未更新时 `advance closed` 被拒绝**，更新（按「实现任务清单 task.md」的判据：
-  全核销则整份重生成，否则就地修改/追加）后才可收口
+  全核销则整份重生成，否则就地修改/追加）后才可收口；若设计改动影响用例，在 `confirm` 内重新生成
+  `03-自验用例.md` 并重新确认（MUST NOT 把 03 重开为 `discussing`），陈旧文件由收口拒绝
 
 #### Scenario: 重启后续讨论
 
 - **WHEN** 会话中断数日后重启，运行 `resume-state.mjs --json`
 - **THEN** 输出含 `state`、每个文件的 `status`、`change_list` 与按状态给出的 `next_action` 与
-  `blockers`；`next_action.load` 含当前 change-list 文件（恢复现场要读它）；若某文件登记为
+  `blockers`；`confirm` 态的 `next_action` 先指向生成并评审 `03-自验用例.md`，再指向 `task.md`；
+  `next_action.load` 含当前 change-list 文件（恢复现场要读它）；若某文件登记为
   `landed`/`confirmed` 但已不在盘上，或当前 change-list 文件已不在盘上，`ok` 为 false 且 blockers
   指名该文件
 
@@ -95,6 +112,12 @@ state.yaml SHALL 记录四级整体状态与每个登记文件的三态：
 → **模块任务**（按架构文档模块清单逐个、按依赖序，含模块内部结构、类与该模块负责的接口侧面）
 → **具体功能任务**（按功能流程或无对应流程的功能点，落在其模块内并走该流程用到的跨模块接口）。
 
+**列表的最后一个任务 SHALL 是实现自验用例的验证应用**：它实现 `specs/design/03-自验用例.md` 所描述的
+可运行黑盒验证应用，依赖**全部**功能任务（它本身不是功能任务，故不受「功能任务只能依赖先前模块任务」的
+约束）；其 `参考文档` SHALL 指向 `03-自验用例.md` 第 2 节（环境与专用测试能力）、第 4 节（用例）
+与第 6 节（实现要求）；其 `[验收标准]` SHALL 要求该应用独立运行、执行全部用例、逐条输出
+通过／失败／阻塞与证据、失败时非零退出，且不链接、不读取被测服务的内部实现。缺少该任务的清单 SHALL 判不完整。
+
 每个任务 SHALL 占一行且结构固定：第一列**勾选框**（`- [ ]`），随后**简短概要**、**依赖**
 （前置任务 ID 或 `无`）、**参考文档**、以及详细的 **AI 实现提示词**；提示词 SHALL 含且仅含四段，顺序为
 `[实现的功能]`—`[任务实现的要求]`—`[实现的约束]`—`[验收标准]`，并 SHALL 自包含——
@@ -102,7 +125,7 @@ state.yaml SHALL 记录四级整体状态与每个登记文件的三态：
 任务 ID SHALL 为 `T-01`、`T-02`……按执行序编号。
 
 **参考文档 SHALL 是该任务的阅读清单**：它以**完整文件名 + 章节号**成对列出本任务所依据的设计文档
-（`01-架构设计.md` §6.2、§8.1；`00-接口契约.md` 2.2；`03-<模块名>.md` §3.1），同一文档的多个章节并列在
+（`01-架构设计.md` §6.2、§8.1；`00-接口契约.md` 2.2；`04-<模块名>.md` §3.1），同一文档的多个章节并列在
 同一项内。粒度 SHALL 细到「只读所列章节即可定下本任务的全部设计决策」；章节号在设计集内并不唯一
 （模块文档有自己的 §3.1 与 §8.1），故只给 `§` 号 SHALL 判缺陷、只给文档名不留章节号亦 SHALL 判缺陷，
 点名 `specs/design/` 下不存在的文档、或该文档并不具有的章节号同样 SHALL 判缺陷；
@@ -140,6 +163,12 @@ task.md SHALL 属于受审产物（审查提示词按 Task split 判据审它）
 - **WHEN** 审查一份生成的 `specs/design/task.md`
 - **THEN** 任务按框架 → 模块 → 具体功能三层顺序出现；每个任务行以勾选框开头，含概要、依赖、参考文档与
   四段式 AI 提示词；参考文档项以「文件名 + 章节号」成对给出，提示词所依据的章节均出现在其中而非重述设计结论
+
+#### Scenario: 以验证应用收尾
+
+- **WHEN** 审查一份生成的 `specs/design/task.md`
+- **THEN** 最后一个任务是实现 `03-自验用例.md` 的黑盒验证应用，依赖全部功能任务，
+  参考文档指向第 2、4、6 节；缺少该任务判缺陷
 
 #### Scenario: 参考文档行可核对
 

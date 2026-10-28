@@ -5,8 +5,8 @@
  * 本次把上游「读 SKILL.md 做内容断言」的文档用例随失效测试一起删掉了，文档便再没有
  * 机械看门人。本文件把那部分补回来，锁住本次改写的关键约定，防止后续静默回退：
  *   ① `skill/SKILL.md` 含绘图规划 Gate、三件套、落点/命名硬规则、两行引用、主节点上限、
- *      自审 15 项、修复顺序 ①–⑥，且不含已被裁剪掉的机制名与 `--repo-root`；
- *   ② 四份模板齐备，三份配图模板含三件套与两行引用；
+ *      自审 16 项、修复顺序 ①–⑥，且不含已被裁剪掉的机制名与 `--repo-root`；
+ *   ② 五份模板齐备，三份配图模板含三件套与两行引用；
  *   ③ 迁移残留：活文件不得出现两代历史名与改名前的落盘目录——`skill/`、`templates/` 扫两代名，
  *      `scripts/` 只扫 `codebuddy-brainstorming`（`design-diagrams` 只允许留在 `MAINTAINING.md` 的历史条目里）；
  *   ④ 接口矩阵状态只在架构模板第 7 节定义一次，其余三份文件只引用、不复述；
@@ -38,7 +38,10 @@
  *      接口契约第 1–7 节的三级小节计数随整族不适用而变（`在用族数 × 3`）。
  *   ⑰ 讨论状态库与任务拆分：SKILL 含四级状态机与「state.yaml 只准 change-state.mjs 编辑」口径、
  *      Terminal State 改为「确认文档 + task.md 即终点」、含 Implementation Task Split 的三层拆分与
- *      四段式提示词；审查提示词含 Task split 判据；三份模板文件头无「状态」行；命令适配器源文件在位。
+ *      四段式提示词；审查提示词含 Task split 判据；五份模板文件头无「状态」行；命令适配器源文件在位。
+ *   ⑲ 自验用例（第五份受管文档）：`03-自验用例.md` 由技能在 confirm 后、task.md 前自动生成；
+ *      模板七节 + 用例固定字段 + 黑盒/端到端/正异常/覆盖矩阵判据；模块序号由 03+ 改为 04+；
+ *      task.md 的最后一个任务是实现黑盒验证应用；审查提示词有对应路由与判据。
  *
  * 只用 Node 内置模块，不依赖 node_modules。
  */
@@ -56,6 +59,7 @@ const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const SKILL = 'skill/SKILL.md';
 const ARCH_TEMPLATE = 'templates/architecture-doc-template.md';
 const MODULE_TEMPLATE = 'templates/module-doc-template.md';
+const SELF_TEMPLATE = 'templates/self-verification-cases-template.md';
 
 // 改名残留扫描面。技能有两代历史名：先叫 `design-diagrams`，后叫 `codebuddy-brainstorming`，
 // 现名 `brainstorming-archify`；落盘目录也曾由 `.brainstorming/change-lists` 改到带 `-archify` 的形态。
@@ -75,12 +79,13 @@ test('技能入口在约定位置', () => {
   }
 });
 
-test('四份模板齐备（含第四份实体与数据设计模板）', () => {
+test('五份模板齐备（含实体与数据设计、自验用例模板）', () => {
   for (const rel of [
     ARCH_TEMPLATE,
     MODULE_TEMPLATE,
     DATA_MODEL_TEMPLATE,
     'templates/interface-contract-template.md',
+    SELF_TEMPLATE,
   ]) {
     assert.ok(fs.existsSync(path.join(ROOT, rel)), `缺少 ${rel}`);
   }
@@ -118,12 +123,14 @@ test('flowchart 不再被断言「没有 layout」', () => {
   assert.match(section, /gapX/, 'flowchart 段应给出 layout.gapX');
 });
 
-test('审查提示词按四份文档类型接收第四份模板', () => {
+test('审查提示词按五份文档类型接收其余模板', () => {
   const prompt = read(REVIEWER);
-  assert.match(prompt, /all four document types/, '应为「四份文档类型」');
-  assert.ok(!/all three document types/.test(prompt), '不得残留「all three document types」');
-  assert.match(prompt, /DATA_MODEL_TEMPLATE_PATH/, '应提供第四份模板路径占位符');
-  assert.match(prompt, /data-model-doc-template\.md/, '应点明第四份模板文件名');
+  assert.match(prompt, /all five document types/, '应为「五份文档类型」');
+  assert.ok(!/all four document types/.test(prompt), '不得残留「all four document types」');
+  assert.match(prompt, /DATA_MODEL_TEMPLATE_PATH/, '应提供实体与数据设计模板路径占位符');
+  assert.match(prompt, /SELF_VERIFICATION_CASES_TEMPLATE_PATH/, '应提供自验用例模板路径占位符');
+  assert.match(prompt, /data-model-doc-template\.md/, '应点明实体与数据设计模板文件名');
+  assert.match(prompt, /self-verification-cases-template\.md/, '应点明自验用例模板文件名');
   assert.match(prompt, /\(data model\)/, '图例应定义 `(data model)` 标记');
 });
 
@@ -176,12 +183,12 @@ test('SKILL.md 品牌条款只允许内置 canonical ID', () => {
   assert.match(skill, /never captures a site URL/, '应声明不抓取站点 URL');
 });
 
-test('SKILL.md 自审清单为 15 项', () => {
+test('SKILL.md 自审清单为 16 项', () => {
   const skill = read(SKILL);
   const section = skill.split('## Self-Review')[1]?.split('## Subagent Review')[0] ?? '';
   assert.ok(section.length > 0, '应能定位 Self-Review 段');
   const items = section.match(/^\d+\.\s+\*\*/gm) ?? [];
-  assert.equal(items.length, 15, `自审应为 15 项，实际 ${items.length} 项`);
+  assert.equal(items.length, 16, `自审应为 16 项，实际 ${items.length} 项`);
 });
 
 test('SKILL.md 不含已被裁剪的机制名与参数', () => {
@@ -737,8 +744,8 @@ test('审查提示词含 task.md 判据', () => {
   }
 });
 
-test('三份模板文件头只剩标题与对应架构，修改信息改由轮次台账承载', () => {
-  for (const rel of [ARCH_TEMPLATE, MODULE_TEMPLATE, 'templates/interface-contract-template.md']) {
+test('五份模板文件头只剩标题与对应引用，修改信息改由轮次台账承载', () => {
+  for (const rel of [ARCH_TEMPLATE, MODULE_TEMPLATE, 'templates/interface-contract-template.md', DATA_MODEL_TEMPLATE, SELF_TEMPLATE]) {
     const template = read(rel);
     assert.doesNotMatch(template, /^\> \*\*状态\*\*：/m, `${rel} 文件头不得再有状态行`);
     assert.doesNotMatch(template, /^\> \*\*最近更新\*\*：/m, `${rel} 文件头不得再有最近更新行`);
@@ -748,6 +755,8 @@ test('三份模板文件头只剩标题与对应架构，修改信息改由轮�
   // 模块文档与接口契约保留「对应架构」交叉引用行
   assert.match(read(MODULE_TEMPLATE), /\*\*对应架构\*\*/, '模块文档应保留对应架构行');
   assert.match(read('templates/interface-contract-template.md'), /\*\*对应架构\*\*/, '接口契约应保留对应架构行');
+  assert.match(read(DATA_MODEL_TEMPLATE), /\*\*对应架构\*\*/, '实体与数据设计应保留对应架构行');
+  assert.match(read(SELF_TEMPLATE), /\*\*对应设计集\*\*/, '自验用例应保留对应设计集行');
   const readme = read('README.md');
   assert.doesNotMatch(readme, /「状态」新建为「草稿」/, 'README 不得残留旧状态口径');
   assert.match(readme, /文件头不再写「状态」|\.brainstorming-archify\/state\.yaml/, 'README 应说明状态改记 state.yaml');
@@ -961,17 +970,109 @@ test('审查提示词：章节↔图类型一致、第四份文档路由、类�
   assert.doesNotMatch(body, /do not report these three\s+sections as missing an SVG diagram/, '旧的类图豁免口径应删除');
   assert.doesNotMatch(body, /These two sections do\s+\*\*not\*\* require diagrams/, '「运行/部署都不要求配图」的旧口径应删除');
   assert.match(body, /a runtime view with no diagram and no `不适用` reason is a defect/, '审查应把运行视图缺图判为缺陷');
-  assert.match(body, /whose number is \*\*03 or above\*\*/, '审查路由应把模块序号改为 03+');
+  assert.match(body, /whose number is \*\*04 or above\*\*/, '审查路由应把模块序号改为 04+');
 });
 
-test('文档编号：02- 是固定前缀，模块序号为 03+', () => {
-  for (const rel of [SKILL, REVIEWER, CONTRACT_TEMPLATE, DATA_MODEL_TEMPLATE]) {
+test('文档编号：03- 固定给自验用例，模块序号为 04+', () => {
+  for (const rel of [SKILL, REVIEWER, CONTRACT_TEMPLATE, DATA_MODEL_TEMPLATE, SELF_TEMPLATE, ARCH_TEMPLATE, MODULE_TEMPLATE]) {
     const body = read(rel);
-    assert.doesNotMatch(body, /模块文档.{0,6}`02\+`|模块文档为 `02\+`|modules are `02\+`/, `${rel} 不应再写「模块为 02+」`);
+    assert.doesNotMatch(body, /模块文档.{0,8}`0[23]\+`|模块文档为 `0[23]\+`|modules are `0[23]\+`/, `${rel} 不应再写「模块为 02+/03+」`);
   }
-  assert.match(read(SKILL), /the module documents are `03\+`/, 'SKILL 应写明模块为 03+');
-  assert.match(read(CONTRACT_TEMPLATE), /各模块文档为 `03\+`/, '接口契约模板应写明模块为 03+');
+  assert.match(read(SKILL), /the module documents are `04\+`/, 'SKILL 应写明模块为 04+');
+  assert.match(read(CONTRACT_TEMPLATE), /各模块文档为 `04\+`/, '接口契约模板应写明模块为 04+');
+  assert.match(read(SKILL), /03-自验用例\.md/, 'SKILL 应写明自验用例固定为 03-');
+  assert.match(read(SELF_TEMPLATE), /03-自验用例\.md/, '自验用例模板应点明其产物路径');
 });
+
+test('自验用例模板：七节齐备、用例字段固定、黑盒与端到端判据成文', () => {
+  const body = read(SELF_TEMPLATE);
+  for (const heading of [
+    '## 1. 验证范围与黑盒原则',
+    '## 2. 验证环境与专用测试能力',
+    '## 3. 场景总览',
+    '## 4. 用例',
+    '## 5. 覆盖矩阵',
+    '## 6. 验证应用实现要求',
+    '## 7. 待定问题与风险',
+  ]) {
+    assert.ok(body.includes(heading), `自验用例模板缺少 ${heading}`);
+  }
+  for (const field of ['用例编号', '用例类型', '涉及模块', '关联设计', '前置条件', '测试数据', '操作步骤', '预期结果', '判定方式', '清理与复位', '执行结果']) {
+    assert.ok(body.includes(field), `自验用例模板缺用例字段「${field}」`);
+  }
+  assert.match(body, /正向/, '应定义正向用例');
+  assert.match(body, /异常/, '应定义异常用例');
+  assert.match(body, /至少两个模块|完整业务链路/, '应写死端到端判据');
+  assert.match(body, /不写单元测试|不属于本文档/, '应明确排除单元测试');
+  assert.match(body, /不得.*修改源码|MUST NOT.*改代码|不得.*改代码/, '应禁止靠改代码制造观察点');
+  assert.match(body, /专用 (HTTP )?测试接口|专用测试接口/, '应允许并要求专用测试接口作为实现交付物');
+  assert.match(body, /覆盖矩阵/, '应含覆盖矩阵');
+  assert.match(body, /自动生成/, '应写明自动生成');
+  assert.match(body, /最小可执行契约/, '测试专用能力应带最小可执行契约');
+  assert.match(body, /等待上限/, '异步预期应要求等待上限');
+  assert.match(body, /未发生|无副作用/, '「未发生」应有逐面判据');
+  assert.match(body, /F<nn>/, '用例编号应给出功能号映射');
+  assert.match(body, /P0/, '应定义优先级');
+  assert.match(body, /整个已确认设计/, '应要求覆盖整个已确认设计');
+  assert.match(body, /key 模式/, '可观测面应要求可执行的 key 模式');
+  assert.match(body, /权威出处只有两种|不得自创第三种/, '测试能力出处应只有契约或本文档两种');
+  assert.match(body, /第一个拒绝点/, '异常用例应允许在第一个拒绝点结束并给下游未触达判据');
+  assert.match(body, /功能点一行 MUST NOT 写「无覆盖」/, '功能点不得以任何理由留缺口');
+});
+
+test('SKILL：五份模板必读、确认后先出自验用例、task.md 以验证应用收尾', () => {
+  const skill = read(SKILL);
+  assert.match(skill, /Read all five templates first/, '应要求读五份模板');
+  assert.match(skill, /self-verification-cases-template\.md/, '应点名自验用例模板');
+  assert.match(skill, /03-自验用例\.md/, '应写明自验用例产物路径');
+  assert.match(skill, /before\*\* `task\.md`|before `task\.md`|before\*\*\n?`task\.md`/, '应写明用例先于 task.md 生成');
+  assert.match(skill, /The last task is always the verification application/, '应规定 task.md 最后任务是验证应用');
+  assert.match(skill, /\*\*Self-verification compliance:\*\*/, '自审应含自验用例检查项');
+  assert.match(skill, /no unit-test content/i, '应明确不写单元测试内容');
+  assert.match(skill, /A case that cannot be written is a design gap/i, '应把写不出的用例判为设计缺口');
+  assert.match(skill, /minimal executable contract/i, '测试专用能力应带最小可执行契约');
+  assert.match(skill, /bounded wait window/i, '异步预期应有界');
+  assert.match(skill, /partial document is not a legal/i, '部分覆盖不是合法形态');
+  assert.match(skill, /never write a new path into section 2/i, '不得在第 2 节自拟新接口');
+  assert.match(skill, /negative case may stop at the first rejection point/i, '异常用例的第一个拒绝点例外应成文');
+  assert.match(skill, /03-自验用例\.md landed/, '应把自验用例登记进状态库');
+  assert.match(skill, /file specs\/design\/03-自验用例\.md confirmed|03-自验用例\.md.*confirmed/s, '应把自验用例确认进状态库');
+  assert.match(skill, /Migration \(one-time, explicit\)/, '应写明旧模块编号迁移规则');
+  assert.match(skill, /from the highest number down/, '迁移应说明从最大编号往小顺延');
+  assert.match(skill, /Change list\.\*\* The document and its template|The document and its template\s+are listed in the change list/i, '自验用例应纳入变更清单');
+  assert.match(skill, /change-state\.mjs rename/, '迁移应使用 rename 跟随状态库');
+  assert.match(skill, /Do \*\*not\*\* reopen the case document/, '重开不得把 03 翻回 discussing');
+  assert.match(skill, /refuses a case file older than the last reopen/, '收口应拒绝陈旧用例');
+  assert.match(skill, /self-verification \| the whole document \| \*\(no diagrams/, '图路由应标明自验用例不配图');
+});
+
+test('审查提示词：自验用例路由与判据、最后任务判据', () => {
+  const prompt = read(REVIEWER);
+  assert.match(prompt, /03-自验用例\.md/, '应路由 03- 到自验用例模板');
+  assert.match(prompt, /Self-verification cases \*\*\(self-verification\)\*\*/, '应有自验用例判据行');
+  assert.match(prompt, /no unit-test content|Contains \*\*no unit-test content\*\*/, '应判单元测试内容为缺陷');
+  assert.match(prompt, /dedicated HTTP test interface/, '应要求专用测试接口作为交付物');
+  assert.match(prompt, /coverage matrices close both ways/, '应要求覆盖矩阵双向闭合');
+  assert.match(prompt, /The final task is the verification app/, '应判 task.md 缺少验证应用任务为缺陷');
+  assert.match(prompt, /minimal executable contract/, '应要求测试专用能力带最小可执行契约');
+  assert.match(prompt, /bounded wait window/, '应要求异步预期有界');
+  assert.match(prompt, /partial coverage of the confirmed design is not a legal form/, '应判部分覆盖为缺陷');
+  assert.match(prompt, /title, case type \(positive \/ negative\)/, '用例字段应含标题');
+  assert.match(prompt, /legacy\s+`03-<module>\.md` is a \*\*migration defect\*\*/, '遗留 03- 模块应判迁移缺陷');
+  assert.match(prompt, /Dispatch a second pass at `confirm`/, '应写明 confirm 阶段的第二次派发');
+});
+
+test('模板与技能不再把旧编号模块路径当范例', () => {
+  for (const rel of [SKILL, ARCH_TEMPLATE, MODULE_TEMPLATE, CONTRACT_TEMPLATE, DATA_MODEL_TEMPLATE, SELF_TEMPLATE]) {
+    const body = read(rel);
+    assert.doesNotMatch(
+      body,
+      /specs\/design\/0[0-3]-[^`\s]*模块\.md/,
+      `${rel} 不应把 00-03 前缀的模块文档当作范例（模块从 04+ 起）`,
+    );
+  }
+});
+
 
 test('接口契约仍不配图，并指向第四份文档的 ER 图', () => {
   const body = read(CONTRACT_TEMPLATE);

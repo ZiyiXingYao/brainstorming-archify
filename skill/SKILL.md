@@ -193,9 +193,9 @@ that path's gates before implementation.
 | "It's bounded and the design is obvious — I'll start while they read it" | The gate is the approval, not the design's length. Present, then stop until you hear yes. |
 | "I understand this kind of app, so it's bounded" | Bounded measures the repo, not your familiarity. A new project has no existing flow — it is architectural. |
 | "They just asked casually, so I'll write the doc anyway" | The Persist Gate: ask first. No consent, no file. |
-| "I'll write the doc in whatever shape feels right" | Design documents MUST follow `architecture-doc-template.md`, `module-doc-template.md`, `interface-contract-template.md` or `data-model-doc-template.md`, in section and in order. |
+| "I'll write the doc in whatever shape feels right" | Design documents MUST follow `architecture-doc-template.md`, `module-doc-template.md`, `interface-contract-template.md`, `data-model-doc-template.md` or `self-verification-cases-template.md`, in section and in order. |
 | "No interface came up in this discussion, so no interface contract is needed" | Whether the interface contract is produced is a mechanical test, not a topic judgment: any one of the seven interface families — MySQL, Redis, MQ, HTTP, gRPC, dynamic-library API, TCP — being used by the system this design covers means the document MUST be produced. The base is that system's runtime dependencies, not the surrounding repository and not whether the code exists yet. A skip justified by "we did not touch interfaces" is a defect. |
-| "The interface contract can be `0-接口契约.md` so it sorts with the others" | The interface contract's path and file name are fixed at `specs/design/00-接口契约.md`. Its `00-` is a fixed literal prefix that sits outside the module ordinal sequence — the architecture overview is fixed `01-`, the data-model document is fixed `02-`, and the module documents are `03+` — so the `00-` does not change as modules are added or removed, is not governed by the "append, never renumber" rule, and is never renumbered even when a new module is added. Any other name — no-prefix `接口契约.md`, single-zero `0-接口契约.md`, or the English alias `contract.md` — is a defect. |
+| "The interface contract can be `0-接口契约.md` so it sorts with the others" | The interface contract's path and file name are fixed at `specs/design/00-接口契约.md`. Its `00-` is a fixed literal prefix that sits outside the module ordinal sequence — the architecture overview is fixed `01-`, the data-model document is fixed `02-`, the self-verification case document is fixed `03-`, and the module documents are `04+` — so the `00-` does not change as modules are added or removed, is not governed by the "append, never renumber" rule, and is never renumbered even when a new module is added. Any other name — no-prefix `接口契约.md`, single-zero `0-接口契约.md`, or the English alias `contract.md` — is a defect. |
 | "This is a module discussion, but I'll tidy up the architecture doc while I'm in there" | Untouched sections stay word-for-word. Only entries actually affected by this discussion may change. |
 | "I know the module list well enough, I'll just write the doc" | Reading `specs/design/` first is a hard prerequisite. Writing without reading silently erases other discussions' work. |
 | "Field tables look like spec mode, so I'll describe them in prose instead" | Field tables, function tables, call chains, and interface matrices are design description, not acceptance criteria. They are required, not forbidden. |
@@ -275,6 +275,8 @@ digraph brainstorming {
     "Subagent review" [shape=box];
     "User reviews doc?" [shape=diamond];
     "Mark approved documents confirmed; advance confirm" [shape=box];
+    "Generate 03-自验用例 from the confirmed design" [shape=box];
+    "Review the case document (self, subagent, user)" [shape=box];
     "Generate specs/design/task.md" [shape=box];
     "Advance closed (--task-md)" [shape=box];
     "Done" [shape=doublecircle];
@@ -306,7 +308,10 @@ digraph brainstorming {
     "Subagent review" -> "User reviews doc?";
     "User reviews doc?" -> "Write or merge docs" [label="issues found"];
     "User reviews doc?" -> "Mark approved documents confirmed; advance confirm" [label="approved"];
-    "Mark approved documents confirmed; advance confirm" -> "Generate specs/design/task.md";
+    "Mark approved documents confirmed; advance confirm" -> "Generate 03-自验用例 from the confirmed design";
+    "Generate 03-自验用例 from the confirmed design" -> "Review the case document (self, subagent, user)";
+    "Review the case document (self, subagent, user)" -> "Generate 03-自验用例 from the confirmed design" [label="design gap or issues found — reopen the design first"];
+    "Review the case document (self, subagent, user)" -> "Generate specs/design/task.md" [label="approved"];
     "Generate specs/design/task.md" -> "Advance closed (--task-md)";
     "Advance closed (--task-md)" -> "Done";
 }
@@ -454,8 +459,8 @@ hand, and never let a subagent touch it; `resume-state.mjs` is read-only.
 |---|---|---|
 | `explore` | Pure discussion — no **design document** has landed (process bookkeeping under `.brainstorming-archify/` is not a "product") | `init`, or any `reopen` |
 | `draft` | Drafts are on disk, the human is verifying | every registered file is `landed` (a `confirmed` file counts) |
-| `confirm` | Everything is confirmed — only `task.md` is left | every registered file is `confirmed` |
-| `closed` | `task.md` has been generated; the round is done | `specs/design/task.md` exists and is newer than the last reopen |
+| `confirm` | Everything is confirmed — the self-verification cases and `task.md` are left | every file registered before `confirm` is `confirmed` (the case document is registered inside `confirm`, so it does not reopen the state) |
+| `closed` | The self-verification cases and `task.md` have been generated; the round is done | `specs/design/task.md` exists and is newer than the last reopen; `03-自验用例.md` is registered, `confirmed`, no newer than `task.md`, and both are newer than the last reopen |
 
 Forward moves go **one step at a time**; moving backwards requires
 `--reason`. Three file statuses: `discussing` (in discussion),
@@ -505,15 +510,26 @@ node <skill-root>/scripts/task-state/resume-state.mjs [--json]
 - **At the User Review Gate** — when the human approves a document, mark it
   `file <path> confirmed`. When every registered file is `confirmed`, run
   `advance confirm`.
-- **At `confirm`** — write `specs/design/task.md` per **Implementation
-  Task Split** below (regenerate it whole only when the file is absent or
-  fully checked off; otherwise edit it in place and append), then
+- **At `confirm` — two steps, in this order.** First generate
+  `specs/design/03-自验用例.md` from the confirmed design (see **The
+  self-verification case document** below), mark it
+  `file specs/design/03-自验用例.md landed`, run self-review item 16, then the
+  subagent review and the user review for it, and mark it `confirmed` only
+  after the human approves. **Then** write `specs/design/task.md` per
+  **Implementation Task Split** (regenerate it whole only when the file is
+  absent or fully checked off; otherwise edit it in place and append), dispatch
+  the Task split review pass over it, fix its findings, and run
   `advance closed --task-md specs/design/task.md`. The `--task-md` check
-  refuses a stale file: a reopen makes the old task list out of date, so
-  updating it before closing again is mandatory.
+  refuses a stale task list, and `advance closed` refuses a case document that
+  is missing, unregistered, not `confirmed`, newer than `task.md`, or older
+  than the last reopen.
 - **A revision arrives** — if the human asks for changes after documents
   landed or were confirmed, `reopen` the affected files with the reason and
-  walk the cycle again. Documents nobody asked to change are not re-reviewed.
+  walk the cycle again. Do **not** reopen the case document into `discussing`
+  — it is generated only at `confirm`, so reopening it would block `advance
+  draft`. Instead regenerate and re-confirm it at `confirm`; `advance closed`
+  refuses a case file older than the last reopen. Documents nobody asked to
+  change are not re-reviewed.
 
 The documents themselves carry **no per-document status or modification
 lines** in their header any more — the state library is the single authority
@@ -824,7 +840,7 @@ Output placement is a hard rule, not a preference:
   Never the project root's `diagrams/`, never anywhere else. The triple is
   never split across directories.
 - File name: `<document number>-<diagram name>.<diagram type>.<ext>`, e.g.
-  `03-task-flow.workflow.svg` — the number matches the design document and
+  `04-task-flow.workflow.svg` — the number matches the design document and
   `<diagram name>` is an **English slug**, so a reader can tell at a glance which
   document a diagram belongs to.
 - **Author the IR in that same directory.** Write the source IR at
@@ -866,11 +882,11 @@ Fixed two-line form — never a bare link, never inline markup:
 > [打开交互式版本](diagrams/<document number>-<diagram name>.<diagram type>.html)
 ```
 
-For example, inside `specs/design/03-调度器.md`:
+For example, inside `specs/design/04-调度器.md`:
 
 ```markdown
-![任务下发流程](diagrams/03-task-flow.workflow.svg)
-> [打开交互式版本](diagrams/03-task-flow.workflow.html)
+![任务下发流程](diagrams/04-task-flow.workflow.svg)
+> [打开交互式版本](diagrams/04-task-flow.workflow.html)
 ```
 
 The relative path `diagrams/…` is relative to the Markdown file's own directory
@@ -940,6 +956,7 @@ two views belong to their own sections.
 | module | §3.N class detailed design — function descriptions | `flowchart` | **important ∩ complex** — see the exception below |
 | module | §6 module entity state machine | `lifecycle` | an entity or object **inside this module** has an explicit state enumeration and is not already registered in the data-model document |
 | data-model | §2 domain class / §3 entity-relationship / §4 data flow / §5 core entity state machine | `class` / `erd` / `dataflow` / `lifecycle` | the document exists (see its own section) |
+| self-verification | the whole document | *(no diagrams, no `diagrams/` directory)* | never |
 | interface contract | the whole document | *(no diagrams, no `diagrams/` directory)* | never |
 
 **§3.N function flowcharts.** A function gets a `flowchart` when it is **important**
@@ -1242,8 +1259,9 @@ another type's vocabulary across.
 This skill ends at the persisted document set under `specs/design/`:
 `01-架构设计.md`, `02-实体与数据设计.md` when its mechanical trigger fires, one
 document per designed module, `00-接口契约.md` when its
-mechanical trigger fires, `specs/design/task.md` once every document is
-confirmed, and the diagram triples under `specs/design/diagrams/`. Because
+mechanical trigger fires, `03-自验用例.md` once the design is confirmed and
+before `task.md`, `specs/design/task.md` once every document is confirmed, and
+the diagram triples under `specs/design/diagrams/`. Because
 every document references its diagrams by a path relative to itself, that one
 directory is self-contained — **it** is the thing that gets handed over, not
 an individual file.
@@ -1413,9 +1431,10 @@ reading time.
 
 ## Writing the Design Document
 
-1. **Read all four templates first** — `architecture-doc-template.md`,
-   `module-doc-template.md`, `interface-contract-template.md` and
-   `data-model-doc-template.md` in this skill's directory. This step is mandatory.
+1. **Read all five templates first** — `architecture-doc-template.md`,
+   `module-doc-template.md`, `interface-contract-template.md`,
+   `data-model-doc-template.md` and `self-verification-cases-template.md` in
+   this skill's directory. This step is mandatory.
 2. **Read the existing output set** — per the Incremental Persist
    Protocol, Rule 1. Then decide the write set: what is new, what is
    merged, and which entries change in each document.
@@ -1439,11 +1458,21 @@ reading time.
      changes as modules are added or removed. It is **conditionally produced**: it
      exists when the design uses a MySQL, Redis or MQ interface, or has an explicit
      domain model; otherwise it is absent entirely (no `不适用` page).
+   - The self-verification case document is `specs/design/03-自验用例.md` —
+     that file name is fixed, and its `03-` is a fixed literal prefix. It sits
+     **outside the module ordinal sequence** and is **generated by the skill**,
+     not written by hand: every registered design document is `confirmed`
+     (`confirm`) first, and the case document is produced **before**
+     `specs/design/task.md`. It is always produced — there is no conditional
+     test for it. Being outside the module sequence, the `03-` never changes
+     as modules are added or removed and is not governed by the "append, never
+     renumber" rule; it is never renumbered.
    - The interface contract document is `specs/design/00-接口契约.md` — that
      file name is fixed, and its `00-` is a fixed literal prefix. It sits
      **outside the module ordinal sequence**: the architecture overview is fixed
-     `01-`, the data-model document is fixed `02-`, and the module documents are
-     `03+`. Being outside that sequence, the
+     `01-`, the data-model document is fixed `02-`, the self-verification case
+     document is fixed `03-`, and the module documents are `04+`. Being outside
+     that sequence, the
      `00-` does not change as modules are added or removed and is **not governed
      by the "append, never renumber" rule** below; it is never renumbered, even
      when a new module is added. Never produce any other name — no-prefix
@@ -1451,17 +1480,27 @@ reading time.
      `contract.md` are all defects — and never fold its content into
      `01-架构设计.md` or a module document.
    - Module documents are named after the functional module and numbered
-     after the current maximum. **Append, never renumber** — inserting a
+     `04+`, after the current maximum. **Append, never renumber** — inserting a
      new module in the middle would rename existing files and break the
      references between them. Module names are unique project-wide; two
-     modules may not share one.
+     modules may not share one. **Migration (one-time, explicit).** When a design that used the old
+     `03+` module numbering is reopened, renumber its module documents upward by
+     one **from the highest number down** (`N` → `N+1`, …, `03` → `04`) in that
+     same persist, and record the old→new mapping in the change list. The same
+     persist updates every reference: the architecture's §6.2 对应文档 column,
+     cross-document references, the interface contract's references, `task.md`
+     reference lines, and each diagram triple's prefix plus its two-line
+     reference. Each renamed document also needs `change-state.mjs rename
+     <old> <new>` so the library follows the file; otherwise resume reports the
+     old path as `FILE_MISSING`. A legacy `03-<module>.md` is a migration defect,
+     never a self-verification document.
    - No date prefix, no `docs/` prefix
    - If your human partner names a location, use theirs
 6. **Self-review** (below)
 7. **Subagent review** (below)
 8. **Ask your human partner to review** the documents
 
-**The four managed document types.** The skill manages four kinds of design
+**The five managed document types.** The skill manages five kinds of design
 document, and each is written against its own template with every section kept
 in that template's order — no section added, removed, or reordered:
 
@@ -1472,10 +1511,15 @@ in that template's order — no section added, removed, or reordered:
   prefix). **Conditionally produced**: present when the design uses a MySQL,
   Redis or MQ interface, or has an explicit domain model; otherwise absent.
 - **Module document** — `module-doc-template.md`, written to
-  `specs/design/<NN>-<module name>.md`, numbered `03+`.
+  `specs/design/<NN>-<module name>.md`, numbered `04+`.
 - **Interface contract** — `interface-contract-template.md`, written to
   `specs/design/00-接口契约.md` (fixed name; its `00-` is a fixed literal prefix,
   outside the module ordinal sequence and never renumbered).
+- **Self-verification cases** — `self-verification-cases-template.md`, written to
+  `specs/design/03-自验用例.md` (fixed name; `03-` is a fixed literal prefix).
+  Always produced, and produced only at `confirm`: after every registered design
+  document is confirmed and **before** `task.md`. It is generated from the
+  confirmed design set — never invented in parallel with it.
 
 **When the interface contract is produced — a mechanical test, not a topic
 judgment.** **The base of that test is the system this design covers** —
@@ -1492,6 +1536,79 @@ surrounding repository happens to contain but this system does not use does
 did not touch interfaces" is never valid. The interface contract carries **no
 diagrams** — it is not a diagram-bearing document, and its lack of SVG diagrams
 is never a defect.
+
+**The self-verification case document — generated at `confirm`, reviewed like a
+design document.** Once every registered document is `confirmed`, write
+`specs/design/03-自验用例.md` **before** `task.md`, following
+`self-verification-cases-template.md` section by section. It is **generated from
+the confirmed design set** — not hand-written, and never used to re-decide a
+design question in passing.
+
+- **Not a unit-test document.** Function return values, class and private-field
+  behaviour, internal call counts, SQL statements and code-line assertions
+  belong to unit tests. This document carries **end-to-end, black-box cases
+  only**: each case enters through an external entry point, crosses at least two
+  modules (or one complete business chain), and ends at an externally observable
+  result. A negative case may stop at the first rejection point, but then its
+  expected results must show that downstream modules were **not** reached, and
+  section 1 records that exception — a bare "returns 401" is not end-to-end.
+- **Organization.** Scenario chapters, functional-point sections, one case per
+  entry. Every case records its **case ID**, **title**, **case type (positive /
+  negative)**, modules involved, design reference, priority, preconditions, test data,
+  numbered **steps** (entry point plus concrete input), numbered **expected
+  results** (externally observable values), **decision method** (which observable
+  surface, compared against what), cleanup/reset, and an execution-result field.
+  The module dimension is carried by the per-case module field and the coverage
+  matrix, not by splitting the chapter structure.
+- **Observability without code changes.** A tester MUST NOT have to edit source,
+  change configuration, raise a log level, or write directly to a store to create
+  an observation point. When the existing entries and observable surfaces are not
+  enough, the needed capability — usually a dedicated HTTP test interface, a test
+  switch, or a data-seeding endpoint — is listed in section 2 of the document as
+  an **implementation deliverable**, and the verification app only calls it.
+  Each such capability carries a **minimal executable contract** — method and
+  path, parameters, success and failure semantics, side effect and cleanup — so
+  the case writer never invents an interface on the fly. **If the interface
+  contract exists, the capability must already be registered there**; a missing
+  registration is a design gap — reopen the contract first and regenerate the
+  cases, never write a new path into section 2 as if it were settled. Only a
+  system with no interface contract carries the minimal contract in section 2.
+- **Every expectation is decidable.** A read path is executable (an exact route,
+  log event, key pattern, or topic), not a guess; an asynchronous result states a
+  bounded wait window and its polling; a "nothing happened" expectation names
+  each observable surface that could have changed; observation actions count as
+  steps and each has a numbered expectation. Case IDs map `F<nn>` to the
+  functional point's ordinal in architecture section 5 (`FP-1` → `F01`), a
+  cross-point case is owned by its primary functional point, and priority is
+  `P0` (core business path, safety or money), `P1` (main error and boundary
+  paths) or `P2` (secondary).
+- **Coverage closes both ways.** Every functional point in the architecture's
+  section 5 has at least one case; every module is traversed by at least one
+  case (traversed means the case asserts at least one externally observable
+  result that module produced); every case points back to a functional point
+  and the flow it serves. The document covers the **whole confirmed design** —
+  a functional point or module inside the system's scope never carries a
+  "no coverage" gap, and a partial document is not a legal `03-自验用例.md`.
+  Only a point or module genuinely outside the system's scope is recorded as a
+  reasoned gap; a pure infrastructure module with no externally observable
+  result is recorded in section 1 with its reason instead of being forced into a
+  case, and every other in-scope module must be traversed. Section 1's "not
+  covered" list takes exactly three kinds of entry: an out-of-scope scenario,
+  an exception case that stops at the first rejection point, and an
+  infrastructure module — never a functional point.
+- **A case that cannot be written is a design gap.** If a scenario can only be
+  verified by changing code, or the design gives no observable result to assert,
+  reopen the affected design document, fix it, then regenerate the case document.
+  Rewriting the case wording to hide the gap is a defect.
+- **Review.** Self-review item 16 checks the case document against its template;
+  the subagent review carries the matching row; the user review gate covers it
+  like any other managed document. Corrections that change what gets built go
+  back through the change list before the documents are rewritten.
+- **Change list.** The document and its template are listed in the change list
+  for the confirm-stage persist as a new file, so the write is authorised like
+  any other managed document. When the review exposes a design gap, the affected
+  design sections go back through the change list **before** the cases are
+  regenerated.
 
 ## Document Format Requirements
 
@@ -1515,7 +1632,7 @@ is never a defect.
   "looks like spec mode".
 - **Cross-references use one form** — when a document points at another
   document, write the path relative to the project root in full, e.g.
-  `specs/design/02-通信模块.md`. Never a bare file name, never a
+  `specs/design/04-通信模块.md`. Never a bare file name, never a
   `docs/`-prefixed variant, never a `../` relative hop.
 - **Language follows the conversation** — a Chinese conversation produces a Chinese document, an English conversation an English one. The template's section structure stays fixed; section headings may be translated when the conversation is not Chinese. Code identifiers (class, field, function names) stay in their original form.
 - **Concrete** — no `TBD`, `TODO`, or empty sections. Anything still undecided goes under the "待定问题与风险" section with the reason it is undecided.
@@ -1524,7 +1641,7 @@ is never a defect.
 
 Check each item and fix in place:
 
-1. **Template compliance per document:** Has each document been checked against its own template — architecture against `architecture-doc-template.md`, the data-model document (when present) against `data-model-doc-template.md`, each module against `module-doc-template.md`, the interface contract against `interface-contract-template.md`? Every section present, in order, no extra sections? For the architecture document this includes the 4+1 views: the **runtime view** (§12 — which processes run, each process's threads, and how processes and threads relate, with its `architecture` diagram) and the **deployment view** (§13 — the deployment directory structure, how to deploy, and which files make up the deployment) — each present with its sub-parts, or carrying an explicit `不适用：<reason>`. Was the data-model document produced exactly when the mechanical test says it should be — present when a MySQL / Redis / MQ interface is in use or an explicit domain model exists, absent otherwise, and with its four diagrams restricted to the key subset rather than the full class list or table list?
+1. **Template compliance per document:** Has each document been checked against its own template — architecture against `architecture-doc-template.md`, the data-model document (when present) against `data-model-doc-template.md`, each module against `module-doc-template.md`, the interface contract against `interface-contract-template.md`, and the self-verification case document against `self-verification-cases-template.md`? Every section present, in order, no extra sections? For the architecture document this includes the 4+1 views: the **runtime view** (§12 — which processes run, each process's threads, and how processes and threads relate, with its `architecture` diagram) and the **deployment view** (§13 — the deployment directory structure, how to deploy, and which files make up the deployment) — each present with its sub-parts, or carrying an explicit `不适用：<reason>`. Was the data-model document produced exactly when the mechanical test says it should be — present when a MySQL / Redis / MQ interface is in use or an explicit domain model exists, absent otherwise, and with its four diagrams restricted to the key subset rather than the full class list or table list?
 2. **Placeholder scan:** Any `TBD`, `TODO`, unfilled `<...>` prose placeholder, or empty sections? The scan targets **prose placeholders the author must fill**. Do not flag (a) a literal spec inside inline backticks or a fenced block (e.g. the interface contract's mandated naming format string `<系统>:<域>:<实体>:<用途>`), (b) the templates' fixed notation `不适用：<原因>` and the fixed placeholder line, or (c) the trailing 「使用说明」 block — that block is template guidance and must not appear in the product.
 3. **Internal consistency:** Do any sections contradict each other? Does the recommended approach match the comparison's conclusion?
 4. **Ambiguity check:** Can any sentence be read two ways? Pick one reading and make it explicit.
@@ -1546,6 +1663,8 @@ Check each item and fix in place:
 14. **Shared understanding:** Per **Establish Shared Understanding**, was a shared understanding your human partner could assess and correct in place *before* any feature or approach was proposed, and updated once they corrected it? Entering feature or approach discussion without it is a defect.
 15. **Diagram triples:** For every diagram the change list carries, is the whole **triple** present under `specs/design/diagrams/` with one common prefix — `<document number>-<diagram name>.<diagram type>` — and all three extensions `.json`, `.svg`, `.html`, never split across directories and never outside `specs/design/diagrams/`? Does the document use the fixed two-line reference (the image line plus the `> [打开交互式版本](…)` line), with no `<svg>` tag anywhere in the body? Do the figures agree with the text of their own section — same components, participants and states, no contradiction? **Does every diagram's type equal the one its own section binds?** (`architecture` for §6.3 and the runtime view, `sequence` for §10 and a module's §5, `workflow` for §11, `flowchart` for a §3.N function description, `lifecycle` for a module's §6, and `class` / `erd` / `dataflow` / `lifecycle` for the data-model document's own four sections) — a type that contradicts its section is a defect, and so is a same-named flow in the architecture and a module document pretending to be **one** diagram with one type, because the two now draw different layers (the architecture draws the cross-module call order, the module draws its own implementation steps). Is every diagram within the 12-primary-node limit, and does every name carry both its document-number prefix and its type segment? Is the confirmed **Diagram Planning Gate** plan accounted for one-to-one in the change list? **A diagram kept as a `未通过校验` placeholder is compliant when it has no triple — including no leftover `.json` source IR in `diagrams/` — and its section carries the fixed placeholder line instead of the two-line reference** — count it as accounted for; a missing triple with no placeholder note, or an orphan IR with no placeholder note, is what makes a defect.
 
+16. **Self-verification compliance:** When the round has reached `confirm`, is `specs/design/03-自验用例.md` present and generated from the confirmed design **before** `task.md`? Check it against `self-verification-cases-template.md`: the seven sections are present and in order; every case carries the fixed field set — case ID, title, case type (positive / negative), modules involved, design reference, priority, preconditions, test data, numbered steps with entry point and concrete input, numbered **externally observable** expected results, decision method, cleanup/reset, execution result; there is **no unit-test content** (no function return values, private fields, internal call counts, SQL statements or code-line assertions); every case is **end-to-end** (external entry, at least two modules or one complete business chain, external result) and executable by a tester without editing source, configuration or log levels — an exception case may stop at the first rejection point when its expected results show downstream was not reached and section 1 records it; every functional point in the architecture's section 5 has at least one case and every module is traversed by at least one case (a pure infrastructure module with no externally observable result is recorded in section 1 instead), with the coverage matrix closing both ways; capabilities the tester would otherwise have to improvise (a dedicated HTTP test interface, a test switch, a seeding endpoint) are listed in section 2 as implementation deliverables; and a case that could not be written from the confirmed design was escalated as a design gap and the affected design document reopened, rather than hidden by rewording the case. Also check **decidability**: every asynchronous expectation states a bounded wait window and polling; every "no side effect" expectation names each observable surface that could have changed; every read path is executable (exact route, log event, key pattern, topic); every test-only capability carries a minimal contract in section 2 and is registered in the interface contract when one exists; case IDs map `F<nn>` to the functional point's ordinal in architecture section 5; and the coverage matrix covers the whole in-scope design — a partial document is not a legal `03-自验用例.md`.
+
 ## Subagent Review
 
 After self-review passes, dispatch a review subagent using
@@ -1555,9 +1674,9 @@ procedure at the end of this section says how to run it yourself and how to
 record that it was self-performed. Pass it:
 
 - the path to every document in the write set
-- the path to all four templates — `architecture-doc-template.md`,
-  `module-doc-template.md`, `interface-contract-template.md` and
-  `data-model-doc-template.md`
+- the path to all five templates — `architecture-doc-template.md`,
+  `module-doc-template.md`, `interface-contract-template.md`,
+  `data-model-doc-template.md` and `self-verification-cases-template.md`
 - the approved change list itself: which files are new, which are modified
   and in which sections, what was declared untouched, every new
   dependency, any pending conflict, and whether it was announced as an
@@ -1565,9 +1684,10 @@ record that it was self-performed. Pass it:
   untouched part — the merge-integrity check depends on knowing what the
   approved scope actually was.
 
-One subagent reviews all four document types. Route each document to its
+One subagent reviews all five document types. Route each document to its
 template: `01-架构设计.md` follows the architecture template,
 `02-实体与数据设计.md` follows the data-model template (when present),
+`specs/design/03-自验用例.md` follows the self-verification cases template,
 `specs/design/00-接口契约.md` follows the interface-contract template, and every
 other document follows the module template.
 
@@ -1628,8 +1748,11 @@ self-review. Once they approve, stop.
 
 **Record the approval in the state library, not in the documents.** For each
 document they approved, run `change-state.mjs file <path> confirmed`. When
-every registered file is `confirmed`, run `advance confirm` and generate
-`specs/design/task.md` per **Implementation Task Split** below, then
+every registered file is `confirmed`, run `advance confirm`. At `confirm`,
+generate `specs/design/03-自验用例.md`, register it `landed`, run self-review
+item 16 and one review pass over it, and mark it `confirmed` after the human
+approves; **then** generate `specs/design/task.md` per **Implementation Task
+Split** below, dispatch its Task split review pass and fix the findings, and run
 `advance closed --task-md specs/design/task.md`. If they approved only some
 documents, mark only those; the rest keep their status and the overall state
 stays where it is. A later request to revise an approved document is a
@@ -1667,7 +1790,7 @@ mark of what is done (`- [x]` = checked off = done):
 
 Either way, never silently clear a checkbox state.
 
-**The three tiers, in this order:**
+**The three tiers, in this order — plus the final verification task below:**
 
 1. **Framework tasks** — the engineering skeleton the design implies:
    build and dependency setup, the directory layout from the architecture
@@ -1686,6 +1809,19 @@ Either way, never silently clear a checkbox state.
    that does not map onto a single flow), each landing inside its module
    and exercising the cross-module interfaces that flow uses.
 
+**The last task is always the verification application.** Append one final task
+that implements the runnable black-box verification app for
+`specs/design/03-自验用例.md`: it depends on **every** feature task (it is not a
+feature task itself, so the feature-task ordering rule does not apply to it),
+its `参考文档` line cites `03-自验用例.md` §2 (environment and test-only
+capabilities), §4 (cases) and §6 (implementation requirements), and its
+`[验收标准]` requires that the app runs independently, executes every case,
+reports pass / fail / blocked with evidence per case, exits non-zero on failure,
+and never links or reads the service's internals. A task list without this final
+task is incomplete. On the first round the task is appended; on a later round
+that already carries it, keep that row and its checkbox state; only a whole-file
+regeneration with no such row appends it.
+
 **Every task is one row with this exact shape** — a checkbox first, then a
 short summary, the dependencies, the design documents it must read, and the
 AI implementation prompt:
@@ -1694,7 +1830,7 @@ AI implementation prompt:
 - [ ] **T-03 通信模块：Redis 客户端与 key 命名落地**
   - 概要：按 §6.2 模块清单与接口契约 Redis 节实现通信模块的缓存客户端，key 一律走总则命名规范。
   - 依赖：T-01（工程骨架）、T-02（配置与日志）
-  - 参考文档：`01-架构设计.md` §6.2（模块清单）、§8.1（核心类）；`00-接口契约.md` 2.2（Redis 逐项契约）；`03-通信模块.md` §3.1（本模块职责）
+  - 参考文档：`01-架构设计.md` §6.2（模块清单）、§8.1（核心类）；`00-接口契约.md` 2.2（Redis 逐项契约）；`04-通信模块.md` §3.1（本模块职责）
   - AI 实现提示词：
     - [实现的功能] 实现通信模块的 Redis 客户端封装……
     - [任务实现的要求] 覆盖接口契约 2.2 节列出的每个 key……遵循 §8.1 核心类清单里的类名与签名……
@@ -1704,11 +1840,11 @@ AI implementation prompt:
 
 **The 参考文档 line is the task's reading list** — every task names the
 design documents it implements against as **file name plus section number**
-pairs (`01-架构设计.md` §6.2、§8.1；`00-接口契约.md` 2.2；`03-<模块>.md`
+pairs (`01-架构设计.md` §6.2、§8.1；`00-接口契约.md` 2.2；`04-<模块>.md`
 §3.1), with several sections of one document sitting in one entry. Section
 numbers are not unique across the design set — a module document carries its
 own §3.1 and §8.1 — so a bare `§8.1` leaves the implementer guessing which
-of the four-plus documents to open, while a bare file name sends them
+of the five-plus documents to open, while a bare file name sends them
 through a whole document to find one table. A short gloss after a section
 (`§6.2（模块清单）`) is welcome but not required.
 
@@ -1761,12 +1897,14 @@ claims a pass the list contradicts.
 
 ## Terminal State
 
-This skill **ends here** — at the confirmed design documents plus the
-generated `specs/design/task.md`, with the state library in `closed`.
+This skill **ends here** — at the confirmed design documents (including the
+generated `specs/design/03-自验用例.md`) plus the generated
+`specs/design/task.md`, with the state library in `closed`.
 
 - Do not invoke any further skill
-- Do not start implementing — `task.md` is the handoff artifact, and
-  implementing it belongs to a downstream process
+- Do not start implementing — `task.md` is the handoff artifact (its final task
+  implements the black-box verification app), and implementing any of it
+  belongs to a downstream process
 - **Committing is the repository's convention, not this skill's decision.**
   If the project has a standing rule requiring a commit after file changes
   (a project instruction file, or an established convention), commit the

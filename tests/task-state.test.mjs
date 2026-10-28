@@ -9,7 +9,7 @@
  *
  * 锁定的行为：四态状态机（explore → draft → confirm → closed）与推进前置条件、
  * 文件三态、reopen 只翻点名文件且整体回 explore、closed 后 task.md 作废
- * （advance closed --task-md 校验 mtime 晚于最后一次重开）、原子写盘、YAML 往返、
+ * （advance closed --task-md 校验 mtime 晚于最后一次重开；已登记的自验用例须 confirmed 且新鲜）、原子写盘、YAML 往返、
  * resume 的发现规则与 blockers、resume 全程不写盘。
  *
  * 全部动作发生在临时目录。只用 Node 内置模块，不依赖 node_modules。
@@ -29,9 +29,10 @@ const CHANGE_STATE = path.join(ROOT, 'scripts', 'task-state', 'change-state.mjs'
 const RESUME_STATE = path.join(ROOT, 'scripts', 'task-state', 'resume-state.mjs');
 
 const ARCH = 'specs/design/01-架构设计.md';
-const MOD_A = 'specs/design/02-通信模块.md';
-const MOD_B = 'specs/design/03-调度模块.md';
+const MOD_A = 'specs/design/04-通信模块.md';
+const MOD_B = 'specs/design/05-调度模块.md';
 const TASK_MD = 'specs/design/task.md';
+const SELF_MD = 'specs/design/03-自验用例.md';
 
 function tmpProject(prefix = 'bsa-state-') {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -43,6 +44,14 @@ function runChange(root, args) {
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,
   });
+}
+
+/** 收口：先按流程把自验用例登记为 confirmed，再 advance closed。 */
+function close(root, taskMd = TASK_MD) {
+  if (fs.existsSync(path.join(root, SELF_MD))) {
+    runChange(root, ['file', SELF_MD, 'confirmed']);
+  }
+  return runChange(root, ['advance', 'closed', '--task-md', taskMd]);
 }
 
 function runResume(cwd, args = []) {
@@ -65,6 +74,12 @@ function readState(root) {
 function land(root, rel) {
   const full = path.join(root, rel);
   fs.mkdirSync(path.dirname(full), { recursive: true });
+  // 收口要求自验用例先于 task.md：落 task.md 时先补齐（已存在则不动，便于测陈旧）
+  if (rel === TASK_MD && !fs.existsSync(path.join(root, SELF_MD))) {
+    const cases = path.join(root, SELF_MD);
+    fs.mkdirSync(path.dirname(cases), { recursive: true });
+    fs.writeFileSync(cases, '# 自验用例\n');
+  }
   fs.writeFileSync(full, `# ${path.basename(rel)}\n`);
   return full;
 }
@@ -240,15 +255,45 @@ test('advance closed：需 --task-md 且文件存在', () => {
   assert.equal(r.status, 2);
   assert.match(r.stderr, /--task-md/);
 
-  const r2 = runChange(root, ['advance', 'closed', '--task-md', TASK_MD]);
+  const r2 = close(root);
   assert.equal(r2.status, 1);
   assert.match(r2.stderr, /task\.md|不存在/);
 
   land(root, TASK_MD);
-  const r3 = runChange(root, ['advance', 'closed', '--task-md', TASK_MD]);
+  const r3 = close(root);
   assert.equal(r3.status, 0, r3.stderr);
   assert.match(readState(root), /^state: "closed"$/m);
   assert.match(readState(root), /path: "specs\/design\/task\.md"/);
+});
+
+test('resume-state：confirm 态先指向自验用例再指向 task.md', () => {
+  const root = tmpProject();
+  runChange(root, ['init']);
+  openRound(root);
+  runChange(root, ['file', ARCH, 'confirmed']);
+  runChange(root, ['advance', 'draft']);
+  runChange(root, ['advance', 'confirm']);
+
+  const r = JSON.parse(runResume(root, ['--json']).stdout);
+  assert.equal(r.state, 'confirm');
+  assert.match(r.next_action.reason, /03-自验用例/);
+  assert.match(r.next_action.command, /03-自验用例/);
+});
+
+test('resume-state：自验用例确认后 next_action 指向收口', () => {
+  const root = tmpProject();
+  runChange(root, ['init']);
+  openRound(root);
+  runChange(root, ['file', ARCH, 'confirmed']);
+  runChange(root, ['advance', 'draft']);
+  runChange(root, ['advance', 'confirm']);
+  land(root, SELF_MD);
+  runChange(root, ['file', SELF_MD, 'confirmed']);
+
+  const r = JSON.parse(runResume(root, ['--json']).stdout);
+  assert.equal(r.state, 'confirm');
+  assert.match(r.next_action.reason, /自验用例已确认/);
+  assert.match(r.next_action.command, /advance closed/);
 });
 
 test('advance：同态推进是空操作，不写 log', () => {
@@ -272,6 +317,38 @@ test('advance 回退到更早状态：必须带 --reason', () => {
   assert.match(readState(root), /reason: "推倒重来"/);
 });
 
+test('rename：盘上文件与登记路径一起改，状态不变', () => {
+  const root = tmpProject();
+  const OLD = 'specs/design/03-旧模块.md';
+  const NEW = 'specs/design/04-旧模块.md';
+  runChange(root, ['init']);
+  openRound(root);
+  const oldFull = land(root, OLD);
+  runChange(root, ['file', OLD, 'confirmed']);
+
+  const r = runChange(root, ['rename', OLD, NEW]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(!fs.existsSync(oldFull), '旧路径文件应已改名');
+  assert.ok(fs.existsSync(path.join(root, NEW)), '新路径文件应在盘上');
+  const text = readState(root);
+  assert.match(text, new RegExp(`path: "${NEW.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`));
+  assert.match(text, new RegExp(`path: "${NEW.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[\\s\\S]*status: "confirmed"`));
+  assert.doesNotMatch(text, new RegExp(`path: "${OLD.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`));
+});
+
+test('rename：旧路径未登记或新路径已登记则拒绝', () => {
+  const root = tmpProject();
+  runChange(root, ['init']);
+  openRound(root);
+  land(root, MOD_A);
+  runChange(root, ['file', MOD_A, 'landed']);
+
+  assert.equal(runChange(root, ['rename', 'specs/design/03-不存在.md', 'specs/design/04-不存在.md']).status, 1);
+  land(root, MOD_B);
+  runChange(root, ['file', MOD_B, 'landed']);
+  assert.equal(runChange(root, ['rename', MOD_A, MOD_B]).status, 1);
+});
+
 // ---------------------------------------------------------------------------
 // reopen（closed/confirm/draft 之后重开）
 // ---------------------------------------------------------------------------
@@ -285,7 +362,7 @@ test('reopen：只翻点名文件回 discussing，整体回 explore，未点名�
   runChange(root, ['advance', 'draft']);
   runChange(root, ['advance', 'confirm']);
   land(root, TASK_MD);
-  runChange(root, ['advance', 'closed', '--task-md', TASK_MD]);
+  close(root);
 
   // closed 之后新增模块：登记新文件并重开它
   const r = runChange(root, ['reopen', MOD_B, '--reason', '新增调度模块']);
@@ -326,7 +403,7 @@ test('closed 后重开：旧 task.md 不重生成则无法再次收口', () => {
   runChange(root, ['advance', 'draft']);
   runChange(root, ['advance', 'confirm']);
   const taskMd = land(root, TASK_MD);
-  runChange(root, ['advance', 'closed', '--task-md', TASK_MD]);
+  close(root);
 
   // 重开（新增模块），走完确认，但**不**重写 task.md
   runChange(root, ['reopen', MOD_B, '--reason', '新增调度模块']);
@@ -341,11 +418,96 @@ test('closed 后重开：旧 task.md 不重生成则无法再次收口', () => {
   assert.equal(r.status, 1);
   assert.match(r.stderr, /重开|重新生成|stale/);
 
-  // 重新生成 task.md（mtime 变新）→ 放行
+  // 重新生成自验用例与 task.md（mtime 变新）→ 放行
+  land(root, SELF_MD);
   land(root, TASK_MD);
-  const r2 = runChange(root, ['advance', 'closed', '--task-md', TASK_MD]);
+  const r2 = close(root);
   assert.equal(r2.status, 0, r2.stderr);
   assert.match(readState(root), /^state: "closed"$/m);
+});
+
+test('advance closed：自验用例不存在则拒绝收口（无需登记）', () => {
+  const root = tmpProject();
+  runChange(root, ['init']);
+  openRound(root);
+  runChange(root, ['file', ARCH, 'confirmed']);
+  runChange(root, ['advance', 'draft']);
+  runChange(root, ['advance', 'confirm']);
+
+  // 只落 task.md，不落 03
+  const taskFull = path.join(root, TASK_MD);
+  fs.mkdirSync(path.dirname(taskFull), { recursive: true });
+  fs.writeFileSync(taskFull, '# task.md\n');
+
+  const r = runChange(root, ['advance', 'closed', '--task-md', TASK_MD]);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /自验用例不存在/);
+});
+
+test('advance closed：自验用例存在但未登记也拒绝', () => {
+  const root = tmpProject();
+  runChange(root, ['init']);
+  openRound(root);
+  runChange(root, ['file', ARCH, 'confirmed']);
+  runChange(root, ['advance', 'draft']);
+  runChange(root, ['advance', 'confirm']);
+  land(root, SELF_MD);
+  land(root, TASK_MD);
+
+  const r = runChange(root, ['advance', 'closed', '--task-md', TASK_MD]);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /自验用例尚未登记/);
+});
+
+test('advance closed：登记过的自验用例未确认则拒绝收口', () => {
+  const root = tmpProject();
+  runChange(root, ['init']);
+  openRound(root);
+  runChange(root, ['file', ARCH, 'confirmed']);
+  runChange(root, ['advance', 'draft']);
+  runChange(root, ['advance', 'confirm']);
+
+  land(root, SELF_MD);
+  runChange(root, ['file', SELF_MD, 'landed']);
+  land(root, TASK_MD);
+
+  const r = runChange(root, ['advance', 'closed', '--task-md', TASK_MD]);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /自验用例尚未确认/);
+
+  runChange(root, ['file', SELF_MD, 'confirmed']);
+  const r2 = close(root);
+  assert.equal(r2.status, 0, r2.stderr);
+});
+
+test('advance closed：重开后自验用例陈旧则拒绝收口', () => {
+  const root = tmpProject();
+  runChange(root, ['init']);
+  openRound(root);
+  runChange(root, ['file', ARCH, 'confirmed']);
+  runChange(root, ['advance', 'draft']);
+  runChange(root, ['advance', 'confirm']);
+  const selfMd = land(root, SELF_MD);
+  runChange(root, ['file', SELF_MD, 'confirmed']);
+  land(root, TASK_MD);
+  close(root);
+
+  runChange(root, ['reopen', MOD_B, '--reason', '新增调度模块']);
+  runChange(root, ['file', MOD_B, 'landed']);
+  runChange(root, ['advance', 'draft']);
+  runChange(root, ['file', MOD_B, 'confirmed']);
+  runChange(root, ['advance', 'confirm']);
+
+  backdate(selfMd, 60_000);
+  land(root, TASK_MD);
+  const r = runChange(root, ['advance', 'closed', '--task-md', TASK_MD]);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /自验用例.*不晚于最后一次重开/);
+
+  land(root, SELF_MD);
+  land(root, TASK_MD);
+  const r2 = close(root);
+  assert.equal(r2.status, 0, r2.stderr);
 });
 
 // ---------------------------------------------------------------------------
@@ -461,7 +623,7 @@ test('resume-state：closed 态的 next_action 指向 reopen', () => {
   runChange(root, ['advance', 'draft']);
   runChange(root, ['advance', 'confirm']);
   land(root, TASK_MD);
-  runChange(root, ['advance', 'closed', '--task-md', TASK_MD]);
+  close(root);
   const out = JSON.parse(runResume(root, ['--json']).stdout);
   assert.equal(out.state, 'closed');
   assert.match(out.next_action.reason, /reopen/);
@@ -582,7 +744,7 @@ test('change-list：closed 后未 reopen 不能换文件；reopen 后可以', ()
   runChange(root, ['file', ARCH, 'confirmed']);
   runChange(root, ['advance', 'confirm']);
   land(root, TASK_MD);
-  runChange(root, ['advance', 'closed', '--task-md', TASK_MD]);
+  close(root);
 
   const second = makeRoundFile(root, '20261012T140000Z-round2.md');
   assert.equal(runChange(root, ['change-list', second]).status, 1, 'closed 未 reopen 不能换');
@@ -610,7 +772,7 @@ test('advance closed：必须先设当前 change-list 文件', () => {
 
   const rel = makeRoundFile(root);
   runChange(root, ['change-list', rel]);
-  assert.equal(runChange(root, ['advance', 'closed', '--task-md', TASK_MD]).status, 0);
+  assert.equal(close(root).status, 0);
 });
 
 test('resume-state：输出 change_list；当前文件缺失时 blocker', () => {
@@ -643,7 +805,7 @@ test('resume-state：reopen 后当前指针陈旧时提示开新轮文件', () =
   runChange(root, ['file', ARCH, 'confirmed']);
   runChange(root, ['advance', 'confirm']);
   land(root, TASK_MD);
-  runChange(root, ['advance', 'closed', '--task-md', TASK_MD]);
+  close(root);
   runChange(root, ['reopen', MOD_B, '--reason', '新增模块']);
 
   const out = JSON.parse(runResume(root, ['--json']).stdout);

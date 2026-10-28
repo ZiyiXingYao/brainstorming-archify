@@ -1,6 +1,6 @@
 # brainstorming-archify
 
-> **当前版本**：`2.1.0`（tag `v2.1.0`） · [Releases](https://github.com/ZiyiXingYao/brainstorming-archify/releases) · [MIT](LICENSE) · 三个版本号的区分见[版本](#版本)
+> **当前版本**：`2.2.0`（tag `v2.2.0`） · [Releases](https://github.com/ZiyiXingYao/brainstorming-archify/releases) · [MIT](LICENSE) · 三个版本号的区分见[版本](#版本)
 > **技能本体**：[`skill/SKILL.md`](skill/SKILL.md)（英文，AI 读的行为约束） · **维护手册**：[MAINTAINING.md](MAINTAINING.md) · **规格基线**：[`specs/`](specs/) · **测试面**：[`tests/README.md`](tests/README.md)
 
 一个可独立安装到 [CodeBuddy](https://cnb.cool/codebuddy/codebuddy-code) 的**对话式设计技能**：用一问一答把设计谈透，最后（经你同意）按固定模板落成一套**人类可读的实现级设计文档**，并生成实现任务清单。它**不写代码、不接下游流程**。
@@ -11,8 +11,9 @@
 - **用门约束 AI**：**落盘门**（要不要写）→ **变更清单门**（写什么，你批）→ **用户审查门**（写得对不对），外加绘图规划 Gate 与子代理独立审查。设计期的取舍与理由都落进文档的「关键决策记录」节，不留在对话里。
 - **多模块项目的契约不靠口头对齐**：未设计模块的依赖按**签名级**（函数名 / 入参 / 返回类型 / 边界语义）记进架构接口矩阵，提供方设计时逐条翻牌；函数名须与提供方函数表逐字相等。
 - **讨论进度落库、可中断续接**：`.brainstorming-archify/state.yaml` 记状态机与文件状态，当前轮次的 change-list 文件记讨论记录 / 决策 / 台账 / 落盘授权；隔天或换会话用 `/bsa:resume` 恢复现场，explore 阶段的决策不会因中断而丢。
-- **全部确认后产出实现任务清单**：`specs/design/task.md`——框架 → 模块 → 具体功能三层，每任务一行（勾选框 + 概要 + 依赖 + 参考文档（文件名 + 章节号）+ 四段式 AI 提示词 `[实现的功能]`—`[任务实现的要求]`—`[实现的约束]`—`[验收标准]`），带依赖校验。
-- **明确不做**：不写实现代码、不调用下游技能或流程、不产出 spec 模式的验收产物（字段表 / 签名表 / 接口矩阵是设计描述，模板要求，不算 spec 模式）。技能**只描述行为**，权威口径在 `SKILL.md`、四份模板与 `specs/`。
+- **确认后先出自验用例、再出任务清单**：`specs/design/03-自验用例.md` 按**场景 → 功能 → 模块**组织，每条用例端到端、黑盒、有前置条件 / 操作步骤 / 预期结果 / 判定方式，测试人员不改代码即可执行与判定；评审用例可能翻出设计没考虑到的功能，发现缺口就回改设计后重新生成。
+- **实现任务清单以验证应用收尾**：`specs/design/task.md`——框架 → 模块 → 具体功能三层，每任务一行（勾选框 + 概要 + 依赖 + 参考文档（文件名 + 章节号）+ 四段式 AI 提示词 `[实现的功能]`—`[任务实现的要求]`—`[实现的约束]`—`[验收标准]`），带依赖校验；**最后一个任务**是把自验用例实现成可运行的黑盒验证 app。
+- **明确不做**：不写实现代码、不调用下游技能或流程、不产出 spec 模式的验收产物（字段表 / 签名表 / 接口矩阵是设计描述，模板要求，不算 spec 模式）。技能**只描述行为**，权威口径在 `SKILL.md`、五份模板与 `specs/`。
 
 ## 怎么用
 
@@ -34,9 +35,11 @@ node scripts/install.mjs --dry-run   # 只列将写入的文件与目标路径�
 <你的项目>/
 ├── specs/design/
 │   ├── 01-架构设计.md     架构总纲，全项目唯一（固定 01）
+│   ├── 02-实体与数据设计.md  按需产出，全项目唯一（固定 02）
 │   ├── 00-接口契约.md     按需产出，全项目唯一（`00-` 固定字面前缀）
-│   ├── 02-<模块名>.md …   每个功能模块一份（序号追加不重排）
-│   ├── task.md            实现任务清单（全部文档确认后生成）
+│   ├── 03-自验用例.md     自动生成的端到端自验用例（全部文档确认后、task.md 之前）
+│   ├── 04-<模块名>.md …   每个功能模块一份（序号追加不重排）
+│   ├── task.md            实现任务清单（最后一项是实现验证 app）
 │   └── diagrams/          图三件套：同前缀 .json / .svg / .html，不拆散
 └── .brainstorming-archify/   过程产物（不随设计文档交接、不入提交）
     ├── state.yaml            进度锚点：explore → draft → confirm → closed
@@ -53,7 +56,7 @@ node ~/.codebuddy/skills/brainstorming-archify/scripts/diagram-engine/bin/render
 **更新**：重跑 `node scripts/install.mjs`（先整目录 rename 再写入、成功不留备份；`git clone` 方式则 `git pull` 后再跑一次）。
 **卸载**：`rm -rf ~/.codebuddy/skills/brainstorming-archify ~/.codebuddy/commands/bsa`（正常安装后不该有 `brainstorming-archify.bak-*`；若上次安装中途失败才可能残留一份，按需清理）。卸载不影响已落盘的设计文档——它们在你的项目目录里。
 
-**四套模板的章节形状**（固定结构，产出即实现级设计）：架构总纲 **15 节**（背景/目标/方案对比/整体功能/功能点/模块划分/跨模块接口矩阵/核心类/代码文件树/全局功能流程/**业务编排流程**/运行视图/部署视图/关键决策/待定问题）；功能模块 **8 节**（含**本模块实体状态机**）；**实体与数据设计 8 节**（数据模式总览/领域类图/实体关系图/数据流图/核心实体状态机/数据生命周期与保留/关键决策/待定问题，**条件必出**）；接口契约 `## 总则`（不编号）+ `## 1.`–`## 10.`，七类接口节各含「清单表 / 逐项契约 / 该类规则」三段，该文档**不配图**。编号固定前缀为 `00-` 契约 / `01-` 架构 / `02-` 实体与数据设计，模块为 `03+`。
+**五套模板的章节形状**（固定结构，产出即实现级设计）：架构总纲 **15 节**（背景/目标/方案对比/整体功能/功能点/模块划分/跨模块接口矩阵/核心类/代码文件树/全局功能流程/**业务编排流程**/运行视图/部署视图/关键决策/待定问题）；功能模块 **8 节**（含**本模块实体状态机**）；**实体与数据设计 8 节**（数据模式总览/领域类图/实体关系图/数据流图/核心实体状态机/数据生命周期与保留/关键决策/待定问题，**条件必出**）；接口契约 `## 总则`（不编号）+ `## 1.`–`## 10.`，七类接口节各含「清单表 / 逐项契约 / 该类规则」三段，该文档**不配图**；**自验用例 7 节**（验证范围与黑盒原则/验证环境与专用测试能力/场景总览/用例/覆盖矩阵/验证应用实现要求/待定问题，**自动生成**，不配图）。编号固定前缀为 `00-` 契约 / `01-` 架构 / `02-` 实体与数据设计 / `03-` 自验用例，模块为 `04+`。
 
 ## 版本
 
@@ -61,7 +64,7 @@ node ~/.codebuddy/skills/brainstorming-archify/scripts/diagram-engine/bin/render
 
 | 版本号 | 值 | 指的是什么 | 什么时候变 |
 |---|---|---|---|
-| **本仓库 / 本技能的发布版本** | **`2.1.0`**（tag `v2.1.0`） | 这个仓库与它导出的技能的版本，由 git tag 与 [GitHub Release](https://github.com/ZiyiXingYao/brainstorming-archify/releases) 承载；本 README 顶部与本节是它的文字出处（历史：`v2.0.0`；`v1.0.0`；`v0.1.0`，2026-09-22） | 每次发版 |
+| **本仓库 / 本技能的发布版本** | **`2.2.0`**（tag `v2.2.0`） | 这个仓库与它导出的技能的版本，由 git tag 与 [GitHub Release](https://github.com/ZiyiXingYao/brainstorming-archify/releases) 承载；本 README 顶部与本节是它的文字出处（历史：`v2.1.0`；`v2.0.0`；`v1.0.0`；`v0.1.0`，2026-09-22） | 每次发版 |
 | 技能文本上游基准 | `v7.0.0`（commit `bb92a77`） | `skill/SKILL.md` 所同步的 superpowers 坐标 | 同步 superpowers 时 |
 | 绘图内核上游基准 | `v3.1.0`（commit `1c2b42d`；技能包版本 `3.1.0`） | 内核搬运自 archify 的坐标 | 搬运新内核时 |
 
@@ -80,6 +83,6 @@ node ~/.codebuddy/skills/brainstorming-archify/scripts/diagram-engine/bin/render
 
 ## 语言与许可
 
-- **语言**：`skill/` 下两个文件（技能本体与子代理提示词）用**英文**，保持与上游逐句可比；四份模板、README、MAINTAINING、tests/README 用**中文**；产出的设计文档跟随对话语言；**图文件名恒为英文 slug**。内核内含文档与上游一致（英文为主），逐字节搬运不翻译。
+- **语言**：`skill/` 下两个文件（技能本体与子代理提示词）用**英文**，保持与上游逐句可比；五份模板、README、MAINTAINING、tests/README 用**中文**；产出的设计文档跟随对话语言；**图文件名恒为英文 slug**。内核内含文档与上游一致（英文为主），逐字节搬运不翻译。
 - **许可**：[MIT](LICENSE)（`scripts/diagram-engine/LICENSE` 为其独立副本）。本技能改编自 superpowers 的 `brainstorming`（MIT, © 2025 Jesse Vincent）；出图内核搬运自 archify（MIT, © 2026 tt-a1i (Archify) 与 © 2025 Cocoon AI）并做过裁剪；内联字体 JetBrains Mono 依 SIL OFL 1.1，完整文本见 `scripts/diagram-engine/assets/JetBrainsMono-OFL.txt`；第三方商标与图标归属见 `scripts/diagram-engine/THIRD_PARTY_NOTICES.md`。
 - **自测**：`node --test tests/*.test.mjs`（覆盖仓库测试与内核回归集，零依赖）。

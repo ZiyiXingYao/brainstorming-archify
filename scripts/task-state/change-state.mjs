@@ -7,9 +7,9 @@
  *
  *     explore（纯讨论，无产物落盘）
  *       → draft（草稿已落盘，人工校验中）     前置：全部登记文件 landed（confirmed 算已落盘）
- *       → confirm（全部确认，只差生成 task.md）前置：全部登记文件 confirmed
- *       → closed（task.md 已生成，结束）      前置：--task-md 指向的文件存在，且 mtime
- *                                              晚于最后一次重开（重开会作废 task.md）
+ *       → confirm（全部确认，只差自验用例与 task.md）前置：全部登记文件 confirmed
+ *       → closed（自验用例与 task.md 已生成，结束）前置：--task-md 指向的文件存在且 mtime
+ *                                              晚于最后一次重开；已登记的 03-自验用例须 confirmed 且同样新鲜
  *
  * 文件三态：discussing / landed / confirmed。
  *
@@ -56,6 +56,7 @@ const USAGE = `用法：
   node scripts/task-state/change-state.mjs [--root <项目根>] change-list <路径>
   node scripts/task-state/change-state.mjs [--root <项目根>] advance <explore|draft|confirm|closed> [--task-md <路径>] [--reason "<原因>"]
   node scripts/task-state/change-state.mjs [--root <项目根>] reopen <路径>... --reason "<原因>"
+  node scripts/task-state/change-state.mjs [--root <项目根>] rename <旧路径> <新路径>
   node scripts/task-state/change-state.mjs [--root <项目根>] show [--json]
 
 状态机：explore → draft → confirm → closed（正向只能走一步，回退必须 --reason）。
@@ -323,6 +324,43 @@ function cmdAdvance(root, target, { taskMd, reason }) {
         throw new StateError(`不能推进到 closed：当前 change-list 文件不在盘上（${cl}）。`);
       }
       checkRoundFileShape(path.join(root, cl), cl);
+      // 自验用例必须先于 task.md 生成：文件必须在盘上；若已登记，还须 confirmed
+      const casesRel = 'specs/design/03-自验用例.md';
+      const casesFull = path.join(root, casesRel);
+      if (!fs.existsSync(casesFull)) {
+        throw new StateError(
+          `不能推进到 closed：自验用例不存在（${casesRel}）。请在生成 task.md 之前生成它。`,
+        );
+      }
+      const casesFile = state.files.find((f) => f.path === casesRel);
+      if (!casesFile) {
+        throw new StateError(
+          `不能推进到 closed：自验用例尚未登记（${casesRel}）。`
+          + '生成后请跑 file <路径> landed → 审查 → file <路径> confirmed。',
+        );
+      }
+      if (casesFile.status !== 'confirmed') {
+        throw new StateError(
+          `不能推进到 closed：自验用例尚未确认（${casesFile.path}，${casesFile.status}）。`
+          + '先完成自验用例的审查并跑 file <路径> confirmed。',
+        );
+      }
+      const casesMs = fs.statSync(casesFull).mtimeMs;
+      const taskMs = fs.statSync(full).mtimeMs;
+      if (!(casesMs <= taskMs)) {
+        throw new StateError(
+          `不能推进到 closed：${casesRel} 的修改时间晚于 ${taskMd}。`
+          + '自验用例必须先于 task.md 生成；请重新生成 task.md（或先定稿用例）。',
+        );
+      }
+      if (lastReopen) {
+        if (!(casesMs > Date.parse(lastReopen.at))) {
+          throw new StateError(
+            `不能推进到 closed：${casesRel} 的修改时间不晚于最后一次重开（${lastReopen.at}）。`
+            + '重开后请重新生成并确认自验用例。',
+          );
+        }
+      }
       state.task_md = { path: taskMd, generated_at: nowIso() };
     }
   } else {
@@ -336,6 +374,33 @@ function cmdAdvance(root, target, { taskMd, reason }) {
   state.log = [...(state.log ?? []), { at: nowIso(), from: STATES[fromRank], to: target, reason: reason ?? '' }];
   writeStateFile(root, state);
   process.stdout.write(`状态：${STATES[fromRank]} → ${target}\n`);
+  return 0;
+}
+
+/**
+ * 改名一个已登记文件：盘上文件与 state.yaml 里的登记路径一起改，状态保持不变。
+ * 用于「旧 03- 模块文档顺延为 04+」这类迁移——只改一处会让恢复把旧路径报成 FILE_MISSING。
+ */
+function cmdRename(root, oldPath, newPath) {
+  const oldRel = checkDocPath(oldPath);
+  const newRel = checkDocPath(newPath);
+  if (oldRel === newRel) throw new UsageError('rename 的新旧路径相同。');
+  const state = readStateFile(root);
+  if (!state) throw new StateError('state.yaml 不存在，先跑 init');
+  const entry = state.files.find((f) => f.path === oldRel);
+  if (!entry) throw new StateError(`rename 的旧路径未登记：${oldRel}`);
+  if (state.files.some((f) => f.path === newRel)) {
+    throw new StateError(`rename 的新路径已登记：${newRel}`);
+  }
+  const oldFull = path.join(root, oldRel);
+  const newFull = path.join(root, newRel);
+  if (!fs.existsSync(oldFull)) throw new StateError(`rename 的旧文件不在盘上：${oldRel}`);
+  if (fs.existsSync(newFull)) throw new StateError(`rename 的目标已存在：${newRel}`);
+  fs.mkdirSync(path.dirname(newFull), { recursive: true });
+  fs.renameSync(oldFull, newFull);
+  entry.path = newRel;
+  writeStateFile(root, state);
+  process.stdout.write(`已改名：${oldRel} → ${newRel}（状态 ${entry.status} 不变）\n`);
   return 0;
 }
 
@@ -479,6 +544,10 @@ export function run(argv = process.argv.slice(2)) {
     }
     if (sub === 'reopen') {
       return cmdReopen(projectRoot, positional.slice(1), reason);
+    }
+    if (sub === 'rename') {
+      if (positional.length !== 3) throw new UsageError('rename 需要两个参数：<旧路径> <新路径>。');
+      return cmdRename(projectRoot, positional[1], positional[2]);
     }
     if (sub === 'show') {
       return cmdShow(projectRoot, json);

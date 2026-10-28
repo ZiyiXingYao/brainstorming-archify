@@ -54,7 +54,7 @@ function findRoot(explicit) {
   }
 }
 
-function nextActionFor(state, { changeList = '', changeListStale = false } = {}) {
+function nextActionFor(state, { changeList = '', changeListStale = false, files = [] } = {}) {
   const load = ['SKILL.md'];
   if (changeList) load.push(changeList);
   switch (state) {
@@ -77,12 +77,23 @@ function nextActionFor(state, { changeList = '', changeListStale = false } = {})
         command: `node "${CHANGE_STATE}" file <路径> confirmed`,
         load,
       };
-    case 'confirm':
+    case 'confirm': {
+      const cases = files.find((f) => f.path === 'specs/design/03-自验用例.md');
+      if (!cases || cases.status !== 'confirmed') {
+        return {
+          reason: '全部已确认（confirm）：先生成并评审 specs/design/03-自验用例.md'
+            + '（file … landed → 自审/子代理/用户审查 → file … confirmed），确认后再生成 task.md。',
+          command: `node "${CHANGE_STATE}" file specs/design/03-自验用例.md landed`,
+          load,
+        };
+      }
       return {
-        reason: '全部已确认（confirm）：只差生成实现任务清单。按 SKILL.md 的 Implementation Task Split 生成 specs/design/task.md，然后收口。',
+        reason: '自验用例已确认（confirm）：按 SKILL.md 的 Implementation Task Split 生成/更新 specs/design/task.md，'
+          + '跑 Task split 审查后再收口。',
         command: `node "${CHANGE_STATE}" advance closed --task-md specs/design/task.md`,
         load,
       };
+    }
     case 'closed':
       return {
         reason: '已收口（closed）：没有进行中的讨论。要新增或修改模块，用 reopen 重开点名文件（其余确认文件不动），并为本轮创建新的 change-list 文件。',
@@ -147,7 +158,7 @@ function summarize(root) {
     change_list: state.change_list ?? { path: '', set_at: '' },
     reopens: state.reopens.length,
     task_md: state.task_md.path ? state.task_md : null,
-    next_action: nextActionFor(state.state, { changeList, changeListStale }),
+    next_action: nextActionFor(state.state, { changeList, changeListStale, files: state.files }),
     blockers,
   };
 }
